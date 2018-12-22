@@ -1,0 +1,1768 @@
+简介
+  时间,作者,开发语言,定义
+    1995年,瑞典MySQL AB公司开发,使用C和C++编写,2008年1月16日被Sun公司收购,09年又被Oracle收购.MySQL名称起源不明,10多年来,用户的基本目录及大量库和工具均采用了前缀'my'.MySQL的象征符号是一只名为Sakila的海豚,并采用GPL许可证
+    MySQL提供了快速,多线程,多用户和结构化SQL语言.
+  官网: http://www.mysql.com
+  版本
+    稳定级别: alpha-->beta-->rc-->GA
+      ·alpha    表明发行包含大量未被彻底测试的新代码
+      ·beta     意味着该版本的功能时完整的,并且所有的新代码被测试,没有增加重要的新特征.当alpha版本至少一个月没有出现致命漏洞,并且没有计划增加导致已经实施的功能不稳定的新功能是,可以从alpha版变为beta版本
+      ·rc       是发布版本,是一个发行了一段时间的beta版本,能正常运行,只增加了很小的修复
+      ·         若没有后缀,则意味着该版本已经在很多地方运行了一段时间了,而且没有缺陷报告（GA版本）
+  协议
+    MySQL软件使用双重授权,用户可以根据GNU选择作为开放源码产品使用, 也可从Oracle处购买商业许可证
+适用性(优缺)
+  MySQL的工作
+    1.Mysql程序开发存储  
+    2.MySQL系统管理 
+    3.MySQL程序设计接口
+    4.MySQL应用程序开发
+  MySQL的使用场景
+    1.Web网站系统
+    2.日志记录系统
+    3.数据仓库系统
+    4.嵌入式系统
+架构
+  模块
+  安装
+    Yum安装:
+      .# wget https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+      .# yum install mysql-community-server(libs, libs-compat, client, common, libaio, net-tools)
+      .# systemctl start mysqld
+      .# grep 'temporary password' /var/log/mysqld.log                     # 查找密码
+      .# mysql -uroot -p
+        > alter user 'root'@'localhost' identified by 'DreamSoft_123';      # 更改密码
+      安装包:
+        server: 数据库服务器和相关工具
+        client: 客户端应用工具
+        commom: 服务器和客户端的公共文件
+        libs: 某些语言和程序需要动态加载和使用MySQL的共享库
+        libs-compat: 旧版本的共享库. 若已安装了旧版本MySQL的动态链接的程序, 但希望在不破坏依赖关系的情况下升级到当前版本, 则安装此包
+        devel: 开发MySQL数据库客户端应用的头文件和库
+    二进制安装:
+      .# 确保移除旧版本MySQL安装包
+      .# yum install libaio
+      .# wget -c https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.13-linux-glibc2.12-x86_64.tar.xz
+      .# groupadd mysql; useradd -r -g mysql -s /bin/false mysql 
+      .# mkdir mysql-files; chown mysql:mysql mysql-files; chmod 750 mysql-files      # 作为secure_file_priv系统变量的位置
+      .# mkdir -p logs/{binlog,redolog,relaylog} ; chown -R mysql:mysql logs
+      .# ./bin/mysqld --defaults-file=/etc/my.cnf --user=mysql --initialize           # 初始化并生成密码(其中包含创建SSL的RSA过程(bin/mysql_ssl_rsa_setup --datadir=/opt/mysql/data))
+      .# chown -R root ./ ; chown -R mysql data mysql-files logs
+      .# bin/mysqld_safe --user=mysql &                # 临时启动
+      .# cp support-files/mysql.server /etc/init.d/mysqld
+      .# /etc/init.d/mysqld start
+      .# mysql -uroot -p
+        > alter user 'root'@'localhost' identified by 'DreamSoft_123';                # 更改密码
+
+    MySQL工具集:
+      .# yum install mysql-utilities
+    当MySQL数据库目录为空时,会自动初始化服务:
+      1.数据库初始化
+      2.SSL证书和key文件在数据目录生成(ca-key.pem, ca.pem, client.pem, client-key.pem, private_key.pem, public_key.pem, server-cert.pem, server_key.pem)
+      3.validate_password 插件被安装并启用(要求密码至少包含一个小写字符,一个大写字符,一个数字,一个特殊符号且至少8位)
+      4.创建一个超级用户('root'@'localhost'), 密码保存在error log文件中
+    初始数据库:
+      1.information_schema:
+      2.mysql:
+      3.performance_schema:
+      4.sys:
+  结构
+    目录结构
+      /usr/bin              客户端程序和脚本
+      /usr/lib64/mysql/     库文件
+      /usr/sbin             mysqld程序和脚本
+      /var/lib/mysql/       日志文件和数据库, 包含日志文件, innodb表空间, innodb日志文件, SSL和RSA秘钥文件, mysqld的pid文件, 存储持久化全局系统变量设置的mysqld-auto.cnf文件
+      /usr/include/mysql    头文件
+      /usr/share/mysql/     错误消息和字符集文件
+      ~/.mysql_history      mysql命令记录文件
+    配置文件:
+      说明:
+        1.空行被忽略, #为注释
+        2.[group]是组名称, 不区分大小写
+        3.命令行参数取消掉前缀"--"即为配置参数, 选项内的"-"和"_"可以不加区别使用
+        4.选项组名称和程序名称相同, 则组中的选项应用于该程序
+        5.先列出一般的选项组, 再列出更具体的选项组, 后指定的选项可以覆盖前指定的选项
+        6.设置变量值为相乘或纯数字可在运行时设置, 值为带单位的数字则必须在启动时设置
+        7.配置文件读取顺序: # mysql help | grep my.cnf(/etc/my.cnf /etc/mysql/my.cnf /usr/etc/my.cnf ~/.my.cnf)
+
+    配置: [mysqld]
+      引入配置
+        !include /path/dir/myopt.cnf        # !include 用来引入其它配置文件. 该指定在哪个选项组下就只引用文件内该选项组的内容,(!includedir指令相同)
+        !includedir /path/dir               # !includedir 用来引入该目录下所有.cnf结尾的文件(无法保证从该目录读取文件的顺序)
+            lower_case_table_names = N
+              0:创建表或数据库名以语句指定的大小写保存在硬盘上,大小写敏感,linux默认
+              1:表或数据库名以小写保存,MySQL将所有表名转换为小写以便存储和查找,大小写敏感
+              2:创建表或数据库名以语句指定的大小写保存,但MySQL将它们转换为小写以便查找,大小写不敏感(只适用windows)
+            skip_name_resolve                       # 当一个新的线程来连接时,mysql将会产生新的线程来处理.这个线程将首先检查主机是否缓存有主机名,如果没有该线程将会调用gethostbyaddr_r()和gethostbyname_r()来解析主机名.若主机不支持该调用,则使用第一个线程来处理该请求(当第一个线程是ready的时候).可通过skip-name-resolve来禁用DNS解析
+                                                    > 当使用了该参数的时候,mysql的授权表中的host字段就不能够使用域名而只能够使用ip地址了,因为这是禁止了域名解析的结果
+            key_buffer_size=512M                    # 服务器的秘钥缓冲区大小
+            table_open_cache=                       # 
+            sort_buffer_size=                       # 排序操作
+            read_buffer_size=
+            net_buffer_length
+            read_rnd_buffer_size=                   # 加快排序后的行读取速度
+            default_storage_engine=innodb           # 设置默认存储引擎(默认innodb)
+            default_tmp_storage_engine=ndbcluster   # 设置临时表的存储引擎
+      目录:
+        basedir=/path/dir                           # 安装目录
+        datadir=                                    # 数据目录
+      日志:
+        错误日志
+          log_error = /path/mysql.log             # 若无该参数, 则写入控制台.该参数默认值为数据库目录下hostname.err
+          log_error_verbosity = 3                 # 日志级别. 1(只有error), 2(errors和warnings), 3(errors, warnings和notes).默认为3, 若值大于3, 则新连接报错
+          log_syslog =  1|0                       # 若启用, 则将错误日志写入系统日志.
+          log_syslog_facility =                   # 默认值为daemon
+          log_syslog_include_pid=1|0              # 是否在每行的syslog输出中包含服务器pid             
+          log_syslog_tag = "mysql_1"              # 添加一个标识符, 用来在系统日志中分辨不同的MySQL日志
+        一般查询日志和慢查询日志 
+          log_output=[table, file, none]          # 控制一般日志和慢日志的记录地点(默认为file). 多值以,分隔. 使用file则使用下面的*_log_file.使用table则使用mysql.general_log和mysql.slow_log表
+          general_log = 0|1                       # 是否启用一般日志
+          general_log_file =                      # 一般日志文件(默认/var/lib/mysql/hostname.log)
+          slow_query_log = 0|1                    # 是否启用慢日志
+          slow_query_log_file =                   # 慢日志文件(默认/var/lib/mysql/hostname-slow.log)  
+          long_query_time=10                      # 查询时间超过N秒的SQL被记录, 默认为10
+          min_examined_row_limit=N                # 至少扫描了N行的SQL被记录, 默认为0. 两者是and关系
+          log_slow_admin_statements=1|0           # 是否将超时的管理SQL语句记录到慢日志(alter table, analyze table, check table, create index, drop index, optimize table, repair table), 默认为0
+          log_queries_not_using_indexes=1|0       # 是否将不使用索引的SQL记录到慢日志. 默认为0
+        二进制日志
+          server_id=1
+          log_bin=/path/binlog                    # 二进制日志. 会自动在文件名后加序号后缀.若binlog被启用, 则该server_id必须指定. 同时启用binlog. 默认启用
+          log_bin_index=/path/binlog.index        # 二进制日志索引文件.默认扩展名为.index
+          binlog_format=[statement,row,mixed]     # 二进制日志格式.默认row(在ndb集群中默认mixed,且statement-based不支持ndb集群)
+          binlog_do_db=db_name                    # 指定哪些数据库的更改语句被写入binlog. 跨库影响同replicate_do_db. 指定多个数据库则多次使用该选项
+          binlog_ignore_db=db_name                # 指定哪些数据库的更改语句被忽略.跨库影响同replicate_ignore_db
+          binlog_row_event_max_size=N             # row-based的binlog event最大值.默认值8192.为256的倍数,单位byte. 小于该值的row被分组成event
+          log_bin_trust_function_creators[=1|0]   # 影响MySQL如何限制函数和触发器(当创建一个函数或触发器时如果它时不确定的则二进制日志可能不安全,这种情况下创建报错.设为1则不报错). 
+          log_bin_use_v1_row_events[=1|0]         # 8.0使用第二版本的二进制日志行事件. 5.6.6以前使用v1格式(值为1). 默认为0
+          binlog_checksum=none|crc32              # 使master写入events的校验值到binlog, 默认crc32. 该值被更改, 则binlog文件被轮替
+          master_verify_checksum=0|1              # 当从binlog中读取时,使master使用校验值验证binlog. 若不匹配则报错停止. 默认禁用. 当被禁用时,master使用从binlog中读取event长度来验证events
+          max_binlog_size=                        # binlog文件的最大大小. 达到该大小时, 二进制日志被刷新.默认值1G(事务不可分分隔到多个binlog中, 故文件可能超过1G).范围4096-1G(当max_relay_log_size为0,该选项同样适用于relay log)
+          binlog_cache_size=N                     # 一个事务中的binlog缓存大小, 默认32768byte
+          binlog_stmt_cache_size=N                # binlog在保存事务中非事务语句的缓存大小. 默认32768byte
+          max_binlog_cache_size=                  # 一个事务的最大内存.默认18446744073709551615byte, 最小值4096. 推荐最大值4GB(因为MySQL无法处理超过4GB的binlog的position)
+          max_binlog_stmt_cache_size=             # 一个事务中的非事务性语句的最大内存.默认18446744073709547520 bytes.最小4096.
+          binlog_directory_non_transactional_updates=1|0          # 当事务中包含对非事务的更新时, MySQL将非事务表的更新直接写入binlog(而非事务缓存). 该选项仅对statement-based方式有效或mixed-based中的语句复制有效.默认关闭
+          binlog_error_action=                    # 当MySQL遇到错误(不能写入,刷新,同步binlog等)时的反应. 默认值abort_server.可用值abort_server,ignore_error
+                                                  > abort_server: 使MySQL停止记录并关闭
+                                                  > ignore_error: 服务继续进行,但记录错误并关闭日志
+          binlog_expire_logs_seconds=             # 设置binlog文件过期时间.默认值2592000(30d). 若binlog文件超过该值的时间则自动删除.值为0则禁用自动删除
+          
+          binlog_group_commit_sync_delay=N        # 设置binlog同步到磁盘的周期.默认为0,范围0-1000000毫秒. 0代表没有延迟
+                                                  > 若sync_binlog=1或0,则在同步/处理以前该值被应用到每个binlog.若sync_binlog=N,则N个binlog提交之后该值被应用
+          binlog_group_commit_sync_no_delay_count=N     # 当缓存的事务数量达到N,则直接同步到磁盘而忽略sync_dalay的值. 默认为0,范围0-100000
+          sync_binlog=N                           # 控制MySQL将binlog同步到磁盘binlog文件的频率.默认为1,范围0-4294967295. 
+                                                  > 0: 禁用binlog同步到磁盘.MySQL依赖于操作系统的日志刷新. 该方式性能最好但易丢失数据
+                                                  > 1: 每个事务提交之前都先同步到磁盘的binlog. 该方式较为安全(binlog文件中不会有丢失的事务)
+                                                  > N: 在N个binlog提交被收集之后再同步到磁盘.值越高则性能越好, 但数据丢失越多的风险大
+                                                  > 推荐使用该值为1, innodb_flush_log_at_trx_commit=1的设置, 具有最大的持久性和一致性
+
+          binlog_order_commits=1|0                # 事务按产生的顺序写入binlog.若为0,事务可并发提交.默认为0.在master上默认为1.
+          binlog_row_image=                       # 在row-based模式下,row images被写入binlog的方式. 每个row更改事件包含两份image(before image:被更改行的原始记录. after image: 更改后的列). 正常情况下,MySQL记录所有的列(包含before和master)
+                                                  > full: 记录所有的列, 包含before和after. 默认
+                                                  > minimal: 
+                                                  > noblob: 
+          binlog_row_metadata=                    # 当使用row-based方式时配置表的元数据添加进binlog.主要用于1.当表结构不同于master时slave可以使用元数据来转换数据. 2.外部软件使用元数据解码row events从而存储到其它数据库
+                                                  > minimal: 只关联signed标识的元数据,字段设置和几何类型被记录. 默认
+                                                  > full: 所有元数据被记录(例如: 字段名,enum, 主键信息等)
+          binlog_row_value_options=
+          binlog_row_query_log_events=1|0         # 在row-based方式下, 是否使MySQL写入log event(这些信息会被MySQL程序忽略)到binlog. 默认0
+          binlog_transaction_dependency_tracking=               # commit_order(默认), writeset, writest_session
+          binlog_transaction_dependendy_history_size=N          # 设定保存在内存并用于查找最后修改给定行的事务的行哈希的上限
+          log_slave_updates=1|0                                 # 将从master上接收的更改语句写入自己的binlog.默认启用. 该选项常用于slave既是master又是slave的情况
+          log_statement_unsafe_for_binlog=1|0                   # 是否将错误1592的警告日志写入error log
+
+          original_commit_timestamp               # 允许初始提交时间戳在复制集群中传播.当在slave上重新执行事务时, 被设置为在初始服务器上执行的时间
+          sql_log_bin=1|0                         # 是否对当前session启用binlog.默认为1.若设为0(set @@session.sql_log_bin=0), 临时禁用binloy
+          transaction_write_set_extraction=       # 
+
+          .### 测试, 不用于生产环境
+          max_binlog_dump_events=N                # 默认0
+          sporadic_binlog_dump_fail               # 
+
+      网络配置:
+        max_connections=N                       # 最大连接数
+        max_connect_errors=N                    # 
+      一般配置
+        secure_file_priv=/path/dir              # 限制数据导入导出(load data, select ... into outilfe, load_file()). 参数为空则变量无效果, 为NULL则禁止导入导出, 为目录名则导入导出操作必须在该目录中执行
+      innodb配置 
+        innodb_buffer_pool_size=                # innodb可用内存大小, 用于缓存数据和索引
+        innodb_buffer_pool_instances=N          # 将innodb缓冲池划分为N个区,以便不同线程读取和写入时减少争用. 
+        innodb_status_file=1|0                  # 是否启用innodb状态文件.默认禁用.innodb在数据目录下创建一个innodb_status.pid的文件, 每15s写入一次show engine innodb status的输出.
+                                                > 当MySQL正常关闭时会移除该文件.若不正常关闭, 可能需要手动移除
+                                                > 该选项一般作为临时使用, show engine innodb status的统计输出会影响性能
+        -- redo log
+          innodb_log_group_home_dir=dir           # redo log的目录, 默认数据目录. redo log文件总大小要超过512G
+          innodb_log_file_size=N                  # redo log文件大小(单个文件). 默认值48M
+          innodb_log_files_in_group=N             # redo log文件数量, 默认值2, 范围2-100
+        -- log buffer
+          innodb_log_buffer_size=N                # log buffer大小, 默认16M
+          innodb_flush_log_at_trx_commit=1        # log buffer的内容如何写入logfile
+          innodb_flush_log_at_timeout=            # 控制log buffer flush频率
+        -- memcache插件
+          daemon_memcached_enable_binlog=1|0      # 在master上使用innodb memcached插件(binlog需启用). 默认禁用
+          daemon_memcached_engine_lib_name=file   # 指定实施该插件的共享库文件名称, 默认innodb_engine.so
+          daemon_memcached_engine_lib_path=dir_name     # 指定该插件共享库的路径, 默认null(即MySQL插件目录). 一般不更改
+          daemon_memcached_option=                # 空格分隔的列表.作为参数传递给memcached进程
+          daemon_memcached_r_batch_size=N         # 默认值1
+          daemon_memcached_w_batch_size=N         #
+
+        -- 自适应
+          innodb_adaptive_flushing=1|0            # 指定是否基于工作负载自动调整在buffer pool中flush脏页的速率.默认启用, 可避免I/O活动的突发
+          innodb_adaptive_flushing_lwm=N          # 当innodb_adaptive_flushing被启用时,定义一个redo log容量的最低百分百.默认值10, 范围0-70
+          innodb_adaptive_hash_index=1|0          # 是否启用自适应hash索引, 默认启用
+          innodb_adaptive_hash_index_parts=N      # 索引分区, 默认为8. 范围1-512. 
+          innodb_adaptive_max_sleep_delay=N
+
+        -- 表空间
+          -- 系统表空间
+            innodb_data_file_path                   # 系统表空间的名称,大小,数量
+            innodb_autoextend_increment=N           # 系统表空间自增大小(单位M), 默认64. 直至将系统空间用尽
+          -- file-per-table表空间
+            innodb_file_per_table=1|0               # innodb使用单独的.ibd文件为每个新建立的表存储数据和索引, 而非存储在系统表空间. 该选项不影响临时表创建
+          -- undo log表空间
+            innodb_undo_directory=                  # 定义undo log表空间位置, 若未指定, 则默认在数据目录下
+            innodb_rollback_segments=               # 指定rollback segment数量.默认128. 
+            innodb_undo_log_truncate=0|1            # 
+            innodb_max_undo_log_size=N              # 指定undo log的大小. 默认1G
+
+ 
+        innodb_directories=
+        innodb_data_home_dir=
+
+
+        default_storage_engine=innodb           # 指定默认存储引擎
+        innodb_change_buffering=all             # change buffer缓存的数据类型,默认all. 可用值:
+                                                > all: 缓存insert,delete-marking操作,purges     > none: 不缓存任何操作
+                                                > inserts: 只缓存insert操作                     > deletes: 只缓存delete-marking操作
+                                                > changes: 缓存insert和delete-makring操作       > purges: 缓存发生在后台的物理删除操作
+        innodb_change_buffer_max_size=N         # change buffer的大小(以占用buffer pool的百分比显示). 默认值25, 最大值50
+        innodb_adaptive_hash_part
+        innodb_doublewrite                      # 是否启用doublewrite buffer
+      复制
+        server_id=N                             # 指定服务器id. 全局唯一.默认为0(则拒绝任何slave连接).
+        server_uuid=''                          # 读取data_dir/auto.cnf中的uuid. 若该文件不存在则生成新的uuid并写入该文件(自动生成), 不配置
+        -- gtid
+          gtid_mode=                              # 是否使用gtid来验证事务.默认off.可选值: off, on, off_permissive, on_permissive
+          enforce_gtid_consistency=1              # 若为on,则服务器通过只允许执行可以使用gtid安全记录的语句来强制gtid一致性. 若启用gtid复制, 则该项必须为1
+                                                  > off: 违反gtid一致性的事务都被允许. on:违反gtid一致性的事务都不被允许. warn:违反gtid一致性的事务都被允许,但会生成警告
+                                                  > create table ... select|create/drop temporayr table不能被使用. 同时更新事务表和非事务表的语句|事务不能被使用
+                                                  > 该选项仅对进行二进制记录的SQL语句生效
+          gtid_executed_compression_period=N      # 默认1000,范围0-4294967295. 当N个事务发生时压缩mysql.gtid_executed. 0表示不压缩
+          binlog_gtid_simple_recovery=1|0         # 当MySQL启动在查找gtid过程中, binlog文件是否被迭代.默认为1
+          gtid_executed
+          gtid_next
+          gtid_owned
+          gtid_purged=
+        -- master
+          show_slave_auth_info=1|0                # 在master上执行show slave hosts时显示用户和密码(需要slave以report_user和report_password启动), 默认禁止
+          auto_increment_increment=N              # 默认为1, 范围1-65536. auto_increment列的间隔值
+          auto_increment_offset=N                 # 默认为1, 范围1-65536. auto_increment列的初始值
+                                                  > 这两列主要用于主主复制集群, 用来控制auto_increment列.也支持NDB表. 若两个变量任意有改变, 则新插入的auto_increment列以存在数据为基础插入自动值
+          -- semi rpl
+            rpl_semi_sync_master_enabled=1|0        # 是否启用半同步. 默认关闭
+            rpl_semi_sync_master_timeout=N          # master等待salve的提交确认超时时间. 单位毫秒, 默认1000(半同步需启用)
+            rpl_semi_sync_master_trace_level=N      # 半同步的日志级别(1: 一般信息 16: 详细信息 32: 网络等待信息 64: 函数调试), 默认32
+            rpl_semi_sync_master_wait_for_slave_count=N             # master在超时时间内至少收到的ack的salve数量(确认之后才能继续). 默认为1, 范围1-65536
+            rpl_semi_sync_master_wait_no_slave=
+            rpl_semi_sync_master_wait_point=
+
+        -- client
+          log_slave_updates=1|0                                   # 将从master上接收的更改语句写入自己的binlog.默认启用. 该选项常用于slave既是master又是slave的情况
+          
+          master_info_repository=table|file                       # 将master状态和连接信息记录到库中的innodb表(mysql.slave_master_info)还是数据目录的文件中.默认table
+          master_info_file=file_name                              # 用于slave记录master的信息文件. 需要master_info_repository=file.默认值master.info. 存储在数据目录
+          sync_master_info=N                                      # 默认值10000. 根据master_info_repository的值来选择N个events后更新table还是文件.若值为0,则永不更新
+
+          #master_retry_count=N                                    # slave尝试重新连接的次数.默认值86400次. 若为0则表示无限次数. 当连接超时时则触发尝试连接
+
+          init_slave=''                                           # 每次SQL线程启动都会被slave执行. 该值是一个或多个SQL字符串.
+          rpl_read_size=N                                         # 从bin log文件和relay log文件中读取的最小的数据量(byte).默认8192,范围8192-4G,为4k的倍数.增大该值可减少读取文件的I/O. 读取binlog和relay log的每个线程(包括在master上的dump线程,在slave上的coordinator线程)都被分配了该值大小的buffer.若设置过大可能对服务器内存产生影响
+
+          -- semi rpl
+            rpl_semi_sync_slave_enabled=1|0                         # 是否在slave上启用半同步复制
+            rpl_semi_sync_slave_trace_level=N                       # 半同步的日志级别(1: 一般信息 16: 详细信息 32: 网络等待信息 64: 函数调试), 默认32
+            rpl_stop_slave_timeout=N                                # 默认值31536000(1年), 范围2s-1年(单位秒)
+
+
+          log_slow_slave_statements=1|0                           # 当慢查询日志被启用后, 记录在slave上执行时间超过long_query_time的SQL. 在master上以row format记录的语句不会被记录到slave的慢日志中
+          log_warnings[=level]                                    # 
+          以change master to语句的master_connect_retry设置的间隔默认为60s
+          -- relay log
+            relay_log=file_name(relay_bin)                          # relay日志的基名称. 添加序列数字为后缀创建relay日志. 默认存在数据目录, 可通过绝对值路径选择其它目录
+            relay_log_index=file_name                               # relay日志索引文件名. 未指定则继承上个选项值
+            relay_log_info_repository=table|file                    # 记录relay log中的position到innodb表(mysql.slave_relay_log_info)或文件
+            relay_log_info_file=file_name                           # relay日志的信息文件, 默认为relay-log.info. 存在数据目录下
+            relay_log_purge=0|1                                     # 是否启用自动清除relay日志. 默认启用
+            relay_log_recovery=0|1                                  # 当服务器启动后自动用relay log恢复.默认0.该恢复进程创建一个新的relay日志文件.且在该文件中初始化position. 接着继续从master上读取. 用于恢复slave(当使用该选项恢复时, relay_log_info_repository必须为table, relay_log_purge必须被启用)
+            relay_log_space_limit=N                                 # 所有relay日志文件的总大小限制(byte).默认为0, 表示无限制. 当达到限制时, I/O线程停止从master读取binlog event直到SQL线程删除一些未被使用的relay log
+            max_relay_log_size=N                                    # relay日志文件的轮替大小,默认0, 范围0-1073741824. 若值为0则只有当文件大小到达max_binlog_size时才进行轮替
+            sync_relay_log=N                                        # 默认10000. 若值大于0,则每N个events写入relay log后MySQL同步relay log到磁盘. 若值为0,则不同步到磁盘,需依赖操作系统的刷新
+            sync_relay_log_info=N                                   # 默认10000. 根据relay_log_info_repository的值来选择N个事务后更新表.若值为0,则每个事务后更新表
+
+
+  
+
+          replicate_do_db=channel_1:db_name                       # 指定复制的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
+          replicate_ignore_db=channel_1:db_name                   # 指定忽略的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
+          replicate_do_table=channel_1:dbname.tb1_name            # 指定复制的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
+          replicate_ignore_table=channel_1:dbname.tb1_name        # 指定忽略的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
+          replicate_wild_do_table=db_name.tb1_name                # 指定复制的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库复制,同时支持库级语句.).支持\用于转义
+          replicate_wild_ignore_table=db_name.tb1_name            # 指定忽略的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库忽略).支持\用于转义
+          replicate_rewrite_db="from_name->to_name"               # 转换数据库, 
+          replicate_same_server_id=1|0                            # 默认关闭
+
+          report_host=host_name                                   # slave注册期间报告给master的主机名或ip
+          report_password=password                                # slave注册期间报告给master的密码
+          report_user=user_name                                   # slave注册期间报告给master的用户名
+          report_port=slave_port                                  # slave注册期间报告给master的端口, 默认3306
+          .###多线程slave
+          slave_checkpoint_group=N                                # 隔多少事务做一次checkpoint.默认512.范围8-524280.其值为8的倍数.多线程不启用则slave不受影响. NDB集群不支持多线程slaves
+          slave_checkpoint_period=N                               # 隔多长时间做一次checkpoint.默认300.单位毫秒,范围1-4G. 它同上个group选项结合使用, 当任一超过限制, 则执行checkpoint. 并重置相关参数
+          slave_parallel_workers=N                                # 在slave上启用多线程并设置并行处理复制事务的线程数(另加一个coordinateor线程来管理这N个线程).范围0-1024.若使用多个复制channels, 则每个channel都有这个线程数.当值为0时,则slave只有一个应用线程
+          slave_parallel_type=type                                # 哪种事务可以被并发执行.默认database
+                                                                  > logical_clock: 同一个binglog组的一部分的事务可以在salve上并行.事务之间的依赖关系根据他们的时间戳来跟踪.若使用了多个层次的slave,离master越远的slave执行的并行化越少,可通过在master上设置binlog_transaction_dependency_tracking指定write sets替代时间戳来减少这种影响
+                                                                  > database: 并行更新不同数据库的事务.不能存在跨数据库的约束
+                                                                  > 当slave_preserver_commit_order=1时, 只能使用logic_clock
+          slave_pending_jobs_size_max=N                           # 在多线程slave上,允许保存等待events的队列的内存大小(byte). 默认128M,为1024的倍数.范围(1024-16EiB). 该值为软限制.若有超过该值的event,则该事务被暂存,等待所有线程都有空队列再处理.等该事务处理完后再处理后续事务
+          slave_preserver_commit_order=0|1                        # 默认为0.若设为1,则在多线程slave上确保执行的事务和relay log中出现的顺序相同.若设为1, 则log_bin, log_slave_updates被启用,且slave_parallel_types被设为logical_clok
+
+          slave_transaction_retries=N                             # slave的SQL线程在停止之前自动尝试失败的事务的次数,默认10. 0代表禁用自动尝试. 若一个slave的SQL线程因为innode死锁或执行时间超时,它会自动重试该值的次数.最后停止报错.非临时错误的事务不重试
+          slave_type_conversions=                                 # 当使用row-based模式时,控制slave的类型转换模式.值为逗号分隔的列表,可以有0或多个
+                                                                  > 可用的值: all_lossy, all_non_lossy, all_signed, all_unsigned
+          sql_slave_skip_counter=N                                # slave应该跳过的来自master上的events的数量. 应用于下一个start slave语句.但同时该值亦归0. 该选项与gtid_mode模式不兼容.若指定的个数是在一个events group的中间, 则slave继续跳过直到一个开始的位置
+
+
+          
+
+          skip_slave_start=1|0                                    # slave启动时是否启动slave线程(可手动启动: > start slave)
+          slave_compressed_protocol=0|1                           # 在slave和master协议间是否启用压缩.默认为0
+          slave_load_tmpdir=dir_name                              # slavec创建临时文件的目录,默认值/tmp. 若slave复制load data语句,则从relay log中提取文件到临时目录,然后load进表
+          slave_max_allowed_packet=bytes                          # slave的SQL线程和I/O线程能处理的包大小(byte). 默认1G. 范围1024-1G. 该值必须比max_allowed_packet值大
+          slave_net_timeout=seconds                               # 主从连接超时时间.默认60s.slave在超时后的第一次尝试会立即发生.后续尝试连接的间隔和次数由change master to语句的master_connect_retry选项和master_retry_count选项控制
+                                                                  > 心跳间隔(),由change master to语句的master_heartbeat_preiod控制,默认为slave_net_timeout的一半.它被记录在master info log和slave上的performance_schema.replication_connection_configuration表中(slave_net_timeout值的更改不会让心跳间隔时间也自动更改.必须使用change master to语句来调整)
+          slave_exec_mode=mode                                    # 控制slave线程在复制期间如何解决冲突和错误.默认strict. 可选值: idempotent(NDB), strict
+                                                                  > idempotent:抑制duplicate-key和no-key-found的错误.用于多主复制,循环复制和NDB集群里一些特定的复制场景. NDB集群忽略该选项,总是使用idempotent模式
+                                                                  > strict: 不抑制这种错误
+          slave_rows_search_algorithms=list                       # 在使用基于row的复制时指定搜索匹配行的算法.值为逗号分隔的列表.不需要用引号括住,但不能有空格.默认index_scan,hash_scan.
+                                                                  > 可用值: table_scan,index_scan index_scan,hash_scan table_scan,hash_scan table_scan,hash_scan. 值中的顺序无影响
+                                                                  > 对于primary或uniq key: 按index_scan, hash_can, table_scan顺序使用算法
+                                                                  > 对于其它key: 按hash_scan, index_scan, table_scan顺序使用算法
+                                                                  > 对于非索引值: 按hash_scan, table_scan, index_scan顺序使用算法
+          slave_skip_errors=err_code1,err_code2...                # 复制过程中忽略错误的代码,使复制继续.默认关闭.当slave在复制期间发生错误时复制过程停止(主要用于可以去解决数据不一致的问题).强烈建议不要使用该选项
+                                                                  > 可用值: off, [list of error codes], all, ddl_exist_errors(等同于1007,1008,1050,1051,1054,1060,1061,1068,1094,1146)
+          slave_sql_verify_checksum=0|1                           # slave校验从relay日志中读取的校验和, 若不匹配则复制停止且报错. 默认启用
+          .# 用于复制测试, 不用于生产环境  
+          abort_slave_event_count=N                               # 默认为0.若设置为正值,则当SQL线程启动后只执行N个events,不再接收更多的events.slave线程继续运行,且show slave status的两个线程显示均为YES
+          disconnect_slave_event_count=N                          # 默认为0.
+
+
+
+
+
+            [mysql]                             # 应用于mysql客户端程序
+            [mysqld_safe]
+              basedir=dir_name                        # MySQL安装目录
+              core_file_size=                         # mysqld可以创建的core文件大小(ulimit -c)
+              datadir=dir_name                        # 数据目录
+              defaults_extra_file=file_name           # 使用额外的配置文件(若只给文件则基于当前目录, 若在命令行则必须是第一个选项)
+              defaults_file=file_name                 # 只使用给定的配置文件(若只给文件则基于当前目录, 若在命令行则必须是第一个选项)
+              mysqld_safe_log_timestamps=[utc, system, hyphen, legacy]             # 控制mysqld_safe的日志时间输出格式(默认为utc)
+              open_files_limit=count                                                        # mysqld可以打开的文件数量(ulimit -n)
+              pid_file=file_name                                                            # mysqld使用的pid文件
+              plugin_dir=dir_name                                                           # 插件目录
+              port=port_num                                                                 # 监听端口
+              skip_kill_mysqld                                                              # 
+              socket=path                                                                   # scoket文件目录
+              timezone=                                                                     # 设置时区值
+              user=user_name|user_id                                                        # 运行mysqld的用户
+            [mysql.server]
+              basedir=dir_name                                                              # MySQL安装目录
+              datadir=dir_name                                                              # MySQL数据目录
+              pid_file=file_name                                                            # pid文件
+              service_startup_timeout=seconds                                               # 启动超时时间.0代表不限时间.若超时返回900错误.
+            [mysqldump]
+            [mysqladmin]
+              bind_address=ip                                                                # 多网卡主机, 指定ip
+              compress                                                                      # 客户端和服务器之间的信息压缩
+              count=N                                                                       # 若给定sleep选项, 则重复执行命令的次数
+              default_character_set=charset_name                                            # 默认字符集
+              force                                                                         # 报错继续
+              host=host_name                                                                # 服务器主机
+              password=passwd
+              port=port_num
+              protocol=[tcp|socket|pipe|memory]
+              socket=path
+              user=user_name
+              connect_time=43200                                                            # 连接超时, 单位秒.默认12h
+              shutdown_timeout=3600                                                         # 关闭超时, 单位秒.默认1h
+            [mysqld-5.7]                        # 可指定由不同的MySQL版本服务读取
+            [mysqld-5.6]  
+            [client]                            # 应用于所有的MySQL客户端程序
+              max_allowed_packet=16M                  # 客户端通信缓冲的最大大小, 单纯数字以字节表示
+            [mysql]
+        数据文件:
+          说明:MySQL服务器会将每个数据库映射到MySQL数据目录下的一个目录中, 并将数据库中的表映射到数据库目录下的文件名
+          表格式文件: .frm(表结构文件)
+          MyISAM引擎: .MYD(数据文件)  .MYI(存放索引)
+          Innodb引擎: 日志文件(ib_logfile0, ib_logfile1),表空间文件(ibdata1)
+          服务器日志状态文件
+    进程/端口: 3306/tcp
+    内存结构
+      1.多线程结构(每个线程分配一段内存 Thread headlers)
+      2.数据缓存(内存中有三种表(提高搜索效率): 权限表, 索引表, 表结构缓存, 查询结果缓存)
+      3.DNS查询结果缓存
+      4.innodb中的事务缓冲(日志缓冲)
+      5.每个客户端连接都会被分配一段缓冲
+      6.内存引擎表(存储在内存中)
+      7.临时表(存储在内存中)
+
+    编程接口
+      JDBC:            Java通用的数据库接口,可移植性好
+      ODBC:            C中广泛采用的数据库接口,具有一定可移植性
+      mysqlclient:       MySQL自带的编程接口,用C实现,效率比较高
+      其它脚本语言的访问接口:  PHP、Perl 
+    管理软件
+      1.命令行工具管理:  mysql,mysqladmin
+      2.图形管理工具: phpMyAdmin,Workbench,MySQL Rront,Navicat for MySQL,Toad
+  命令
+    服务器
+      mysql启动程序:
+        mysqld [option]:                          # MySQL服务, 也是MySQL安装过程中的主程序. 它监听网络连接, 并代替客户端管理对数据库的访问
+          --verbose --help                        # 查看所有启动选项
+        mysqld_safe:                              
+          1.MySQL启动脚本. 添加了一些安全功能(在rpm或debain的安装包, 包括支持systemd的启动方式的系统上都没有装mysqld_safe, 因为它是不必要的)
+          2.该脚本是安全启动二进制安装的MySQL
+        mysql.server                              # MySQL启动脚本. 用来作为系统启动脚本(/etc/init.d/mysqld)
+        mysqld_multi                              # 用户管理多个MySQL实例
+        mysqld.service                            # rpm平台的MySQL管理脚本
+        mysqld@.service                           # rpm平台的多实例MySQL管理脚本
+        mysqld_pre_systemd                        # rpm单元文件, 用于创建error log
+      MySQL安装依赖程序
+        comp_err:                                 # 编译MySQL错误消息文件
+        mysql_install_db:                         # 初始化MySQL数据目录, 其功能已继承到mysqld中, 未来被移除
+        mysql_plugin:                             # 配置MySQL服务插件, 8.0中被移除
+          替换为--plugin_load, --plugin_load_add或运行时使用 install plugin
+        mysql_secure_installation:                # 提供MySQL安装的安全性
+        mysql_ssl_rsa_setup:                      # 建立SSL/RSA文件
+        mysql_tzinfo_to_sql:                      # 加载时区文件
+        mysql_upgrade:                            # 检查和升级MySQL表
+    客户端
+      说明: 
+        1.客户端所有选项可通过三种方式指定(环境变量, 选项文件, 命令行参数) 优先级依次递增
+        2.选项内的"-"和"_"可以不加区别使用(eg:  --skip-grant-tables等同于--skip_grant_tables)
+        3.对于取数值的选项, 可使用K, M, G后缀(不区别大小写)
+        4.选项文件读取优先级(/etc/my.cnf(全局选项), /etc/mysql/my.cnf(全局选项), SYSCONFDIR/my.cnf, $)
+      统一选项:
+          --bind_address=ip                         # 绑定的ip地址
+          --compress, -C                            # 客户端和服务器之间使用压缩
+          --character_sets_dir=dir_name             # 字符集安装目录
+          --default-character-set=dir_name          # 设置默认字符集
+          --debug                                   # 让服务器将debug信息写入error log(root)
+          --debug_check                             # 当程序存在时打印debug信息
+          --debug_info                              # 当程序存在时打印debug信息和CPU, 内存情况
+          --default_extra_file=file_name            # 额外指定配置文件
+          --default_file=file_name                  # 只使用给定的配置文件
+          --default_group_suffix=str                # 指定额外读取配置文件中相应后缀组的配置(eg: str=other, 则会额外读取[client_other], [_other])
+          --default_auth=plugin                     # 客户端身份验证的插件
+          --no_defaults                             # 不读取任何配置文件(例外情况是会读取.mylogin.cnf)
+          --enable_cleartext_plugin                 # 启用mysql_clear_password明文验证插件
+          --plugin_dir=dir_name                     # 指定插件目录
+          --force, -f                               # 忽略SQL执行错误
+          --database=name, -D                       # 选择的数据库, 第一个无选项参数被作为默认登录数据库
+          --host=name, -h                           # mysql服务器, 默认localhost(此时MySQL使用socket连接)
+          --user=name, -u                           # 用户名, 默认系统登录用户名(非切换)
+          --password[=name], -p                     # 密码 
+          --port=#, -P                              # 端口, 默认3306
+          --socket=name, -S                         # 连接的socket文件
+          --protocal=name                           # 连接的协议(tcp, socket, pipe, memory)
+          --print_defaults                          # 打印出程序名称和所有从配置文件中读取的选项  
+          --silent, -s                              # 静默模式, 只打印错误信息
+          --verbose, -v                             # 详细模式
+          --version, -V                             # 打印版本信息
+          --login_path=name                         # 
+          --get_server_public_key
+      mysql [option] [database]         # 命令行客户端程序. [client], [mysqladmin]
+        [option]:
+          .# 查询
+          --auto-rehash                   # 启用自动补全功能(可提示数据库, 表名, 字段名. 前提必须选择数据库).默认启用
+          --auto-vertical-output          # 如果结果比终端宽, 则自动切换到垂直输出模式
+          --delimiter=str                 # 设置sql结束符
+          -A, --disable-auto-rehash       # 禁用补全功能
+          --prompt=name                   # MySQL客户端提示符
+          --column-type-info              # 显示字段类型信息
+          .# 输出
+          --column-names                  # 查询结果显示列名, 默认. --skip-column-names不显示列名
+          -e, --execute=sql               # 执行sql(禁用--force和历史文件), 须用引号括住, 多个SQL间用;分隔
+          -B, --batch                     # 格式化打印结果, 分隔符使用\t(默认--silent)
+          -r, --raw                       # 对于特殊字符, 输出原始值而不转义转换(默认换行, tab, NULL和\被转换为\n, \t, \0和\\) 常和-B一起使用
+          -b, --binary-as-hex             # 使用16进制打印binary数据
+          -H, --html                      # 以html方式输出
+          -X, --xml                       # 以xml方式输出
+          --line-numbers                  # 显示错误的行号(默认启用)
+          -t, --table                     # 以表格式输出
+          -L, --skip-line-numbers         # 不显示错误的行号
+          -N, --skip-column-names         # 结果不显示列信息
+          --tee=name                      # 将结果同时追加到指定的文件中, 不和-B一起使用
+          --pager[=name]                  # 分页显示输出(使用less, more等)
+          --sigint-ignore                 # 忽略sigint(ctrl-C)
+          -q, --quick                     # 不缓存查询结果, 一行行打印(适用于大结果集, 不用将所有结果缓存在内存中)
+          .# 网络
+          -n, --unbuffered                # 每次查询之后刷新缓存
+          .# 连接
+          -w, --wait                      # 若无法连接, 则等待并尝试连接
+          --connect-timeout=#             # 连接超时的秒
+          --max-allowed-packet=#          # 对服务器发送或接受的最大的包长度(默认16M, 最大1G)
+          --net-buffer-length=#           # TCP/IP和socket通信的缓冲区大小(默认16K)
+          --reconnect                     # 若断掉连接则自动重连, 默认启用. 建议禁止(--skip_rconnect, 重连之后原来变量,模式丢失.执行后的语句会出问题)
+
+          -E, --vertical                  # 使用垂直打印模式
+          --histignore=name               # 一个冒号分隔的模式列表, 改语句不会被记录到系统日志和MySQL历史记录中
+          -G, --named-commands            # 启用命名命令.默认禁用
+          -i, --ignore-space              # 忽略函数名后的空格
+          --init-command=name             # 连接到服务器时执行的SQL命令.重新连接时也会重新执行
+          --local-infile                  # 启用/禁用 load data local infile
+          -b, --no-beep                   # SQL报错是不发声
+          -o, --one-database              # 当当前所选择的数据库与命令行上的数据库不同时, SQL不能执行
+        注: 默认选择默认从以下文件中读取:
+            /etc/my.cnf, /cetc/mysql/my.cnf, /usr/etc/my.cnf, ~/.my.cnf
+      mysqladmin [option] command                 # 用于管理的客户端程序. [client], [mysqladmin]
+        option:
+          统一选项
+        command:
+          create db_name                          # 创建数据库
+          drop db_name                            # 删除数据库
+          extended-status                         # 显示服务器状态(show status)
+          flush-hosts                             # 刷新在host缓存中的信息
+          flush-logs [log_type ...]               # 刷新所有日志(binary, engine, error, general, relay, slow多个之间以空格间隔)
+          flush-privileges/reload                 # 刷新权限表
+          flush-status                            # 清除状态变量
+          flush-tables                            # 刷新所有表
+          flush-threads                           # 刷新线程缓存
+          kill id,id,...                          # 杀死服务器线程(root)
+          password [new_passwd]                   # 为当前连接的该用户设置新密码(不安全)
+          ping                                    # 检查当前连接的服务器是否运行
+          processlist                             # 显示服务器活动线程(> show processlist)
+          refresh                                 # 刷新所有表并关闭和打开日志文件
+          shutdown                                # 关闭服务
+          start-slave                             # 作为slave启动
+          status                                  # 显示一个简单的服务器状态
+          version                                 # 显示服务信息
+          --tls_version=protocol_list 
+      mysqlcheck:                               # 表维护程序(检查, 修复, 优化, 分析). 操作之前对表备份.  [client] [mysqlcheck]
+        说明:
+          1.每个表都会被锁(check是read lock), 维护操作较耗时
+          2.该操作必须在服务运行时才能使用
+          3.该操作使用SQL语句来维护(check table, repair table, analyze table, optimize table). 不同的引擎支持不同的维护操作
+          4.memory表不支持check, innodb表不支持repair
+        命令:
+          .# mysqlcheck [option] db_name [table_name ...]
+          .# mysqlcheck [option] --databases db1 db2 ...
+          .# mysqlcheck [option] --all-databases
+            [option]
+              --all_databases, -A                       # check所有数据库的所有表(除了information_schema和performance_schema)
+              --databases, -B                           # 处理指定的数据库, 多个数据库以空格分隔
+              --all_in_1, -1
+              --analyze, -a                             # 分析表
+              --auto_repair                             # 检查表之后自动去修复
+              --check, -c                               # 检查表, 这是默认选项
+              --check_only_changed, -C                  # 只检查从上次检查起更改过的表或未正常关闭的表 
+              --check_upgrade, -g                       # check table时使用该选项用于检查与当前服务不兼容的表. 该选项会自动调用--fix_db_names和--fix_table_names选项
+              --extened, -e                             # check: 花费大量时间确保表是100%一致. repair: 运行额外的修复(大量时间)且产生很多垃圾行
+              --fast, -F                                # 只检查未正常关闭的表
+              --medium_check                            # 比-e快的检查
+              --optimize, -o                            # 优化表
+              --quich, -q                               # check: 不去扫描错误连接的行. repair: 只修复索引.  对于两种方式来说都是最快的选项
+              --repair, -r                              # 执行修复操作, 可以修复所有除了不唯一的unique键
+              --skip_databases=db_name                  # 该命令忽略的数据库
+              --tables                                  # 覆盖-B选项, 其后所有参数视为表名
+              --use_frm                                 # 对于修复MyISAM表, 从.frm文件中获取表结构以便于即使.MYI头部信息损坏也可修复该表
+              --write_binlog                            # 默认启用.以便于analyze, optimize, repair语句被写入binlog. 使用--skip_write_binlog来使该语句不被记录(当不需要被发送到slave或使用binlog来恢复数据时)
+      mysqldump:                                  # 数据库备份程序
+        说明:
+          1.用于数据库逻辑备份, 可以产生SQL文件, 也可产生csv, xml或其它分隔符的文本(取决于是否有--tab选项)
+          2.该命令并不是用于大数据备份的.可使用物理备份的方式备份数据文件(或企业版的mysqlbackup)
+          3.不加参数直接指定数据库, 备份的文件中不会产生数据库相关语句, 只有表相关语句(即若有-A或-B选项, 则会产生create database和use语句)
+          4.当发出lock语句时若有更新语句在执行, 则等待直至语句执行完
+        命令:
+          .# mysqldump [option] db_name [table_name ...]
+          .# mysqldump [option] --databases db_name
+          .# mysqldump [option] --all_databases
+            option:  -RE
+              --all_databases, -A                 # 指定所有库中所有表(除了information_schema, performance_schema和sys库)
+              --databases, -B                     # 指定数据库, 多个数据库以空格分隔
+              --all_tablespace, -Y                # 
+              --tables                            # 覆盖-B选项, 将其后参数作为表名
+              --no_data, -d                       # 只导出表结构, 不导出表内容(即无insert语句). 可添加-RE选项导出事件和存储定义
+              --no_create_info, -t                # 只导出数据, 不产生create table语句
+              --ignore_table=db_name.tb_name      # 导出时忽略指定表(视图).必须同时指定库和表名. 若要忽略多个表则多次使用该选项.
+              --ignore_error=error,[error]        # 忽略指定的错误
+              --event, -E                         # 导出event(当导入时该属性例如创建时间和修改时间将等于加载时间, 若要保持原时间则不要使用该选项, 而要加载原库mysql.event)
+              --routines, -R                      # 导出存储过程和函数(当导入时该属性例如创建时间和修改时间将等于加载时间, 若要保持原时间则不要使用该选项, 而要加载原库mysql.proc)
+              --triggers                          # 导出触发器, 默认启用.禁用使用--skip_triggers. dump以激活顺序导出触发器以便于在导入时用相同的顺序加载
+              --where='condition', -w''           # 按条件导出相应数据
+              --set_charset                       # 将set names default_charset_set写入输出. 默认启用
+
+              --opt                               # 默认启用.是--add_drop_table, --add_locks, --create_options, --disable_keys, --extended_insert, --lock_tables, --quick, --set_charset的简写.若要重写此选项, 则在列表最后禁用其中的某个选项即可. --skip_opt. 
+              --compact                           # 产生更紧凑的输出, 该选项启用--skip_add_drop_table, --skip_add_locks, --skip_comments, --skip_disable_keys和--skip_set_charset选项
+              --hex_blob                          # 使用十六进制方式输出binary, varbinary, bit和blob字段的信息
+              --tz_utc                            # 将timestamp字段的值按utc输出和加载
+              --xml, -X                           # 以xml格式输出
+              --result_file=file_name, -r         # 直接输出到指定文件(覆盖)
+              --log_error=file_name               # 记录日志信息. 默认不记录
+
+              --compatible=name                   # 于其它系统更兼容的输出(ansi, mysql323, mysql40, postgresql, oracle, mssql, db2, maxdb, no_key_options, no_table_options或no_field_options)
+              --create_options                    # 在create table中包含MySQL指定的选项
+              --disable_keys, -K                  # 对导出文件中每张表中的insert语句环绕(禁用,启用keys), 使加载速度变快
+              --quick, -q                         # 对导出大表有用. 它使dump从服务中一行一行地导出而非全部加载到内存后才导出
+              --add_locks                         # 环绕每张表lock tables和unlock tables
+              --flush_logs, -F                    # 在导出前刷新所有日志. 若与--all_databases同用, 则每个数据库导出时都会刷新一次日志, 只有与--lock_all_tables, --master_data或--single_transaction选项结合时, 日志才会在锁表时刷新一次
+              --flush_privileges                  # 在导出mysql这个数据库后加一行flush privileges语句
+              --lock_all_tables, -x               # 锁住数据库
+              --lock_tables, -l                   # 对于导出每个数据库之前, 都锁住该库所有表.MyISAM表用read local锁以便于并发插入.而Innodb表更适合使用--single_transaction
+              --single_transaction                # 在导出数据之前设置事务隔离模式为repeatable read,且发送start transaction给数据库.它只对事务表有用(innodb), 用于保持数据库一致状态而不阻塞任何应用程序
+              --no_autocommit                     # 在每个insert周围采用set autocommit=0和commit语句
+              --order_by_primary                  # 若表中存在主键或第一个uniq索引, 则按该字段排序导出. 这对导出MyISAM表到innodb表很有用. 但导出花费时间较长
+
+              --add_drop_database                 # 在每个create database语句前都要写一个drop database语句
+              --add_drop_table                    # 在每个create table语句前都要写一个drop table语句
+              --add_drop_trigger                  # 在每个create trigger语句前都要写一个drop trigger语句
+              --no_create_db, -n                  # 当指定--databases或--all_databases选项时不产生create database语句
+              --no_tablespaces, -y                # 不产生create logfile group和create tablespace语句
+
+              --max_allowed_packet=               # C/S通信的大小, 默认24M, 最大1GB
+              --net_buffer_length=                # C/S通信的缓冲区初始大小, 确保服务器端的net_buffer_length值比客户端大
+
+              --replace                           # 将insert语句替换为replace语句(主键相同的列被替换)
+              --insert_ignore                     # 将insert_ignore语句代替insert语句
+              --extended_insert, -e               # 导出文件中的insert后使用多个values.这回产生较小的SQL文件且加速导入
+              --compele_insert, -c                # 输出包含完整列名的insert
+              --allow_keywords                    # 允许字段名为关键字(表名作为前缀)
+              --comments, -i                      # 在转储文件中写入附加信息(程序版本, 服务版本, 主机). 默认启用. --skip_comments
+              --dump_date                         # -i选项中包含该选项, 用来在转储文件最后加入时间显示. 默认启用. --skip_dump_date
+              --verbose, -v                       # 详细模式
+              --quote_names, -Q                   # 用`括住标识符, 默认启用
+              --ansi_quotes                       # 用"括住标识符
+
+              --delete_master_logs                # 在master上备份后自动删除binlog(purge binary log), 该选项会自动启用--master_data
+              --master_data[=value]               # 在master上的输出包含change master to语句(表明binlog的文件名和position, 当slave load该输出时应该复制的binlog)
+                                                  > 若该值为2, 则change master to语句以注释形式写入(load时无效)
+                                                  > 若该值为1, 则change master to语句不会被注释并在load时生效. 默认值为1
+                                                  > 该选项自动关闭--lock_tables, 除非--single_transaction被指定否则自动开启--lock_all_tables
+              --dump_slave[=value]                # 在slave上的输出包含change master to语句(表明其master上的binlog文件和position. 从show slave status中读取relay_master_log_file和exec_master_log_pos并赋值给master_log_file和master_log_pos)
+                                                  > 若--dump_slave和--master_data同时指定, 则忽略--master_data. 若服务被设置gtid_mode=on和master_autoposition=1则不应该被使用
+                                                  > 该选项值的处理方式同--master_data, 且启用禁用和处理锁方式也相同
+              --apply_slave_statements            # 在slave上当使用--dump_slave参数导出数据时, 在change master to语句前后添加stop slave和start slave
+              --include_maste_host_port           # 在slave上当使用--dump_slave参数导出数据时, 在change master to语句中加入master_host和master_port选项
+              --set_gtid_purged=value             # 该选项决定是否向输出添加GTID(set @@global.gtid_purged).还可添加一条在load时禁用向binlog记录的语句(set @@session.sql_log_bin=0)
+                                                  > off: 不添加两个set语句  on: 添加两个set语句(若服务的gtid未启用则报错)  auto: 若gtid启用则添加两个set语句, 默认auto
+
+
+              --tab=dir_name, -T                      # 文本格式输出指定数据(分隔符\t). 每张表生成一个table_name.sql的建表语句和table_name.txt的文本数据.其字符集通过--default-character_set指定
+              --fields_terminated_by=str              # 字段分隔符, 默认"\t"
+              --fields_enclosed_by=char               # 用什么括住字段, 默认无. \'
+              --fields_optionally_enclosed_by=char    # 用什么括住非数值型字段, 默认无, \"  
+              --fields_escaped_by=char                # 设置转义字符, 默认无
+              --fines_terminated_by=str               # 行分隔符, 默认"\n"
+                                                      > 这些选项同--tab一起使用. 与load data infile中参数有相同含义
+      mysqlimport:                               # 数据导入程序  [client] [mysqlimport]
+        说明:
+          1.提供一个load data infile语句的命令行接口, 大多数选项对应于该语句语法
+          2.对于命令行中的文件名, import会删除其后缀当做表名, 其对应的文件将导入到该表
+        命令:
+          # mysqlimport [option] db_name textfile1 [textfile2 ...]
+            option:
+              --columns=field1,field2,... , -c    # 字段名列表, 其顺序将与文件列对应
+              --delete, -D                        # 在导入之前清空表
+              --fields_terminated_by=
+              --fields_enclosed_by=
+              --fields_optionally_enclosed_by=
+              --lines_terminated_by=
+              --fields_escaped_by=                # 这些选项与load data infile中参数有相同含义
+              --ignore, -i                        # 当加载数据发生uniq key重复时, 若指定-i选项, 则跳过该行
+              --replace, -r                       # 若指定-r选项, 则替换该行. 若都不指定, 则报错. 该文件其余部分被忽略
+              --ignore_lines=N                    # 忽略数据文件的前N行
+              --local, -L                         # 从客户端本地读取(默认情况下从服务器上读取)
+              --lock_tables, -l                   # 在处理完所有文本文件之前锁住所有表(不可写)
+              --low_priority                      # 这个只影响表级(eg: MyISAM, MEMORY和merge)锁定的存储引擎
+              --use_threads=N                     # 使用N个线程加载
+      mysqlpump:                                  # 数据库备份程序 [client] [mysqlpump]
+        说明:
+          1.MySQL5.7版本的新备份工具, 是mysqldump的增强版本,并同其类似
+          2.该程序默认导出所有数据库(除了information_schema, performance_schema, ndbinfo, sys)
+          3.pump不会导出innodb create tablespace语句
+        命令:
+          .# mysqlpump [option] db_name [table_name ...]
+          .# mysqlpump [option] --databases db_name
+          .# mysqlpump [option] --all_databases
+            option:
+              --add_drop_database                 # 在每个create database语句前加上drop database
+              --add_drop_table                    # 在每个create table语句前加上drop table
+              --add_drop_user                     # 在每个create user语句前加上drop user
+              --add_locks                         # 导出表时加上lock tables和unlock tabls语句.该选项不能用于并行
+              --no_create_db                      # 不产生create database语句
+              --no_create_info, -t                # 不产生create table语句
+              --all_adtabases, -A                 # 导出所有数据库, 这是默认选项. --exclucde=% 表示排除所有数据库
+              .# 以下exclude, include和parallel语句的值可使用通配符(%: 匹配0或多个字符  _: 匹配单个字符). 
+              --exclude_databases=db1,db2,...     # 排除数据库, 使用逗号分隔
+              --include_databases=db1,db2,...     # 导出数据库(包含所有对象), 使用逗号分隔
+              --exclude_tables=table1,table2,...  # 排除表, 使用逗号分隔
+              --ixclude_tables=table1,table2,...  # 包含表, 使用逗号分隔
+              --exclude_event=e1,e2               # 排除事件, 使用逗号分隔
+              --include_event=e1,e2               # 导出事件, 使用逗号分隔
+              --exclude_routines=r1,r2            # 排除过程和函数, 使用逗号分隔
+              --include_routines=r1,r2            # 导出过程和函数, 使用逗号分隔
+              --exclude_triggers=r1,r2            # 排除触发器, 使用逗号分隔
+              --include_triggers=r1,r2            # 导出触发器, 使用逗号分隔
+              --exclude_users=user1,user2         # 排除用户, 使用逗号分隔. 若未指定host, 则默认等同于user1@'%'
+              --include_users=user1,user2         # 导出用户, 使用逗号分隔
+              .# pump采用并行来达到并发处理(同时pump多个数据库和在同一个数据库中同时pump多个表),并行的粒度是单个数据库对象(一个表不可能被并行执行).默认情况下, 采用1个队列2个线程 
+              .# 对未指定parallel_schema参数而要导出的数据库采用默认队列
+              --default_parallelism=N             # 指定每个队列中的线程数. 默认为2
+              --parallel_schema=[N:]db1,db2,...   # 设置一个导出数据库的队列, 若有N值, 则该队列按N个线程导出.若无N值, 则按--default_parallelism指定的线程数导出
+                                                  # 该选项决定队列数量, 可出现多次(则产生多个队列)
+
+              --insert_ignore                     # 使用insert ignore语句代替insert
+              --log_error_file=file_name          # 将warning和error追加到文件.若无此选项, 则显示到标准输出
+
+              --exended_insert=N                  # insert语句后使用多个value
+              --hex_blob                          # 将binary, varbinary, blob和bit的字段以十六进制导出
+              --databases, -B                     # 指定数据库. 多个数据库以空格分隔
+              --complete_insert                   # 导出包含字段名的完整insert语句
+              --compress_output=lz4|zlib          # 输出压缩
+                                                  # # lz4 -d input_file output_file           # openssl zlib -d  < input_file > output_file   # linux系统
+                                                  # # lz4_decompress input_file output_file   # zlib_decompress input_file output_file        # MySQL自带程序
+              --defer_table_indexes               # 延迟每个表的索引创建直至其数据加载完成.该参数对所有引擎适用(innodb只适用于secondary indexes). 默认启用
+              --events                            # 导出事件, 同dump的event. 默认启用
+
+              --max_allowed_packet=N              # C/S之间通信大小. 默认24M, 最大1G
+              --net_buffer_length=N               # C/S之间通信缓冲大小, 当使用--extended_insert时, pump最大产生N字节的row
+              --replace                           # 使用replace语句替代insert语句
+              --result_file=file_name             # 指定输出文件
+
+              --routines                          # 导出存储过程和函数,默认启用. 同dump的该选项
+              --triggers                          # 导出触发器,默认启用. 同dump的该选项
+              --users                             # 导出用户定义(create user和grant). # mysqlpump --exclude_databases=% --users(默认导出所有数据库, 故可禁用, 只导出用户定义)
+
+              --set_charset                       # 将set names default_character_set写入输出文件. 默认启用
+              --set_gtid_purged=value             # 该选项决定是否向输出添加GTID(set @@global.gtid_purged).还可添加一条在load时禁用向binlog记录的语句(set @@session.sql_log_bin=0)
+                                                  # off: 不添加两个set语句  on: 添加两个set语句(若服务的gtid未启用则报错)  auto: 若gtid启用则添加两个set语句, 默认auto
+              --single_transaction                # 同dump的该选项
+              --skip_definer                      # 在输出中的创建试图及存储语句中省略define和sql security语句. 当dump文件被reload时则采用默认的define和sql security语句
+              --watch_progress                    # 显示导出进度(table, row), 默认启用
+      mysqlshow:                                 # 显示数据库, 表和字段信息  [client]  [mysqlshow]
+        说明:
+          1.快速地显示数据库, 表及其字段和索引
+          2.其实质是提供命令行的show语法
+          3.没有db_name时显示所有数据库, 没有table_name时显示所有表
+          4.可使用通配符()
+        命令:
+          # mysqlshow [option] [db_name [table_name [col_name]]]
+            option:
+              --count                             # 显示每个表的行数
+              --keys, -k                          # 显示表索引
+              --show_table_type, -t               # 显示表类型(show full tables), base table/view
+              --status, -i                        # 显示额外的表信息
+      mysqlslap:                                  # 负载仿真客户端
+        说明:
+          1.创建用于测试的schema, table和可选的存储或数据(该阶段使用单个客户端连接)
+          2.运行load测试(该阶段使用多个客户端连接)
+          3.清除(断开连接, 若指定的话再删除表. 该阶段使用单个客户端连接),
+        命令:
+          .# mysqlslap [option]
+            option:
+              --auto_generate_sql, -a                       # 当没有提供sql语句时自动创建
+              --auto_generate_sql_add_autoincrement         # 在自动生成的表中添加auto_increment的列
+              --auto_generate_sql_execute_number=N          # 指定自动生成N次查询
+              --auto_generate_sql_guid_primary              # 为自动生成表添加guid的主键列
+              --auto_generate_sql_load_type=type            # 指定测试负载的类型: read(扫描表), write(写入表), key(读取主键), update(更新主键), mixed(一半插入,一半扫描). 默认为mixed
+    MySQL管理工具:
+      innochecksum:                               # 离线innodb文件校验工具
+        说明:
+          1.打印innodb文件的校验和. 这个工具读取一个innodb表空间文件,计算每个page的校验和并与存储的校验和比较, 打印出不匹配的损坏页面1
+        命令:
+          .# innochecksum [option] file_name
+            option:
+              --help|--info                       # 显示帮助信息
+              --count                             # 对文件中的page进行计数
+              --start_page=N, -s                  # 以该参数值为起始
+              --end_page=N, -e                    # 以该参数值为结束
+              --page=N, -p                        # 只检查该参数值的page
+              --strict_check=name, -C             # 指定校验算法(innodb, crc32, none). 若未指定该选项则选择三中都验证
+              --no_check, -n                      # 
+              --allow_mismatches, -a              # 
+              --write=algorithm, -w               # 根据指定算法重写一个校验值(innodb, crc32, none)
+              --page_type_summary, -S             # 对每个页面类型计数
+              --page_type_dump=file_name, -D      # 导出每个页中的页面类型信息
+              --log=file_name, -l                 # 校验日志. 包含每个页面的校验值
+              -                                   # 从标准输出输入
+      myisam_ftdump:                              # 显示全文索引信息
+      myisamchk:                                  # MyISAM表维护工具
+      myisamlog:                                  # 显示MyISAM日志文件
+      myisampack:                                 # 产生压缩, 只读的MyISAM表
+      mysql_config_editor                         # MySQL配置工具
+      mysqlbinlog:                                # 处理二级制日志文件工具(也可处理relay log)
+        说明:
+          1.二进制日志包含修改的二进制格式, 可用该命令显示其文本内容
+          2.若要执行多个binlog文件, 则在一个连接中执行(eg: mysqlbinlog log_file1 log_file2 | mysql). 若分开执行可能会出问题(eg: 包含临时表)
+        命令:
+          .# mysqlbinlog [option] log_file
+            option:
+              --base64_output=value                     # 选择应该被解码的语句
+                                                        > never:
+                                                        > decode-rows: 与-v同用, 不显示二进制格式语句
+                                                        > auto
+              --verboase, -v                            # 默认情况下, 基于raw的复制日志格式为二进制格式. 要查看行信息则加该参数, 则行事件的二进制以注释的伪SQL形式显示(且以###开头)
+              --binlog_row_event_max_size=M             # 指定基于row的二进制日志大小, 以字节为单位, 默认4GB. 该值必须为256的倍数
+              --connection_server_id=server_id          # 
+              --database=db_name, -d                    # 过滤指定数据库事件(对于基于行的的复制非常有效, 对于基于语句和mixed的复制, 只输出选择数据库后的SQL语句)
+              --rewrite_db='db->newdb'                  # 将binlog输出数据库名重写为newdb, 以便应用一个新数据库. 当与-d选项同用时, 该选项先被应用, -d选择新数据库名
+              --disable_log_bin, -D                     # 当使用binlog恢复时, 不产生二进制日志. 则该选项将sql_log_bin=0写入输出文件(开头和结尾)
+              --exclude_gtids=gtid_set                  # 
+              --force_if_open, -F                       # 读取binlog文件, 即使已被打开或未正常关闭
+              --force_read, -f                          # 若读取不识别的binlog文件, 则忽略警告继续
+              --hexdump, -H                             # 以十六进制显示输出. 有助于replication的调试
+              --host=hostname, -h                       # 获取binlog日志的主机
+              --port=N, -P
+              --protocol=name
+
+              --idempotent, -i                          # 
+              --local_load=name, -l                     # 
+              --offset=N, -o
+
+
+              --bind_address=ip                         # 绑定的ip地址
+              --character_sets_dir=dir_name             # 字符集安装目录
+              --debug                                   # 让服务器将debug信息写入error log(root)
+              --debug_check                             # 当程序存在时打印debug信息
+              --debug_info                              # 当程序存在时打印debug信息和CPU, 内存情况
+              --default_extra_file=file_name            # 额外指定配置文件
+              --default_file=file_name                  # 只使用给定的配置文件
+              --default_group_suffix=str                # 指定额外读取配置文件中相应后缀组的配置(eg: str=other, 则会额外读取[client_other], [_other])
+              --default_auth=plugin                     # 客户端身份验证的插件
+              --server_public_key_path
+
+      mysqldumpslow:                              # 总结慢查询日志文件
+    开发工具:
+      mysql_config                                # 显示编译客户端选项
+      my_print_defaults                           # 显示配置文件选项
+      resolve_stack_dump:                         # 
+    其它工具:
+      lz4_decompress: 用于将mysqlpump导出的压缩文件解压
+        .# lz4_decompress dump.lz4 dump.sql
+      zlib_decompress:用于将mysqlpump导出的压缩文件解压
+        .# zlib_decompress dump.zlib dump.sql
+      perror:
+      replace:
+      resolveip:
+    独立于服务器操作的工具程序:
+      myisamchk:   表维护操作
+      myisampack:  产生压缩、只读的表
+      mysqlbinlog: 处理二进制日志文件
+      perror:    显示错误代码的含义
+  日志
+    错误日志: mysqld的启动, 关闭, 运行日志
+      日志轮转: 简单移动文件即可
+        .# mv mysqld.log mysqld.log.0
+        > flush logs
+    通用查询日志: 记录客户端连接和发送的语句
+      说明:
+        1.mysqld按接收顺序写入而不一定是执行顺序
+        1.日志表并不干扰服务器的运行
+        2.create, alter, drop都可以用于日志表, 但alter和drop在日志表启用时被禁用, 可在日志表被禁用时使用:
+          > SET @old_log_state = @@global.general_log;
+          > SET GLOBAL general_log = 'OFF';
+          > ALTER TABLE mysql.general_log ENGINE = MyISAM;
+          >  SET GLOBAL general_log = @old_log_state;
+        3.日志表只能使用csv或myisam引擎
+        4.truncat, rename, chkeck对日志表可以使用
+        5.lock, insert, delete, update在日志表上被禁用
+        6.写入日志表的信息不会被写入二进制日志, 故不会被复制到slave
+        7.通过flush tables或flush logs来分别刷新日志表和日志文件
+        8.日志表不可分区
+        9.日志表不会被mysqldump
+    慢查询日志: 时间超过long_query_time的查询
+      说明: 同一般查询日志
+      慢查询表轮替:
+        > use mysql;
+        > create table slow_log_new like slow_log;
+        > rename table slow_log to slow_log_1, slow_log_new to slow_log;
+    二进制日志: 记录更改数据的语句(用于备份,恢复和复制)
+      说明:
+        1.MySQL向二进制日志文件追加数字以创建文件序列
+        2.当服务器启动/刷新日志/大于max_binlog_size时会创建一个新的二进制日志文件
+        3.binlog目录中的.index文件包含binlog文件列表
+      二进制日志格式:
+        分类:
+          1.statement: 基于语句的日志记录(记录实际的SQL语句), 可能会出现非确定语句的问题(如, uuid()函数输出)
+          2.row: 基于行的日志记录(记录每行的更改), master将event写入binlog, 以表明每张表行是如何受影响. 因此表总是使用主键来有效地识别行
+          3.mixed: 混合的日志记录, 默认使用基于语句的日志, 但在某些情况下可以自动转换到基于行的日志(只有row模式能保证复制正常)
+      删除二进制日志文件:
+        1.查看当前master上使用正在使用的bin_log文件和binlog列表
+          > show binary logs;
+          > show master status;                  
+        2.在master上执行产生新的binlog文件
+          > flush logs;
+        3.手动清除: 不要使用rm删除日志. 该语法可安全地更新索引文件并且采取一个日期参数
+          > purge binary logs to 'bin_log_filename'           # 按文件序号从开始删除至指定文件(但该文件不删除)          
+          > purge binary logs beffore '2018-08-03 15:00:00'   # 按照日期删除(最小单位为文件)
+          > reset master;                                     # 清除所有binlog文件并重新开始
+      查看:
+        > show binary logs;                               # 显示binlog列表
+        > show master logs;                               # 显示binlog列表
+        > show master status;                             # 显示当前使用的binlog文件
+        > show binlog events [in 'binlog_file'] [from N] [limit M,N];                             # 显示二进制文件中的事件
+      会话禁用:
+        > set sql_log_bin=0                               # 该语句后的所有SQL语句都不会被记录到二进制日志中(仅针对该会话)
+        > sql
+        > set sql_log_bin=1                               # 恢复记录
+    中继日志:   从master(replication)上接收的数据更改(slave将master上的binlog拷贝到本地放入relay log中, 然后调用SQL线程执行relay log中的events, 从而达到数据同步)
+      说明: 仅在从服务器上使用, 以便保留必须在slave上进行的数据更改
+      删除relay log日志:
+        > reset slave;
+    DDL日志(元数据日志): 由DDL语句执行的元数据操作
+      
+    1.查询日志    -- log
+      说明:客户端的一切操作被记录
+      操作:在配置文件中加入log=file
+    2.错误日志    -- log-error
+      说明:运行日志
+      操作:在配置文件中加入log-error
+          默认为 hostname.log
+    3.慢查询日志  -- log-slow-queries
+      说明:记录查询时间超过一定时间的查询
+          # show variables like "long_%"
+      配置:在配置文件中加入log-slow-queries和long_query_time=5
+          默认为 mysqld-slow.log
+  优化
+    SQL优化:
+      SQL语句经过解释器转化为二进制代码. 然后经过优化器(由引擎提供)查询数
+    innodb表优化:
+      1.为每个表指定主键或一个auto_increment列
+      2.善用外键
+      3.关闭自动提交(autocommit), 否则会受限于存储设备的写入速度
+      4.启用innodb_file_per_table选项或使用常规表空间来存储数据和索引而非使用系统表空间
+      5.是否启用压缩(压缩不损耗读写能力)
+      6.使用sql_mode=no_engine_substitution
+  安全
+  集群
+    切换数据目录:
+      说明: 当需要将已有数据的数据库更换数据目录(关闭selinux)
+      操作:
+        1.关闭数据库
+          .# systemctl stop mysqld
+        2.创建新目录并更权限
+         .# mkdir -p /path/dir/data; chown -R mysql:mysql /path/dir/data
+        3.原属性拷贝目录
+          .# cp -ap /var/lib/mysql /path/dir/data/
+        4.启动并校验数据, 删除旧的数据目录
+    多实例:   
+      说明: 在单机上装多个mysqld
+      部署: 
+        1.# vim /etc/my.cnf             # 更改配置文件, 添加两个实例, @为组名中的定界符. 各实例会按序读取[server], [mysqld], [mysqld@N](自身)
+          [mysqld@node1]
+            datadir=/data/node1/data
+            socket=/data/node1/mysql_node1.sock
+            port=3301
+            log_error=/data/node1/logs/mysql_node1.log
+          [mysqld@node2]
+            datadir=/data/node2/data
+            socket=/data/node2/mysql_node2.sock
+            port=3302
+            log_error=/data/node2/logs/mysql_node2.log
+        2.建立相应目录并更改权限
+          .# mkdir /data/{node1,node2}
+          .# mkdir /data/node1/{data,logs}
+          .# mkdir /data/node2/{data,logs}
+          .# chown -R mysql /data/{node1,node2}
+        3.启动
+          .# systemctl start mysqld@node1
+          .# systemctl start mysqld@node2
+          .# systemctl enable mysqld@node1
+          .# systemctl enable mysqld@node2
+        4.查看状态(支持通配符)
+          .# systemctl status mysqld@node*
+        5.连接
+          .# mysql -uroot -p -P 3302 -S /data/node2/mysql_node2.sock
+    复制:
+      说明:
+        1.将数据从一台数据库(master)复制到一台或多台数据库(slaves), 复制默认是异步的(不必时时连接以接受更新). 可复制所有的数据库, 选择的数据库或选择的表
+        2.在master上执行的所有写操作语句都会被记录到binlog中. 这些binlog由slave提取到本机的relay log(I/O线程), 然后再按顺序在slave上执行relay log中的语句(SQL线程)
+      优点:
+        1.扩展性: 增加多台slave以提升性能. 所有的写操作在master上执行, 所有的读操作在slaves上执行
+        2.数据安全: 可以在slave上进行备份而不用损害master数据
+        3.分析: 在maste上实时创建数据, 而对数据的分析可以在slave上进行
+        4.远程数据分发: 使用复制为远程服务器创建本地数据的副本, 无须永久访问master
+      复制类型:
+        基于binlog
+          说明:
+            1.基于master的binlog event, 要求log文件和postition在主从之间异步
+            2.在master上的所有更改操作作为events写入binlog文件, slaves被配置去读取master的binlog文件, 执行其中的events.
+            3.无法配置master只记录某些events
+            4.每个slave都保存着binlog的坐标(master上的file_name和position)
+          方法:
+            1.SBR(Statement Based Replication): 复制完整的SQL语句
+            2.RBR(Row Based Replication): 只复制更改的行
+            3.MBR(Mixed Based Replication): 
+
+        基于事务(gtid)
+          1.基于事务性的GTIDs(不需要log, 简化了许多常见的复制任务), GTID保证了主从之间的一致性
+          2.使用gtid, 在master上提交和在slave上应用的事务都可以被标记和追踪. 在整个集群内, gtid都是唯一的
+          3.gtids保存在master和slaves上, 
+          4.当一个事务在master上被提交时, 若事务已被写入binlog, 则该事务被分配一个新的gtid(其后数字按序递增)
+          5.复制的事务具有在master上相同的gtid. 每个gtid的事务只会在salve执行一次
+          7.GTID=source_id:transaction_id(source_id标识最初的服务器, 一般是master的server_uuid. transaction_id是事务在master上提交的序列号.)
+
+          原理:
+            1.master更新数据时, 会在事务前产生gtid一同记录到binlog中
+            2.slave端的I/O线程将变更的binlog写入到本地的relay log中
+            3.SQL线程从relay log中获取gtid, 然后对比slave端的binlog是否有记录
+            4.若有记录说明改gtid的事务已执行, slave会忽略
+            5.若无记录slave从relay log执行该gtid的事务, 并记录到binlog中
+            6.
+      同步类型:
+        1.单向异步复制(其中一台扮演master, 其余扮演slaves), 内置的
+        2.半同步复制(至少一个slave确认数据已经接收并写入binlog)
+        3.延迟复制(slave落后于master一个指定的最少的时间量)
+        4.同步复制(NDB集群)
+      主从复制: 传统复制
+        说明: 基于binlog复制
+        架构:
+          一个master, 多个slave
+        操作:
+          1.master开启binlog, 并设置唯一的server_id
+            .# vim /etc/my.cnf
+              [mysqld]
+                server_id=1
+                log_bin=/path/binlog/binlog
+          2.master上创建用户以读取master上的binlog
+            > create user 'repl'@'ip' identified by 'password';
+            > grant replication slave on *.* to 'repl'@'ip';
+          3.master上导出需要同步的数
+            
+    原理
+  内部命令
+    管理:
+      帮助: > help show 显示所有的show语句     
+      客户端:
+        > sql \c                                # 清空当前输出
+        > \C charset_name                   # 更改默认字符集并发送set names语句
+        > \r [db_name host_name]            # 重新连接服务器
+        > \d str                            # 重新定义结束符
+        > sql \e                                # 重新编辑SQL
+        > sql \G                                # 将当前语句发动给服务器并垂直显示结果
+        > \q                                    # 退出
+        > sql \g                                # 发送语句给服务器并执行
+        > sql \n                                # 禁用输出分页
+        > \t                                    # 禁止输出到文件
+        > \w                                    # 禁用每条语句后的警告
+        > \W                                    # 启用每条语句后的警告
+        > \P                                    # 启用分页输出
+        > \p                                    # 只打印当前语句而不执行
+        > \R str                                # 重新定义提示符
+        > \#                                    # 启用匹配
+        > \x                                    # 重置以清除会话状态. 但并没有关闭和重新打开且没有执行身份验证
+        > \. file.sql                           # 执行SQL文件
+        > \s                                    # 提供连接状态和服务器信息
+        > \! command                            # 执行Linux命令
+        > sql \T file_name                      # 将执行结果记录到指定的文件中
+        > \u db_name                            # 选择数据库
+      服务器:
+        > show variables;           查看当前系统变量
+        > show status:             显示系统统计和状态信息
+          connections                   # 所有连接数, 包含成功连接和失败连接
+          aborted_connects              # 失败连接数
+          aborted_clients               # 成功连接, 但非正常退出
+          threads_connected             # 当前连接的client数量
+
+          show status like 'com_%'    # 服务器按语句类型执行的语句的数量
+
+          bytes_received                # MySQL服务器段接收的字节量
+          Bytes_sent                    # MySQL服务器端发送的字节量
+
+        > status  
+          
+        > show warnings/errors;     显示服务器警告或错误信息
+        > select version();         查看mysql版本
+        > select user();      
+        > select current_date;      系统日期
+        > select now();             日期时间
+      日志:
+        > flush error logs              # 刷新错误日志
+        > flush logs                    # 刷新所有日志  
+        > purge binary logs             # 删除二进制日志
+      复制:
+        > reset master;
+        master变量:
+          auto_increment_increment              # 默认值为1. 范围为1-65536. 被用于
+      密码:
+        mysqladmin:    针对localhost
+            .# mysqladmin -uroot password '密码'               # 初始化密码
+            .# mysqladmin -uroot -p旧密码 password '新密码'    # 重置密码
+        mysql:     针对客户端, 初始或修改
+            > set password for user_name@host=password('密码')          在--skip-grant-tables状态下不能用
+            > update mysql.user set password=password('密码') where user='user_name' and host='hostname'
+      登录:
+        mysql -uuser -h hostname -ppasswd db_name -P 3306
+          -u user       默认root
+          -p password   默认为空
+          -h host       默认localhost
+          若在本地用ip访问数据库,则访问数据库的客户端是ip,而非localhost
+      用户和权限:
+        说明:
+          1.MySQL对用户的所有认证信息是在内存中
+          2.当使用grant, revoke, set password, rename user等语句间接修改授权表, MySQL会自动重新加载到内存
+          3.若使用insert, update, delete语句直接修改授权表, 则需用命令flush privileges刷新授权表
+        权限分类:
+          管理权限:
+          访问权限:
+          特殊权限:
+            all: all privileges的简写, 代表所有的权限(无grant)
+            usage: 无权限, 只能连接数据库
+        命令:
+          > create user 'user_name'@'host' identified by "passwd";        创建用户
+              host: 客户端主机. 若无host,则默认为%, 可用的表示方式: ip,hostname,network. 亦可使用通配符: _(匹配任意单个字符) %(匹配任意字符)
+          > rename user name1@'host' to name2@'host'                      重命名用户    
+          > drop user user_name@'host';                                   删除用户      
+          > select user();                                                查看当前用户  
+
+          > alter user 'user'@'client' account lock                       # 锁定账号
+          > alter user 'user'@'client' account unlock                     # 解锁账号
+
+          > grant pri1,pri2,... on db_name.tb_name to 'user_name'@'host';                         # 授权
+          > grant all on db_name.* to 'user_name'@'client_host';
+          > grant all *.* to 'user'@'client' ; grant grant optin on *.* to 'user'@'client';       # 将user@'client'变为超级用户
+          > revoke pri1,pri2,... on db_name.tb_name from user_name@"host";                        # 销权 
+          > show grants;                                                                          # 查看权限
+          > show grants for 'user'@'host';
+      数据:
+        元数据:无实际的存放目录,当MySQL的服务运行时才可见
+          information_schema:   MySQL的数据字典,以表的形式描述column table,scheme,ViewSonic等
+            - tables            存放数据库里所有的数据表以及每个表所在的数据库
+            - schema            存放数据库里的所有数据库信息
+            - views             存放数据库中所有列信息
+            - triggers          存放数据库所有的触发器
+            - routines          存放数据库中所有的存储过程和函数
+            - key_column_usage  存放数据库所有的主外键
+            - table_constraints 存放数据库全部约束
+            - statistics        存放数据表的索引 
+        真实数据: 用户的实际数据存放在配置文件中datadir指定的目录下,每个用户的database对应一个该目录下的子目录,每张表对应下面的若干文件
+          mysql:                系统数据库, 运行时所需要的信息
+            分类:
+              1.授权系统表:
+                user:               用户账号,全局权限和其它非特权列(空字符串可以匹配所有的用户名,就像通配符一样.根据MySQL认证时的排序规则,第一个条目的用户名排序更前,第二个条目的主机名更精确,排序更前)
+                db:                 数据库级别的权限
+                table_priv:         表级别权限
+                columns_priv:       列级别权限
+                procs_priv:         存储过程和函数权限
+                proxies_priv:       代理用户权限
+              2.对象信息系统表:
+                event:              事件调度器信息, 服务器在启动过程中加载它列出的事件
+                func:               用户自定义函数, 服务器在启动过程中加载它列出的函数
+                plugin:             服务器端插件, 服务器在启动过程中加载它列出的插件
+                proc:               存储过程和函数信息
+              3.日志系统表:         使用csv存储引擎
+                general_log:        一般查询日志表
+                slow_log:           慢查询日志表
+              4.服务器端帮助系统表:
+                help_category:      帮助类别信息
+                help_keyword:       与帮助主体相关联的关键字
+                help_relation:      在关键字和主题之间的映射
+                help_topic:         帮助主题内容
+              5.时区系统表:
+                time_zone:                  时区id及是否使用leaps秒 
+                time_zone_leap_second:      leap秒发生时
+                time_zone_name:             在时区id和名称的映射
+                time_zone_transition, time_zone_transition_type:      时区描述
+              6.复制系统表:
+                gtid_executed:             存储GTID值
+                ndb_binlog_index:          NDB集群的bin日志信息
+                slave_master_info, slave_relay_log_info, slave_worker_info:   在slave上存储的复制信息 
+              7.优化器系统表:
+                innodb_index_stats, innodb_table_stats: 用于innodb持久优化统计
+                server_cost:                查询时的服务器消耗成本
+                engine_cost:                查询时的特定的存储引擎成本      
+              8.其它系统表:
+                audit_log_filter, audit_log_user:       若安装了企业审计, 则提供审计日志过滤器和用户账号的持久存储
+                firewall_user, firewall_whitelist:      若安装了企业防火墙, 则提供防火墙的持久存储
+                servers:                                被fedreated引擎使用
+          performance_scheam:   运行时服务器内部执行状态
+          sys:                  已收集的性能架构的数据(更好的解释performance schema的信息)
+          ndbinfo:              存储NDB集群信息
+      数据加载:
+        1.load data
+          > load data local infile '/root/A.csv' into table t1 fields terminated by ',';
+        2.insert
+          insert into tb_name values(),();
+      备份与还原:
+        备份: 
+          1.逻辑备份
+            - 使用mysqldump, mysqlpump备份
+            - 锁定实例备份: 只允许在线备份期间DML
+              > lock instance for backup
+              > 备份
+              > unlock instance
+          2.物理备份
+            直接拷贝数据库目录(服务器关闭或手动read锁库flush tables with read lock)
+          3.导出文本数据
+            > select * into outfile 'file_name' from tb_name; > 再手动备份表结构  | 使用mysqldump --tab导出数据和表结构
+          4.增量备份(做一次完全备份后, 开启binlog)
+            远程同步binlog:
+              - 在服务器上创建复制用户并查看binlog日志文件名称
+                > create user "binlog_user"@"%" identified by 'binlog_pass';
+                > grant replication slave on *.* to 'binlog_user'@'%';
+                > show binary logs
+              - 在备份服务器上执行远程同步
+                .# nohup mysqlbinlog -ubinlog_user -pbinlog_pass -h 192.168.1.153 --read-from-remlote-server --stop-never --to-last-log --raw binlog.000002 &
+          5.在slave上备份(不论使用何种备份方法, 都应该备份master信息和relay log)
+             > mysqldump -RE --single-transaction --flush-logs --master_data=2 --all-databases > backup_sunday_1_PM.sql
+          6.文件系统镜像(在备份镜像时要锁表(flush tables with read; unlock tables))
+
+          备份单一数据库: # mysqldump -uuser -ppasswd db_name -RE --triggers > /path/db_name.sql
+          备份所有数据库: # mysqldump -uuser -ppasswd --all-databases --event --ignore-table=mysql.events > all_db.sql
+        还原:
+          分类:
+            物理还原: 将物理备份的目录和文件还原至原目录即可
+            逻辑还原: SQL格式文件被mysql客户端处理即可, 文本格式文件通过load data infile语句或mysqlimport程序处理
+              1.> use db_name;
+                > set sql_log_bin=0;             # 不记录到binlog中
+                > source /path/db_name.sql;   |  # mysql -uuser -ppassword db_name < all_db.sql  一定要查看SQL文件中是否create database和use语句
+              2.> source ./table_name.sql; > load data infile 'table_name.txt' into table table_name;
+            增量备份恢复:
+              1.恢复最新的一个全量备份(# mysql < backup.sql)
+              2.恢复增量备份(# mysqlbinlog mysql_bin.0007 mysql_bin.0008 | mysql)
+            时间点恢复: 每条语句前都有set timestamp语句, 故恢复的数据和相关的日志的时候都是原来的时间
+              1.使用event时间恢复: 以datetime的格式指定时间
+                .# mysqlbinlog --start_datetime="2018-10-29 10:10:00" --stop_datetime="2018-10-29 11:10:00" log_file_00023 | mysql -uroot -p   或者
+                .# mysqlbinlog log_file_00023 > /tmp/mysql.sql       # 编辑该sql文件, 将不需要的SQL删除, 然后再执行
+                .# mysql -uroot -p < /tmp/mysql.sql
+              2.使用event位置恢复: 语法同1, 但可更精确的指定恢复内容
+                .# mysqlbinlog --start_position=368312 --start_position=368315 file_log_00023 | mysql -uroot -p
+      批处理:
+        1.# mysql -uuser -ppasswd -h host -D db_name [--force] < batch.sql | less
+        2.> source batch.sql | > \. bathc.sql
+      变量:
+        用户变量:
+          说明: 用户变量与连接有关.一个客户端定义的变量不能被其它客户端看到或使用.当客户端退出时,该客户端连接的所有变量将自动释放
+          设置:
+            > set @var_name=expr[,@var_name=expr]      对于SET,可以使用=或:=作为分配符,但在非set语句中必须用=:.分配给每个变量的expr可以为整数、实数、字符串或者NULL值
+        系统变量:
+          说明: 服务器运行时许多变量可以动态更改.允许修改服务器操作而不需要停止并重启服务器
+          全局变量: 影响服务器整体操作
+            说明: 当服务器启动时,它将所有全局变量初始化为默认值.这些默认值可以在选项文件中或在命令行中指定的选项进行更改
+            设置全局变量: 动态更改, 适用于所有新连接, 重启失效
+              > set global var_name=value;
+              > set @@global.var_name=valus;
+
+              > set persist var_name=value;       # 更改的值保持持久化, 重启有效. 其设置存储在数据目录的 mysqld-auto.cnf中
+            检索全局变量:
+              > select @@global.var_name;
+              > show global variables like 'var_name'
+            注:对于全局变量的更改只影响更改后连接的客户.不影响目前已经连接的客户端的会话变量
+          会话变量: 仅影响当前连接
+            设置回话变量:
+              > set session var_name=value;     # local是session的同义词
+              > set @@session.var_name=value;
+              > set var_name=value;             # 若不指定,默认使用session
+            检索会话变量:
+              > select @@var_name;
+              > select @@session.var_name;
+              > show session variables like 'var_name';
+      注释:
+        单行注释:
+          --, #
+        多行注释:
+          /* .. */
+   SQL:
+    说明:
+      1.句末用 ; 和 \g 相同,但\G可使结果更美观.无论什么语句,均可加分号结束
+      2.mysql接受自由格式的输入,它收集输入行但直到看见分号才执行
+      3.可以用"\c"终止语句
+      4.输入help或\h获得帮助,也可输入更多的文本获得特定命令的帮助(eg: help select)
+      5.sql语句是不区分大小写的,且在处理sql语句时,所有空格都被忽略
+      6.返回时间:它提供服务器性能的一个大致概念.因为它表示时钟时间(不是CPU或机器时间), 并且易受到诸如服务器负载和网络延时的影响,因此这些值是不精确的
+      7.分析查询优化: explain sql
+    数据库:
+      创建: > create database [if not exists] db_name;
+      删除: > drop database [if exists] db_name;
+      查询:
+        > show databases;
+        > select database();                  # 查看当前数据库
+        > show create database db_name;
+        > show tables;  > show tables from db_name;
+      选择:
+        > use db_name;        # use语句并不返回任何结果,信息显示是由mysql命令行程序输出的
+    引擎:
+      显示支持的引擎:
+        > show engines;  > SELECT * FROM INFORMATION_SCHEMA.ENGINES;
+        > show variables like 'have%'
+      存储引擎和表:
+        为表指定存储引擎: > create table tb_name() engine=innodb
+        为表转换存储引擎: > alter table tb_name engine=innodb/bdb
+      更改存储引擎:
+        > alter table tb_name engine=innodb;
+      监控:
+        > show engine innodb status\G
+    表:
+      创建:   > create table tb_name();     # MySQL中规定自动增长列必须为键,而非主键
+        临时表针对单一MySQL会话而存在,它只存储在内存中: > create temporary table aa（）
+      删除:
+        > drop table tb_name [if exists tb_name];
+      重命名:
+        > alter table tb_name1 rename tb_name2;                     单表
+        > rename table tb_name1 to tb_name2, tb_name3 to tb_name4;  批量
+      修改:
+        表结构:
+          > alter table tb_name modify col_name type                修改列类型
+          > alter table tb_name add col_name type                   增加列
+          > alter table tb_name drop col_name                       删除列
+          > alter table tb_name change col_name1 com_name2 type     更改列名
+        表数据:
+          > insert [ignore] into tb_name() values(),() on duplicate key update col=col+values(col)    > 插入记录
+                                                                                                      > 若有ignore子句, 则遇到重复行时忽略新数据生成警告, 否则报错
+                                                                                                      > 若有on子句, 则重复行按update子句更改, 无重复行则无效
+          > replcae into tb_name() values(),()                      更新记录(行不存在则insert, 存在则删除并插入)
+          > update tb_name set col_name=value where condition       更改记录
+          > delete from tb_name where condition where condition     删除记录
+          > truncate tb_name;
+      查询: select对内容的大小写不区分
+        表结构:
+          > desc tb_name [col_name];    > show columns from tb_name
+          > show create table tb_name; 显示建表语句
+        表信息:
+          > show table statsu\G
+          > show table status like "tb_nam";
+        表数据:
+          语法结构:
+            select  distinct                      //去除结果中重复行,应用于所有列
+              selection_list                      //要查询的列
+            from tb_name                          //指定数据表
+              where primary_constraint            //需要满足的条件
+              group by col_name                   //对结果进行分组
+              order by col_name1,col_name2 desc   //对结果进行排序,默认升序asc(降序,desc只作用于前面相临的列),可使用非检索的列.
+                                                  //当多列时,第一列相同时,对第二列排序
+              having secondary_constraint         //查询时需满足的第二条件
+              limit (N,)M                         //限定输出的查询结果(从第N行开始的M个值,不包含N)
+            注:
+              - group by 所查询的列必须包含在分组的列中,目的是是查询到的数据没有矛盾
+              - 聚合查询
+                  其结果值根据选定行中非NULL的值进行计算,NULL值将被忽略.
+                    count()     count(*)  统计所有行数 包括NULL
+              - 连接查询
+                  内连接  外连接
+              - 只有子查询返回的结果列包含一个值时,比较运算符才适用.假如一个子查询返回的结果集是值的列表,则用in
+              - 对含有null的结果进行排序,升序,null在最前；降序,null在最后,带any的子查询忽略UNLL
+              - 比较运算符 返回结果 1或0
+              - 判断一个值是否为NULL,只能用is NULL　和＜=＞判断
+              - NULL和"NULL"是不同的
+              - 使用通配符"*"通常会降低检索和应用程序的性能
+          where子句
+            操作符:
+              = <> != < <= > >= 
+              between     在两个值之间,匹配范围内所有值,包括开始值和结束值
+              is null     查询该字段是否不包含值
+              in (,)      指定条件值,由,分隔
+              not         否定跟在它之后的条件,支持对in,between,exists子句取反
+              and   where constraint and constraint
+              or    where constraint or constraint
+            注:
+              1.在and和or的组合条件语句中,and优先级更高,计算优先处理and语句
+              2.可使用()来明确地分组操作符
+      维护:
+        > check table tb_name;
+        > repair table tb_name;
+        > analyze table tb_name;
+        > optimize table tb_name
+    导入导出:
+      说明: 
+        1.用户需具有file权限(grant file *.* to user%'client')
+        2.secure_file_priv变量不能为null
+      导出为csv:
+        > select * into outfile '/opt/mysql/mysql-files/t.csv' 
+          fields terminated by ','
+          optionally enclosed by '"'
+          lines terminated by '\n' 
+          from t1;            
+      另存为表:
+        > create table t2 as select * from t1;
+      csv导入表:
+        > load data [local] infile '/opt/mysql/mysql-files/t.csv'       # local代表从客户机上导入()
+          [ignore|replace] into table t11     # 可用ignore或replace来处理重复的行
+          fields terminated by ','
+          optionally enclosed by '"'
+          lines terminated by '\n'
+          ignore n lines;                             # 忽略文件开头N行
+    函数:
+      说明:为数据的转换和处理提供了方便.但每种DBMS之间的函数可能会存在差异,使用了函数之后,sql的可移植性降低
+      文本处理函数:
+      日期和时间函数:
+      数值处理函数
+      聚集函数
+    数据类型:
+      字符串:
+        说明: 以""和''引起来的字符序列.若mysql启用了NSI_QUOTES,可以只用单引号引用字符串.用双引号引用的字符串被解释为一个识别符
+        转义字符:
+          \0:  NULL
+          \'    单引号
+          \"    双引号
+          \b    退格符
+          \n    换行符
+          \r    回车符
+          \t    tab
+          \\    反斜线
+          \%    %字符
+          \_    _字符
+        分类: char, varchar
+        注:
+          1.从速度方面考虑,选择固定的列  char
+          2.要节省空间,使用动态的列  varchar
+          3.若搜索内容不区分大小写  text
+          4.若搜索内容区分大小写    blob
+      数值:
+        说明: 整数用阿拉伯数字表示,浮点数使用"."作为十进制间隔符.两种类型的数值均可以在前面加一个"-"来表示负值
+        分类:
+          整型:
+            bit:        1-64
+            tinyint:    -128-127/0-255
+            samllint:   -32768-32767/0-65536
+            mediumint:  -8388608-8388607/0-16777215
+            int:        -2147483648-2147483647/0-4294967295
+            bigint:     -9223372036854775808-9223372036854775807/0-18446744073709551615
+          浮点型:
+            float[(M,D)]
+            double[(M,D)]
+        注:
+          若数值不超过127  选tinyint
+          对于完全是数字的 选用整数类型
+          浮点型用于小数  货物单价  网上交易金额
+      日期和时间
+        分类:
+          date:           YYYY-MM-DD
+          time:           HH:MM:SS
+          datetime:       YYYY-MM-DD HH:MM:SS
+          timestamp:  
+          year:           YYYY
+      空间:
+      json:
+      布尔值:
+        说明: 常量true等于1,常量false等于0.不区分大小写
+      null:  
+        说明: NULL值表示"没有数据".不同于数字类型的0或字符串类型的空字符串.对于用LOAD DATA INFILE或SELECT ...INTO OUTFILE执行的文本文件导入或导出操作,NULL用序列\N表示.
+        Null和''的区别:
+          NULL:
+            1.占用空间
+            2.null会参与字段比较,所以对效率有一定影响(B树索引是不会存储NULL值的,故若索引的字段可以为null,索引的效率会下降很多),故列属性尽量为not null
+          '':
+            1.不占用空间
+            2.''中间是没有空格的
+            3.在进行count()统计某列时,若采用的是null值,系统会自动忽略掉,但是''会统计到其中的
+            4.对于timestamp类型,若插入的列是null值,则出现的是系统时间.若插入的是'',则会出现'0000-00-00 00:00:00'
+    约束和索引:
+      约束: 执行数据校验,保证数据完整性
+        五类完整性约束:
+          1.not null
+          2.unique key
+          3.primary key
+          4.foreign key
+          5.check
+        创建约束:
+          1.在建表的同时创建
+          2.建表后创建(修改表)
+            添加主键: > alter table tb_name add primary key(col_name)
+            删除主键: > alter table tb_name drop primary key
+        列级约束 表级约束
+        单列约束和多列约束 
+      索引: 用于提高查询的性能
+        类型: 两种存储类型
+          1.B型树(BTREE)索引    
+            有序索引,适合有序范围查找,系统默认
+          2.哈希(HASH)索引
+            无序索引,适合单值查找
+        索引分类(6)
+          1.普通索引:无任何限制
+          2.唯一索引:使用UNIQUE,索引值必须唯一,主键是一种特殊唯一索引
+          3.全文索引:FULLTEXT,只创建在char varchar或text的字段上,默认对大小写不敏感,只有MyISAM支持
+          4.单列索引:只对应一个字段
+          5.多列索引:在表的多个字段上创建一个索引,想要应用该索引,用户必须使用多字段中的第一个字段
+          6.空间索引:SPATIAL,只能建立在空间数据类型上 MySQL中只有MyISAM存储引擎支持空间索引,且该字段不能为空
+        管理:
+          创建:
+            1.在建立数据表时创建索引:
+              > create table tb_name(
+                id int,
+                name varchar(50),
+                goods geometry 
+                
+                index(id)                         ----  普通索引
+                unique index index_name(id asc)   ----- 唯一索引
+                fulltext key index_name(name)     ----- 全文索引
+                index index_name(name(20))        ---- 单列索引
+                index index_name(id,name)         ----- 多列索引
+                spatial index index_name(goods)   ---- 空间索引
+              );
+            2.在已建立的数据表中创建索引:
+              > create index index_name             on tb_name(id)
+                       unique index index_name
+                       fulltext index index_name 
+                       index index_name
+                       spatial index index_name
+          添加: 与在已建立的数据表中创建索引相同
+            > alter table tb_name add index index_name col_name;
+          删除:
+            > drop index col_name on tb_name
+          查看:
+            > show index from tb_name
+        
+        注: 索引可以提高查询的速度,但会影响用户操作数据库的插入操作,向有索引的表中插入数据时,数据库系统会按照索引进行排序,可先删索引,插入数据,再加索引
+    视图: 一个或多个表数据的逻辑表示
+      作用:
+        ·操作方便     
+        ·保障数据库系统的安全性
+      管理:
+        查看用户是否具有创建的权限:
+          > select select_priv,create_view_priv from mysql.user where user='user_name'
+        创建:
+          > create view view_name(tb_id,tb_school) as select id,school from tb_name
+        查看:
+          > desc view_name
+          > show table status like 'view_name'
+          > show create view view_name
+          > show table status where comment="view"     查看一个数据库下所有视图
+        修改:
+          > create or replace view view_name(tb_id) as select id from tb_name
+          > alter view view_name(tb_id) as select id from tb_name
+        更新: 视图一般作为查询数据的虚拟表,而不用于更新
+          > update view_name set id=1,name='sky' where id=2
+        删除:
+          > drop view if exists view_name     
+    事务:
+      说明: 
+        1.在MySQL中,事务由单独单元的一个或多个SQL语句(DML)组成.在该单元中,每个MySQL语句是相互依赖的,整个单独单元作为一个不可分隔的整体
+        2.如果单元中的某条SQL语句执行失败,则整个单元会回滚,返回事务开始前的状态.
+      事物属性: ACID指出每个事务型RDBMS必须遵守4个属性: 原子性   一致性   孤立性   持久性
+          1.一致性主要由MySQL的日志机制处理
+          2. 持久性是通过一条记录事务过程中系统变化的二进制事务日志文件实现
+      管理:
+        > start transaction; / begin;   启动事务
+        > DML SQL                       创建事务     
+        > savepoint str1                创建保存点
+        > DML SQL
+        > savepoint str2                创建保存点
+        > rollback to str1/str2         回滚至保存点str1/str2
+        > commit/rollback               提交事务/事务回滚       
+      存在周期:
+        1.从输入start transaction开始到输入commit结束.
+        2.事务不支持嵌套功能,当一个用户在未结束一个事务又从新打开另一个事务时,前一个事务会自动提交.因此在MySQL命令中,很多命令会隐藏commit命令 
+      锁:
+        说明:
+        分类:
+          内部锁: MySQL自身执行内部锁, 以管理多个会话对表内容的争用
+            行级锁: 细粒度锁, 只有被访问的行会被锁定. 使得多个会话同时进行写访问, 适用于多用户, 高并发和OLTP的程序. 只有innodb支持
+            表级锁: MyISAM, Memory和MERGE表使用表级锁. 一次只允许一个会话更新. 更适合于只读或读取为主或单用户的应用
+          外部锁: MySQL为客户端会话提供选项来显式地获取表锁, 以阻止其它会话访问表
+            说明: 使用lock table和unlock tables来控制
+            伪事务: 引用表锁定来代替事务的事件
+              1.为指定表添加锁定
+                > lock tables tb_name read|write
+                  read: 共享锁, 该表只能被读取不能进行写操作(将处于等待状态直至read被释放)
+                  write: 排他锁, 除持有该锁的会话外, 其它会话都不能对该表读取或写入(处于等待状态直至write被释放)
+                > flush tables with read lock; 锁定数据库中所有表只读
+              2.对数据表进行操作
+              3.解锁(释放所有处于锁定状态的表)
+                > unlock tables|会话终止
+            锁队列: 
+              除了共享锁(一个表可以有多个共享锁)外, 没有两个锁可以一起加在一个表上. 若表有一个共享锁, 则后续要加的排他锁会被保留在队列中, 直到共享锁被释放. 当排他锁在队列中时, 后续的共享锁也会被阻塞到队列中
+      行为:
+        自动提交: 所有单独的语句一旦被执行则提交, 除非包含在begin...commit块中     # set autocommit=0  关闭自动提交
+        隔离级别: 当多个事务同时发生时, 隔离级别定义了一个事务与其它事务在资源或数据修改方面的隔离程度   
+          read uncommitted(未提交读):   当前事务可以读取由另一个未提交的事务写入的数据, 也称脏读
+          read committed(提交后读):     当前事务可以读取由另一个已提交的事务写入的数据, 也称不可重复读(在同一事务中读取到了不同的结果)
+          repeatable read(可重复读):    当前事务可以重复的读取(每次select的结果都一样), 而不管其它事务是否提交
+          serializable(序列化):         将所有选定的行锁定(读操作也被锁), 其它事务会等待被锁定的行直到释放. 总是读取最新提交的数据(未提交则等待)
+          注: 可重复读事务中
+            1.begin后会产生一个快照, 该事务中的所有普通select语句其实查询的是生成的快照(所以是重复读), 而若执行update/insert/delete/select ... for upate|lock in share mode会执行当前读(即获取最新数据)
+            2.若当前事务更新或删除由不同事务提交的行, 则这些更改对当前事务变为可见
+        获取当前事务孤立级: 
+          > select @@transaction_isolation;
+        修改事务的孤立级:   
+          > set global transaction isolation level read committed
+    触发器:
+      说明: 在MySQL中,一个表在相同的时间和相同的触发时间只能创建一个触发器.但before和after不同
+      管理:
+        创建
+          > create trigger t_name before|after 触发事件
+          on tb_name for each row 
+              执行语句| begin 执行语句列表 end
+        查看
+          > show triggers       # 查看所有
+          > select * from information_schema.triggers where trigger_name=''
+        删除: > drop trigger t_name;
+        应用:
+          在MySQL中,触发器按该顺序执行: before触发器 --> 表操作 --> after触发器
+    存储过程:
+      作用: 是一组完成特定功能的SQL语句集, 可提高应用性能
+      创建:
+        创建存储过程:
+          > delimiter //
+          > create procedure proc_name( in out inout )
+            begin
+              ....
+            end
+            //
+        创建存储函数:
+          > delimiter //
+          > create function sp_name( )
+            retruns  TYPE
+            begin
+              ...
+            end
+            //
+        注: 由于存储过程内部语句以分号结束,所以在定义存储过程前应将语句结束标识 ；更改为其他字符
+      调用:
+        > call por_name()       调用存储过程
+        > select fun_name()     调用存储函数
+        注: 存储函数的使用方法与MySQL内部函数的使用方法基本相同,函数性质相同.区别在于存储函数式用户自定义的,内部函数是MySQL自带的
+      查看:
+        存储过程:
+          > show procedure status like 'pro_name'
+          > show create procedure pro_name        -- 详细
+        存储函数:
+          > show function status like 'fun_name'
+          > show create function fun_name       -- 详细
+      修改: > alter procedure/function sp_name
+      删除: > drop procedure/function if exits sp_name
+      变量:
+        赋值:
+          1.declare声明     变量声明时,若无default值 默认为NULL
+          2.set定义         多个变量赋值 用,隔开
+          3.select id into n from aa where name='wo'
+          注: 上述三种赋值语句必须存在于创建的存储过程中,且将赋值语句放置在begin end之间,否则该变量不能使用或被赋值
+        局部变量: 局部变量只在定义该局部变量的begin ... end范围有效
+          以declare n int声明 直接定义默认值  
+          eg: > declare n int default 10   
+        会话变量: 在整个存储范围内有效
+          不必声明即可使用,以@作为起始符
+          eg:> set @n=1
+    光标: MySQL查询数据库,结果可能为多条记录.在存储过程和函数中使用光标可以实现逐条读取结果集中的记录
+      声明光标:
+          > declare name cursor for select id, name from t1 where id=1
+            -- select不能包含into子句
+      打开光标: > open name
+      使用光标:
+          > fetch name into var_id,var_name
+            -- fetch ... into和select ... into 具有相同意义
+      关闭光标: > close name
+    流程控制语句:
+      说明:存储过程不支持for循环
+      分类:
+        if语句
+        case语句
+        loop语句
+        while语句
+        iterate语句
+        leave语句
+    通配符与正则:
+      通配符:
+        说明: 用来匹配值的一部分的特殊字符,与like操作符一起使用(eg:where col like "%str")
+        示例:
+          %:  表示任何字符出现的任意次数.但无法匹配NULL值
+          _:  匹配非空一个字符
+        注: 1.通配符搜索的处理一般要比其他搜索花费的时间长.
+            2.一般不要把通配符放在搜索模式的开始处
+      正则:
+        说明:与like相似,匹配值中的一部分字符(eg:where col regexp "str" )
+          mysql中正则匹配的字符串默认不区分大小写,为区分大小写,可在regexp后加binary关键字(where col regexp binary 'str')
+        匹配字符类:
+        元字符:
+          *         0个或多个匹配
+          +         1个或多个匹配({1,})
+          ？        0个或一个匹配({0,1})
+          {n}       n个匹配
+          {n,}      不少于n个的匹配
+          {n,m}     匹配的数目
+          .         匹配非空一个字符
+          $         匹配文本结尾
+          ^         匹配文本开头
+          [[:<:]]   词的开头
+          [[:>:]]   词的结尾
+        or匹配:
+          1.使用 |  where str regexp "a|b|c"
+          2.使用 [] where str regexp "[123]a"   where str regexp "[1-3]a"   "[a-c]a"
+      转义: \\
+        说明:多数正则使用一个\来转义特殊字符.mysql使用两个(mysql自己解释一个,正则解释另一个)
+      like与regexp的区别:
+        说明: like匹配整个列,regexp匹配列中某一部分.若匹配的字符串属于列的一部分,like不会匹配(除非使用通配符),而regexp会匹配
+        示例:
+            str=a100
+            where str like "100"      不会匹配
+            where str regexp "100"    会匹配
+    字符集:
+      说明: 字符集是一套符号和编码.校对规则是在字符集内用于比较字符的一套规则
+        1.每个字符集有一个默认校对规则
+        2.默认字符集是latin1
+        3.MySQL使用Unicode字符集存储元数据,即UTF8
+        
+      服务器将character_set_system系统变量设置为元数据字符集的名
+      字符集和校对规则有4个级别的默认设置: 服务器级、数据库级、表级和连接级,若不指定,依次继承
+        服务器级: 默认为latin1
+          查看: character_set_server和collation_server
+          设置: character_set_server=utf8       # 在[mysqld]中
+        数据库级: 对服务器字符集依赖
+          说明: 数据库编码设置在各个数据库目录下db.opt文件中
+          查看:
+            > show create database db_name
+            character_set_database和 collation_database
+          创建时指定:
+            > create database db_name 
+              [default] character set char_name 
+              [DEFAULT] COLLATE collation_name;
+          更改:
+            > alter database db_name 
+              [default] character set char_name 
+              [DEFAULT] COLLATE collation_name;
+        表级: 对数据库字符集依赖
+          查询:
+            # show create table tb_name;
+          创建时指定:
+            > create table tb_name(*)
+              [default character set char_name [collate collation_name]]
+          更改:
+            > alter table tb_name
+              [default character set char_name [collate collation_name]]
+        列级: 对表字符集依赖
+          查询: > show full columns from tb_name\G
+          设置:
+            > create table tb_name(
+              col type_name character set char_name collate collation_name
+              )
+        连接级:
+          说明:
+            character_set_client:      当查询离开客户端后,在查询中使用的字符集
+            character_set_connection:  将客户端发送的查询从character_set_client系统变量转换到character_set_connection
+            character_set_results:     服务器返回查询结果到客户端使用的字符集.包括结果数据
+          设置: 
+            > set names 'charset_name'  临时影响3个链接字符集
+            default-character-set=utf8  在[mysql]中设置
+
+        字符级: 对connection字符集依赖
+          说明:
+            _charset_name表达式正式称做一个引介词.它告诉解析程序,后面将要出现的字符串使用字符集X.引介词不导致任何转换,它仅是一个符号,不改变字符串的值
+          设置:
+            # [_charset_name]'string' [collate collation_name]
+            eg:# select _latin1'string' collate latin1_danish_ci;
+      查询:
+        查看mysql所支持的字符集:  > show character set;
+        查看当前的字符集:         > show variables like "character_set%";
+        查看校对规则:             > show collation like "latin1%";
+        查看数据库字符集:         > status
+      设置:
+        在[client]下添加: default-character-set=utf8
+        在[mysqld]下添加: default-character-set=utf8
+        init-connect='SET NAMES utf8'
+
+
+
+MySQL三个线程:
+  1.master上的binlogdump线程: 将binlog发送到slave上
+  2.slave上的I/O线程: 读取master发送的内容并写入本地relay log
+  3.slave上的SQL线程: 读取relay log中的内容并在本地执行
+

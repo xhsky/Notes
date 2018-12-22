@@ -1,0 +1,67 @@
+
+多语言设置：
+	1.复制程序，更改语言
+        	此种方法最大的弊端是当程序需要再次修改时，要修改所有语言下的程序，流程是相当的繁琐。
+ 	2.定义语言文件
+		如phpMyAdmin。在phpMyAdmin项目的lang目录下有很多文件，根据用户的语言选择进行包含，然后替换掉原来定义的变量值
+	 3.GNU的gettext方法
+		 GNU的gettext方式已经成为流行趋势。
+		 手工设置的步骤分为：安装gettext->用xgettext命令生成.po文件->.翻译.po文件中的字符串->msgfmt命令生成.mo->提交.mo文件到语言目录->更改语系启用语言
+		
+	
+结构：	 
+	po文件：
+		定义：是语言包的初始文件，用以放置原语言和翻译后的语言。是用xgettext命令从程序文件中提取
+			要翻译的字符串并生成的
+		内容格式：
+			# vim *.po
+                # SOME DESCRIPTIVE TITLE.
+                # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+                # This file is distributed under the same license as the PACKAGE package.
+                # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+                #
+                #, fuzzy                                            # 转换工具认为这个和之前的一个msgid很相似，该翻译可能有误，于是标记为fuzzy。
+                                                                    # 转换mo时将会把这个msgid略过，即翻译不生效。可手动删除，重新转换即可
+                msgid ""
+                msgstr ""
+                
+                "Project-Id-Version: DreamBase 2,0\n"               # 版本，便于维护和实施 
+                "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+                "POT-Creation-Date: 2016-12-26 13:45+0800\n"
+                "PO-Revision-Date: 2013-10-28 10:31+0800\n"
+                "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+                "Language-Team: zh_CN <LL@li.org>\n"
+                "MIME-Version: 1.0\n"
+                "Content-Type: text/plain; charset=utf-8\n"         # 换成utf-8
+                "Content-Transfer-Encoding: 8bit\n"
+				
+                msgid "You did not enter a category name."		# msgid对应的是原来的语言文字(Message id)
+                msgstr "您没有输入一个分类目录名称。"			# msgstr对应的是翻译后的文字(Message String)
+        注：
+            1.每一个Message必须是既有id又要有翻译，即它们必须成对出现
+            2.不管是msgid还是msgstr，均不能换行，且msgid不允许重复
+            3.每个.po文件只能放一种语言。如果需要其他语言，可以拷贝此.po文件，更改msgstr为对应语言翻译即可
+            4.Po文件的翻译除了手工打开po文件进行翻译外，建议翻译人员使用poedit(http://www.poedit.net/)软件进行界面化的翻译操作
+	
+    mo文件：是po文件经过msgfmt命令后，生成的程序文件。是最终放到程序中的真正的语言包。用户切换
+			语言，实际上对程序而言是调用不同的mo文件。
+		 
+	Po和mo文件的生成流程：
+		开发人员生成po文件，然后翻译人员对po文件中的文字进行翻译，最后由开发人员或是翻译人员用
+		工具生成程序可用的mo语言
+		 这种方式的好处在于，当需要更改翻译时，开发人员只要将po文件进行修改，翻译人员对po文件进
+		行翻译修改就可以了，程序和翻译分离，减轻了翻译人员的工作量
+		 
+        # xgettext -o file.po file.py --from-code utf-8             # 从源文件中提取使用的字符串生成po
+        # mkdir -p locale/zh_CN/LC_MESSAGES                         # 建立目录结构
+        # cd locale/zh_CN/LC_MESSAGES
+        # msgfmt -o file.mo file.po                                 # 创建mo文件
+        # 设置系统环境变量测试
+	注：1.PO 是 Portable Object (可移植对象)的缩写；MO 是 Machine Object (机器对象) 的缩写
+		2.要生成.po文件要有一个前提，那就是写程序时，要翻译的字符串必须用特殊的格式进行处理，
+		  否则gettext软件不能提取出要翻译的字符串
+			
+		 
+python国际化：
+	Gettext：是兼用GNU gettext的国际化模块，使用纯Python实现.用于系统的国际化(I18N)和本地化(L10N),
+		可以在编译程序的时候使用本国语言.支持(Native Language Support(NLS)),其可以使程序的输出使用用户设置的语言而不是英文.

@@ -1,0 +1,83 @@
+
+
+随机读/随机写
+
+顺序读/顺序写
+
+
+1.dd命令
+	说明：只能测试顺序I/O，较为通用，但不专业，结果只作为参考
+	操作：
+		顺序读：
+			# dd bs=1M count=1024 if=/dev/zero of=test  conv=fdatasync
+			 
+			868M/s    195M/s
+		顺序写：
+			# dd bs=1M  if=test2 of=/dev/null
+			252M/s
+	注：
+		每次操作前，需sync同步或echo 3 > /proc/sys/vm/drop_caches清除缓存
+
+2.hdpram
+	说明：只能测试顺序读，比较专业
+	操作：
+		# yum install hdparm
+		
+		顺序读：
+			# hdparm -t --direct /dev/sda
+			
+			196.416M/s
+			
+	注：
+		该命令只能用root操作
+
+3.fio
+	说明：测试IOPS的的工具，用来对硬件进行压力测试和验证
+	操作：
+		yum安装
+			# yum install fio   (epel)
+		编译：
+			# yum install zlib-devel libaio-devel
+			# wget -c http://brick.kernel.dk/snaps/fio-3.5.tar.gz
+			# tar ; cd
+			# ./configure --prefix=/data/fio
+			# make
+			# make install
+		
+		
+		顺序读：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=read -bs=1m -size=2g -numjobs=64 -runtime=10 -group_reporting -name=test-read
+		顺序写：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=write -bs=1m -size=2g -numjobs=64 -runtime=20 -group_reporting -name=test-write
+		随机读：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=randread -bs=4k -size=2G -numjobs=64 -runtime=20 -group_reporting -name=test-rand-read
+		随机写：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=randwrite -bs=4k -size=2G -numjobs=64 -runtime=20 -group_reporting -name=test-rand-write
+		混合随机读写：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=randrw -bs=16k -size=2G -numjobs=64 -runtime=20 -group_reporting -rwmixread=70  -name=mytest 
+		混合顺序读写：
+			# fio -filename=./test -iodepth=64 -ioengine=libaio -direct=1 -rw=readwrite -bs=16k -size=2G -numjobs=64 -runtime=20 -group_reporting -rwmixread=50  -name=rw-readwrite-libaio
+		
+			filename=./test		 		测试文件名称，通常选择需要测试的盘的data目录。
+			direct=1 					测试过程绕过机器自带的buffer，使测试结果更真实。
+			
+			ioengine=libaio				io引擎使用的方式 
+			
+			rw=randwread             	测试随机读的I/O
+			rw=randwrite            	测试随机写的I/O
+			rw=randrw                	测试随机混合写和读的I/O
+			
+			rw=read                  	测试顺序读的I/O
+			rw=write                 	测试顺序写的I/O
+			rw=rw                    	测试顺序混合写和读的I/O
+			
+			rwmixwrite=30				在混合读写的模式下，写占30%
+			rwmixread=50 				在混合读写的模式下，写占50%
+			
+			bs=4k 						单次io的块文件大小为4k
+			size=2g 					本次的测试文件大小为2g，以每次4k的io进行测试。
+			numjobs=64 					本次的测试线程为64.
+			runtime=20 					测试时间为20秒，如果不写则一直将2g文件分4k每次写完为止。
+			group_reporting 			关于显示结果的，汇总每个进程的信息
+		
+	

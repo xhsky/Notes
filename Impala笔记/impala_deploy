@@ -1,0 +1,899 @@
+#!/bin/bash
+#
+#Before using this script,Make sure the script users can remotely log in to 
+#other servers without the secret key
+#
+# TODO
+#*This program can help you to be easily deployed cluster impala
+#*Including installation hadoop cluster
+#*Including installation hive cluster
+#
+#
+#==========================================================================================================================
+#
+# Configuration Section
+#
+#		 This section should be user's configuration 
+#                in the file.
+#
+filepath=$(cd "$(dirname "$0")"; pwd)
+
+function create_cluster_config_file
+{
+	cat > $IMPALA_USER_CONFIG <<EOF
+#!/bin/bash
+
+# OS user of IMPALA owner
+IMPALA_OS_USER=\$USER
+
+#----------------------
+#IMPALA Control Node
+#----------------------
+IMPALA_CONTROL_IP_ADDRESS=(127.0.0.1)
+
+#----------------------
+#IMPALA Data Node
+#----------------------
+IMPALA_DATANODE_IP_ADDRESS=(127.0.0.1)
+
+#----------------------------
+#edit hdfs_size.xml parameter
+#----------------------------
+dfs_namenode_name_dir=$filepath/../dfsdata/name
+dfs_http_address_port=50070
+dfs_secondary_http_address_port=50090
+dfs_datanode_data_dir=$filepath/../dfsdata/data
+dfs_replication=1
+
+#----------------------------
+#edit core_size_xml parameter
+#----------------------------
+fs_default_name_port=9000
+
+#----------------------------
+#edit mapred-site.xml parameter
+#----------------------------
+mapreduce_job_tracker_port=9001
+
+#----------------------------
+#edit yarn-site.xml parameter
+#----------------------------
+yarn_resourcemanager_address_port=8030
+yarn_resourcemanager_scheduler_address_port=8031
+yarn_resourcemanager_resource_tracker_address_port=8032
+EOF
+}
+
+
+#================================================================
+# MEMO
+#
+# The first execution of the script, if no configuration file 
+# is automatically generated it.
+# Reads the configuration file parameters
+# Check whether the argument is null
+#===============================================================
+#
+IMPALA_USER_CONFIG_PATH=$(cd `dirname $0`; pwd)
+IMPALA_USER_CONFIG=$IMPALA_USER_CONFIG_PATH/.impala_config
+if [ ! -e "$IMPALA_USER_CONFIG" ]; then
+	echo "Warning: Config file \"$IMPALA_USER_CONFIG\" is not exist"
+	echo "	Generate config file now..."
+	sleep 1
+	echo "	Please modify it later according to user's request"
+	create_cluster_config_file
+	exit
+fi
+
+source $IMPALA_USER_CONFIG
+
+#---- OVERALL PARITY--------------------------------------------------------------------------------------------------------
+#
+# OS user of Impala owner
+if [ -z "$IMPALA_OS_USER" ]
+then
+	impUser=$USER
+else
+	impUser=$IMPALA_OS_USER
+fi
+
+# Reads the configuration file parameters
+# of IMPALA CONTROL IP ADDRESS
+if [ -z "$IMPALA_CONTROL_IP_ADDRESS" ]
+then
+        echo "IMPALA_CONTROL_IP_ADDRESS is not specific"
+        exit
+fi
+impIpAddr=$IMPALA_CONTROL_IP_ADDRESS
+
+# Reads the configuration file parameters
+# of IMPALA DATANODES IP ADDRESSES
+if [ -z "$IMPALA_DATANODE_IP_ADDRESS" ]
+then
+        echo "MPALA_DATANODE_IP_ADDRESS is not specific"
+	exit
+fi
+impDataNode=$IMPALA_DATANODE_IP_ADDRESS
+
+#
+#		End of Configuration Section
+#
+#==========================================================================================================================
+
+#Common variables ######################################################################
+imp_prompt='impala$ '
+logOpt=n
+verbose=n
+progname=$0
+interactive=n
+tmpDir=/tmp
+localTmpDir=$tmpDir
+DEBUG=n
+logfile=none;
+
+##############################################################################
+#
+# Main method
+# Including environmental initialization function
+# Including installation function
+# Including start-stop function
+# Including some auxiliary functions
+#
+##############################################################################
+
+function log_echo
+{
+	if [ $logOpt == "y" ]; then
+		echo $* >> $logfile
+	fi
+}
+
+function eecho
+{
+	echo $*
+	log_echo $*
+}
+
+function decho
+{
+	if [ "$DEBUG" == y ]; then
+		echo $*
+	fi
+}
+
+function vecho
+{
+	if [ "$verbose" == y ]; then
+		echo $*
+	fi
+	log_echo $*
+}
+
+function doit
+{
+	vecho $*
+	$*
+}
+
+# Extract the server list into ${allServers[@]}
+function addServer
+{
+	local append
+	local i
+
+	append=y
+	if [ "$1" == 'none' ] || [ "$i" == N/A ]; then
+		return
+	fi
+	for((i=0; i<${#allServers[@]}; i++)); do
+		if [ ${allServers[$i]} == "$1" ]; then
+			append=n
+			break
+		fi
+	done
+	if [ $append == y ]; then
+		allServers[$i]=$1
+	fi
+}
+function makeServerList
+{
+	local i
+
+	# IMPALA_CONTROL
+	if [ $IMPALA_CONTROL_IP_ADDRESS != none ]; then
+		addServer $IMPALA_CONTROL_IP_ADDRESS
+	fi
+	# IMPALA_DATANODE
+	for ((i=0; i<${#IMPALA_DATANODE_IP_ADDRESS[@]};i++)); do
+		if [ ${IMPALA_DATANODE_IP_ADDRESS[$i]} != "" ]; then
+			addServer ${IMPALA_DATANODE_IP_ADDRESS[$i]}
+		fi
+	done
+	decho '(' ${allServers[@]} ')'
+}
+
+function checkServerList
+{
+	local i
+	for (( i=0; i< ${#allServers[@]}; i++ )); do
+		if [ ${allServers[$i]} != "" ] && [ ${allServers[$i]} != N/A ]; then
+			cur_cmd="ssh $impUser@${allServers[$i]} exit"
+			vecho check connection: $cur_cmd
+			$cur_cmd
+			if [ $? -ne 0 ]; then
+				echo connect: $impUser@${allServers[$i]} failed 
+				exit
+			fi
+		fi
+	done
+}
+
+
+function links_environment_variables
+{
+	local user=`whoami`
+        local dir
+        if [ $user == "root" ]; then
+                dir="/root"
+        else
+                dir="/home/$user"
+        fi
+	log_echo links_environment_variables"("$*")"
+	vecho ================================================================
+	eecho "links_environment_variables:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+		if [ ${allServers[$i]} != "" ]; then
+			ssh $impUser@${allServers[$i]} "cat >> ~/.bash_profile" <<EOF
+#===========================================
+# Added at initialization.
+export JAVA_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/jdk1.8.0_40
+export PATH=\$JAVA_HOME/bin:\$PATH
+export CLASSPATH=.:\$JAVA_HOME/lib/dt.jar:\$JAVA_HOME/lib/tools.jar
+export HIVE_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/hive-1.1.0-cdh5.4.1
+export HIVE_CONF_DIR=\$HIVE_HOME/conf
+export HIVE_LIB=\$HIVE_HOME/lib
+export HADOOP_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1
+export HADOOP_MAPRED_HOME=\${HADOOP_HOME}
+export HADOOP_COMMON_HOME=\${HADOOP_HOME}
+export HADOOP_HDFS_HOME=\${HADOOP_HOME}
+export HADOOP_YARN_HOME=\${HADOOP_HOME}
+export PATH=\$PATH:\${JAVA_HOME}/bin:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin:\${HIVE_HOME}/bin:\${HIVE_HOME}/bin
+export JAVA_HOME JAVA_BIN PATH CLASSPATH JAVA_OPTS
+export HADOOP_LIB=\${HADOOP_HOME}/lib
+export HADOOP_CONF_DIR=\${HADOOP_HOME}/etc/hadoop
+EOF
+		fi
+			doit ssh $impUser@${allServers[$i]} source $dir/.bash_profile
+	done
+}
+
+
+function hadoop_links_environment_variables
+{
+	log_echo hadoop_links_environment_variables"("$*")"
+	vecho ================================================================
+	eecho "hadoop_links_environment_variables:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} "cat >> $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/hadoop-env.sh" <<EOF
+#===========================================
+# Added at initialization.
+export JAVA_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/jdk1.8.0_40
+export HADOOP_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1
+export HADOOP_PREFIX=\$HADOOP_HOME
+export HADOOP_MAPRED_HOME=\${HADOOP_HOME}
+export HADOOP_COMMON_HOME=\${HADOOP_HOME}
+export HADOOP_HDFS_HOME=\${HADOOP_HOME}
+export HADOOP_YARN_HOME=\${HADOOP_HOME}
+export PATH=\$PATH:\${JAVA_HOME}/bin:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
+export JAVA_HOME JAVA_BIN PATH CLASSPATH JAVA_OPTS
+export HADOOP_LIB=\${HADOOP_HOME}/lib
+export HADOOP_CONF_DIR=\${HADOOP_HOME}/etc/hadoop
+EOF
+		fi
+			doit ssh $impUser@${allServers[$i]} source $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/hadoop-env.sh
+	done
+}
+
+
+function add_hadoop_slave_profile
+{
+	log_echo add_hadoop_slave_profile"("$*")"
+	vecho ================================================================
+	eecho "add_hadoop_slave_profile:" Doing...
+	for ((i=0; i< ${#IMPALA_DATANODE_IP_ADDRESS[@]}; i++)); do
+		if [ ${IMPALA_DATANODE_IP_ADDRESS[$i]} != "" ]; then
+			ssh $impUser@${IMPALA_DATANODE_IP_ADDRESS[$i]} "cat > $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/slaves" <<EOF
+`echo ${IMPALA_DATANODE_IP_ADDRESS[*]} | sed 's/ /\n/g'` 
+EOF
+		fi
+	done
+}
+
+function edit_hadoop_core_site_xml
+{
+	local user=`whoami`
+	local dir
+	if [ $user == "root" ]; then
+		dir="/root"
+	else
+		dir="/home/$user"
+	fi
+	log_echo edit_hadoop_core_site_xml"("$*")"
+	vecho ================================================================
+	eecho "edit_hadoop_core_site_xml:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} " sed -i '/<configuration>/a\<property>\n<name>fs.default.name</name>\n<value>hdfs://$IMPALA_CONTROL_IP_ADDRESS:$fs_default_name_port</value>\n<final>true</final>\n</property>\n<property>\n<name>io.native.lib.available</name>\n<value>true</value>\n</property>\n<property>\n<name>hadoop.tmp.dir</name>\n<value>$dir/tmp</value>\n</property>\n<property>\n<name>dfs.client.read.shortcircuit</name>\n<value>true</value>\n</property>\n<property>\n<name>dfs.client.use.legacy.blockreader.local</name>\n<value>false</value>\n</property>\n<property>\n<name>dfs.client.read.shortcircuit.skip.checksum</name>\n<value>false</value>\n</property>' $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/core-site.xml"
+                fi
+        done
+}
+
+
+function edit_hadoop_hdfs_site_xml
+{
+	local user=`whoami`
+        local dir
+        if [ $user == "root" ]; then
+                dir="/root"
+        else
+                dir="/home/$user"
+        fi
+	log_echo edit_hadoop_hdfs_site_xml"("$*")"
+	vecho ================================================================
+	eecho "edit_hadoop_hdfs_site_xml:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} " sed -i '/<configuration>/a\<property>\n<name>dfs.namenode.name.dir</name>\n<value>file:$dfs_namenode_name_dir</value>\n<final>true</final>\n</property>\n<property>\n<name>dfs.datanode.data.dir</name>\n<value>file:$dfs_datanode_data_dir</value>\n<final>true</final>\n</property>\n<property>\n<name>dfs.http.address</name>\n<value>$IMPALA_CONTROL_IP_ADDRESS:$dfs_http_address_port</value>\n</property>\n<property>\n<name>dfs.replication</name>\n<value>$dfs_replication</value>\n</property>\n<property>\n<name>dfs.secondary.http.address</name>\n<value>$IMPALA_CONTROL_IP_ADDRESS:$dfs_secondary_http_address_port</value>\n</property>\n<property>\n<name>dfs.permission</name>\n<value>false</value>\n</property>\n<property>\n<name>dfs.client.read.shortcircuit</name>\n<value>true</value>\n</property>\n<property>\n<name>dfs.block.local-path-access.user</name>\n<value>$user</value>\n</property>\n<property>\n<name>dfs.datanode.hdfs-blocks-metadata.enabled</name>\n<value>true</value>\n</property>\n<property>\n<name>dfs.client.use.legacy.blockreader.local</name>\n<value>false</value>\n</property>\n<property>\n<name>dfs.datanode.data.dir.perm</name>\n<value>750</value>\n</property>\n<property>\n<name>dfs.client.file-block-storage-locations.timeout</name>\n<value>50000</value>\n</property>\n<property>\n<name>dfs.domain.socket.path</name>\n<value>$dir/dn.8075</value>\n</property>' $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/hdfs-site.xml"
+                fi
+        done
+}
+
+
+function edit_hadoop_mapred_site_xml
+{
+	local user=`whoami`
+        local dir
+        if [ $user == "root" ]; then
+                dir="/root"
+        else
+                dir="/home/$user"
+        fi
+
+	log_echo edit_hadoop_mapred_site_xml"("$*")"
+	vecho ================================================================
+	eecho "edit_hadoop_mapred_site_xml:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} " sed -i '/<configuration>/a\<property>\n<name>mapreduce.framework.name</name>\n<value>yarn</value>\n</property>\n<property>\n<name>mapreduce.job.tracker</name>\n<value>hdfs://$IMPALA_CONTROL_IP_ADDRESS:$mapreduce_job_tracker_port</value>\n<final>true</final>\n</property>\n<property>\n<name>mapreduce.map.memory.mb</name>\n<value>1536</value>\n</property>\n<property>\n<name>mapreduce.map.java.opts</name>\n<value>-Xmx1024M</value>\n</property>\n<property>\n<name>mapreduce.reduce.memory.mb</name>\n<value>3072</value>\n</property>\n<property>\n<name>mapreduce.reduce.java.opts</name>\n<value>-Xmx2560M</value>\n</property>\n<property>\n<name>mapreduce.task.io.sort.mb</name>\n<value>512</value>\n</property>\n<property>\n<name>mapreduce.task.io.sort.factor</name>\n<value>100</value>\n</property>\n<property>\n<name>mapreduce.reduce.shuffle.parallelcopies</name>\n<value>50</value>\n</property>\n<property>\n<name>mapreduce.cluster.temp.dir</name>\n<value>file:$filepath/mapreddata/system</value>\n<final>true</final>\n</property>\n<property>\n<name>mapreduce.cluster.local.dir</name>\n<value>file:$filepath/mapreddata/local</value>\n<final>true</final>\n</property>' $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/mapred-site.xml"
+                fi
+        done
+}
+
+function add_yarn_env_variables
+{
+	log_echo add_yarn_env_variables"("$*")"
+	vecho ================================================================
+	eecho "add_yarn_env_variables:" Doing...
+	        for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} "cat >> $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/yarn-env.sh" <<EOF
+#===========================================
+# Added at initialization.
+export JAVA_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/jdk1.8.0_40
+export HADOOP_HOME=$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1
+export HADOOP_PREFIX=\$HADOOP_HOME
+export HADOOP_MAPRED_HOME=\${HADOOP_HOME}
+export HADOOP_COMMON_HOME=\${HADOOP_HOME}
+export HADOOP_HDFS_HOME=\${HADOOP_HOME}
+export HADOOP_YARN_HOME=\${HADOOP_HOME}
+export PATH=\$PATH:\${JAVA_HOME}/bin:\${HADOOP_HOME}/bin:\${HADOOP_HOME}/sbin
+export JAVA_HOME JAVA_BIN PATH CLASSPATH JAVA_OPTS
+export HADOOP_LIB=\${HADOOP_HOME}/lib
+export HADOOP_CONF_DIR=\${HADOOP_HOME}/etc/hadoop
+EOF
+                fi
+        done
+}
+
+function edit_yarn_site_xml
+{
+	log_echo edit_yarn_site_xml"("$*")"
+	vecho ================================================================
+	eecho "edit_yarn_site_xml:" Doing...
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} " sed -i '/<configuration>/a\<property>\n<name>yarn.resourcemanager.address</name>\n<value>$IMPALA_CONTROL_IP_ADDRESS:$yarn_resourcemanager_address_port</value>\n</property>\n<property>\n<name>yarn.resourcemanager.scheduler.address</name>\n<value>$IMPALA_CONTROL_IP_ADDRESS:$yarn_resourcemanager_scheduler_address_port</value>\n</property>\n<property>\n<name>yarn.resourcemanager.resource-tracker.address</name>\n<value>$IMPALA_CONTROL_IP_ADDRESS:$yarn_resourcemanager_resource_tracker_address_port</value>\n</property>\n<property>\n<name>yarn.nodemanager.aux-services</name>\n<value>mapreduce_shuffle</value>\n</property>\n<property>\n<name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>\n<value>org.apache.hadoop.mapred.ShuffleHandler</value>\n</property>\n<property>\n<name>yarn.nodemanager.local-dirs</name>\n<value>file:$filepath/nmdata/local</value>\n</property>\n<property>\n<name>yarn.nodemanager.log-dirs</name>\n<value>file:$filepath/nmdata/log</value>\n</property>' $IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/yarn-site.xml"
+                fi
+        done
+}
+
+function edit_hive_site_xml
+{
+	log_echo edit_hive_site_xml"("$*")"
+	vecho ================================================================
+	eecho "edit_hive_site_xml:" Doing...
+	ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS "sed -i '/<configuration>/a\<property>\n<name>hive.metastore.local</name>\n<value>false</value>\n</property>\n<property>\n<name>javax.jdo.option.ConnectionURL</name>\n<value>jdbc:mysql://$IMPALA_CONTROL_IP_ADDRESS:3306/metastore?createDatabaseIfNoExist=true</value>\n</property>\n<property>\n<name>javax.jdo.option.ConnectionDriverName</name>\n<value>com.mysql.jdbc.Driver</value>\n</property>\n<property>\n<name>javax.jdo.option.ConnectionUserName</name>\n<value>hive</value>\n</property>\n<property>\n<name>javax.jdo.option.ConnectionPassword</name>\n<value>123456</value>\n</property>\n<property>\n<name>hive.security.authorization.enabled</name>\n<value>false</value>\n</property>\n<property>\n<name>hive.security.authorization.createtable.owner.grants</name>\n<value>ALL</value>\n</property>\n<property>\<name>hive.querylog.location</name>\n<value>\${user.home}/hive-logs/querylog</value>\n</property>\n<property>\n<name>datanucleus.autoCreateTables</name>\n<value>true</value>\n</property>\n<property>\n<name>datanucleus.autoCreateSchema</name>\n<value>false</value>\n</property>\n<property>\n<name>hive.support.concurrency</name>\n<value>true</value>\n</property>\n<property>\n<name>datanucleus.metadata.validate</name>\n<value>false</value>\n</property>\n<property>\n<name>hive.stats.dbclass</name>\n<value>jdbc:mysql</value>\n</property>\n<property>\n<name>hive.stats.jdbcdriver</name>\n<value>org.mysql.Driver</value>\n</property>\n<property>\n<name>hive.metastore.try.direct.sql</name>\n<value>false</value>\n</property>\n<property>\n<name>datanucleus.fixedDatastore</name>\n<value>false</value>\n</property>\n<property>\n<name>hive.metastore.client.connect.retry.delay</name>\n<value>0</value>\n</property>\n<property>\n<name>hive.metastore.client.socket.timeout</name>\n<value>120</value>\n</property>\n<property>\n<name>hive.metastore.rawstore.impl</name>\n<value>org.apache.hadoop.hive.metastore.ObjectStore</value>\n</property>\n<property>\n<name>dfs.replication</name>\n<value>$dfs_replication</value>\n</property>\n<property>\n<name>hive.server2.authentication</name>\n<value>NONE</value>\n</property>\n<property>\n<name>hive.default.rcfile.serde</name>\n<value>org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe</value>\n</property>' $IMPALA_USER_CONFIG_PATH/thirdparty/hive-1.1.0-cdh5.4.1/conf/hive-site.xml"
+}
+
+function start_all_hadoop_dfs_yarn
+{
+	log_echo start_all_hadoop_dfs_yarn"("$*")"
+	vecho ================================================================
+	eecho "hdfs namenode formatting:" Doing..
+	vecho ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS '"hdfs namenode -format"'
+	ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS "$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/bin/hdfs namenode -format > $tmpDir/hdfs_namenode_format.out" 
+	sleep 3
+	vecho ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS '"start-dfs and start-yarn"'
+	ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS "$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/sbin/start-all.sh > $tmpDir/start-all.out " 
+}
+
+function start_all_hadoop
+{
+        log_echo start_all_hadoop"("$*")"
+        vecho ================================================================
+        vecho ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS '"start-dfs and start-yarn"'
+        ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS "$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/sbin/start-all.sh > $tmpDir/start-all-hadoop.out "
+}
+
+function stop_all_hadoop
+{       
+        log_echo start_all_hadoop"("$*")"
+        vecho ================================================================
+        vecho ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS '"start-dfs and start-yarn"'        
+	ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS "$IMPALA_USER_CONFIG_PATH/thirdparty/hadoop-2.6.0-cdh5.4.1/sbin/stop-all.sh > $tmpDir/stop-all-hadoop.out "
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function initialization_mysql
+{
+	local user=`whoami`
+        local dir
+        if [ $user == "root" ]; then
+                dir="/root"
+        else
+                dir="/home/$user"
+        fi
+	
+	if [ -e /etc/my.cnf ]
+		mv /etc/my.cnf /etc/my.cnf.bak
+	fi
+	sed  -in "/^\[mysqld\]/a\basedir	= $filepath/mysql\nbasedir = $filepath/mysql/data" $filepath/my.cnf	
+	sudo cp $filepaht/mysql/my.cnf /etc/my.cnf
+	
+	start_mysql
+	eecho  "Create hive metadata...."
+	cd $filepath/mysql/
+	if test -x $filepath/mysql/set_up_hive.sh
+        then
+		#./bin/mysql  -uroot -p123456 <set_up_hive.sql
+		$filepath/mysql/set_up_hive.sh
+		if [[ $? -eq 0 ]];then
+                        eecho "Create hive metadata sucess!"
+                else
+                        eecho "Create hive metadata failed!"
+                        exit 1;
+                fi
+        else
+                eecho "Couldn't find file set_up_hive.sql"
+		exit 1;
+        fi	
+}
+
+function stop_mysql
+{
+#	local mysqld_pid_file=$filepath/mysql/data/mysqld.pid
+#	if test -s "$mysqld_pid_file"
+#	then
+#		mysqld_pid=`cat "$mysqld_pid_file"`
+#
+#		if (kill -0 $mysqld_pid 2>/dev/null)
+#		then
+#			eecho  "Shutting down MySQL...."
+#			kill $mysqld_pid
+#			# mysqld should remove the pid file when it exits, so wait for it.
+#		else
+#			eecho "MySQL server process #$mysqld_pid is not running!"
+#			rm "$mysqld_pid_file"
+#	fi
+	$filepath/mysql/support-files/mysql.server stop	
+}	
+
+
+function start_mysql
+{
+	eecho  "Starting MySQL....."
+	#echo $filepath
+	#local basedir=$filepath/mysql
+	#local datadir=$basedir/data
+	#local mysqld_pid_file=$datadir/mysqld.pid
+	#if test -x $basedir/bin/mysqld_safe
+	#then
+	#	local mysql_bin=$basedir/bin/mysqld_safe
+		# Give extra arguments to mysqld with the my.cnf file. This script
+		# may be overwritten at next upgrade.
+	#	$mysql_bin --defaults-file=$basedir/my.cnf --user=$user --basedir="$basedir" \
+        #         --pid-file="$mysqld_pid_file" > /dev/null 2>&1 &
+		$filepath/mysql/support-files/mysql.server start
+		if [[ $? -eq 0 ]];then 
+                       sleep 1;
+			eecho "MySQL server start sucess!" 
+                else 
+			eecho "MySQL server start failed!"
+			exit 1;
+                fi
+}
+
+function copy_lib
+{
+	eecho  "copy libs to /usr/local/lib"
+	#Enter the directory,copying the Lib file to /usr/local/lib
+	cd $filepath/lib
+	files=`ls $filepath/lib`
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+		if [ ${allServers[$i]} != "" ]; then
+			ssh $impUser@${allServers[$i]} "sudo cp -rf $filepath/lib/* /usr/local/lib"
+			if [[ $? -eq 0 ]];then
+                        	eecho "ip:${allServers[$i]} Copy libs to /usr/local/lib sucess!"
+                	else
+                        	eecho "ip:${allServers[$i]} Copy libs to /usr/local/lib failed!"
+                        	exit 1;
+                	fi
+                fi
+        done
+}
+
+
+function copy_xmls_to_impala
+{
+	#copy core-site.xml,hdfs-site.xml,hive-site.xml to ./conf directory
+	eecho  "copy core-site.xml,hdfs-site.xml,hive-site.xml to ./conf directory"
+	cd $filepath
+	for ((i=0; i< ${#allServers[@]}; i++)); do
+                if [ ${allServers[$i]} != "" ]; then
+                        ssh $impUser@${allServers[$i]} "sudo cp -rf $filepath/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/hdfs-site.xml $filepath/conf"
+                        ssh $impUser@${allServers[$i]} "sudo cp -rf $filepath/thirdparty/hadoop-2.6.0-cdh5.4.1/etc/hadoop/core-site.xml $filepath/conf"
+                        ssh $impUser@${allServers[$i]} "sudo cp -rf $filepath/thirdparty/hive-1.1.0-cdh5.4.1/conf/hive-site.xml $filepath/conf"
+                fi
+        done
+}
+
+
+function start_impala_statestore
+{
+	#source Impala environment variable
+	#cd $dir/impala_deploy && source bin/impala-config.sh && source bin/set-classpath.sh
+	# If impala_statestore processes running,kill it first
+	killall statestored
+	# Start daemon
+        eecho  "Starting impala_statestore"
+        if test -x $filepath/be/build/debug/statestore/statestored
+        then
+                local statestore_bin=$filepath/be/build/debug/statestore/statestored
+		nohup ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS ". ~/.bash_profile && cd $filepath && source bin/impala-config.sh && source bin/set-classpath.sh && $statestore_bin" &
+                if [[ $? -eq 0 ]];then
+                        sleep 1;
+                        eecho "Statestore start sucess!"
+                else
+                        eecho "Statestore start failed!"
+                        exit 1;
+                fi
+        else
+                eecho "Couldn't find Statestore ($statestore_bin)"
+                exit 1;
+        fi
+
+}
+
+
+function start_impala_catalog
+{
+        #source Impala environment variable
+        #cd $dir/impala_deploy && source bin/impala-config.sh && source bin/set-classpath.sh
+	# If impala_catalogd processes running,kill it first
+	killall catalogd
+	# Start daemon
+        eecho  "Starting impala_catalog"
+        if test -x $filepath/be/build/debug/catalog/catalogd
+        then
+                local catalog_bin=$filepath/bin/start-catalogd.sh
+                nohup ssh $impUser@$IMPALA_CONTROL_IP_ADDRESS ". ~/.bash_profile &&  cd $filepath && source bin/impala-config.sh && source bin/set-classpath.sh && $catalog_bin" &
+                if [[ $? -eq 0 ]];then
+                        sleep 1;
+                        eecho "Catalog start sucess!"
+                else
+                        eecho "Catalog start failed!"
+                        exit 1;
+                fi
+        else
+                eecho "Couldn't find catalog ($catalog_bin)"
+                exit 1;
+        fi
+}
+
+
+function start_impala_impalad
+{
+        #source Impala environment variable
+        #cd $dir/impala_deploy && source bin/impala-config.sh &&source bin/set-classpath.sh
+        # If impala_impalad processes running,kill it first
+	for ((i=0; i< ${#IMPALA_DATANODE_IP_ADDRESS[@]}; i++)); do
+                if [ ${IMPALA_DATANODE_IP_ADDRESS[$i]} != "" ]; then
+                        ssh $impUser@${IMPALA_DATANODE_IP_ADDRESS[$i]} "killall impalad" 
+                fi
+        done
+        # Start daemon
+        eecho  "Starting impala_impalad"
+	local impalad_bin=$filepath/bin/start-impalad.sh
+	for ((i=0; i< ${#IMPALA_DATANODE_IP_ADDRESS[@]}; i++)); do
+		if [ ${IMPALA_DATANODE_IP_ADDRESS[$i]} != "" ]; then
+			nohup ssh $impUser@${IMPALA_DATANODE_IP_ADDRESS[$i]} ". ~/.bash_profile && cd $filepath && source bin/impala-config.sh && source bin/set-classpath.sh && $impalad_bin -state_store_host=$IMPALA_CONTROL_IP_ADDRESS -catalog_service_host=$IMPALA_CONTROL_IP_ADDRESS" &
+		fi
+		if [[ $? -eq 0 ]];then
+                        sleep 1;
+                        eecho "ip:${IMPALA_DATANODE_IP_ADDRESS[$i]} Impalad start sucess!"
+                else
+                        eecho "ip:${IMPALA_DATANODE_IP_ADDRESS[$i]} Impalad start failed!"
+                        exit 1;
+                fi
+        done
+}
+
+function stop_impala_impalad
+{
+	 for ((i=0; i< ${#IMPALA_DATANODE_IP_ADDRESS[@]}; i++)); do
+                if [ ${IMPALA_DATANODE_IP_ADDRESS[$i]} != "" ]; then
+                        ssh $impUser@${IMPALA_DATANODE_IP_ADDRESS[$i]} "killall impalad" \
+			&& echo "${IMPALA_DATANODE_IP_ADDRESS[$i]} Impalad stop success!"
+                fi      
+        done  
+}
+
+function init_all
+{
+	log_echo init_all'('$*')'
+	links_environment_variables
+	if [[ $? -eq 0 ]];then
+		eecho "links_environment_variables sucess!"
+	else
+		eecho "links_environment_variables failed!"
+		exit 1;
+	fi
+	sleep 1
+	hadoop_links_environment_variables
+	if [[ $? -eq 0 ]];then
+                eecho "hadoop_links_environment_variables sucess!"
+        else    
+                eecho "hadoop_links_environment_variables failed!"
+                exit 1;
+        fi
+	sleep 1
+	add_hadoop_slave_profile
+	if [[ $? -eq 0 ]];then
+                eecho "add_hadoop_slave_profile sucess!"
+        else
+                eecho "add_hadoop_slave_profile failed!"
+                exit 1;
+        fi
+	sleep 1
+	edit_hadoop_core_site_xml
+	if [[ $? -eq 0 ]];then
+                eecho "edit_hadoop_core_site_xml sucess!"
+        else
+                eecho "edit_hadoop_core_site_xml failed!"
+                exit 1;
+        fi
+	sleep 1
+	edit_hadoop_hdfs_site_xml
+	if [[ $? -eq 0 ]];then
+                eecho "edit_hadoop_hdfs_site_xml sucess!"
+        else
+                eecho "edit_hadoop_hdfs_site_xml failed!"
+                exit 1;
+        fi
+	sleep 1
+	edit_hadoop_mapred_site_xml
+	if [[ $? -eq 0 ]];then
+                eecho "edit_hadoop_mapred_site_xml sucess!"
+        else
+                eecho "edit_hadoop_mapred_site_xml failed!"
+                exit 1;
+        fi
+	sleep 1
+	add_yarn_env_variables
+	if [[ $? -eq 0 ]];then
+                eecho "add_yarn_env_variables sucess!"
+        else
+                eecho "add_yarn_env_variables failed!"
+                exit 1;
+        fi
+	sleep 1
+	edit_yarn_site_xml
+	if [[ $? -eq 0 ]];then
+                eecho "edit_yarn_site_xml sucess!"
+        else
+                eecho "edit_yarn_site_xml failed!"
+                exit 1;
+        fi
+	sleep 2
+	start_all_hadoop_dfs_yarn
+	if [[ $? -eq 0 ]];then
+                eecho "start_all_hadoop_dfs_yarn sucess!"
+        else
+                eecho "start_all_hadoop_dfs_yarn failed!"
+                exit 1;
+        fi
+	sleep 2
+	initialization_mysql
+	sleep 2
+	edit_hive_site_xml
+	if [[ $? -eq 0 ]];then
+                eecho "edit_hive_site_xml sucess!"
+        else
+                eecho "edit_hive_site_xml failed!"
+                exit 1;
+        fi
+	sleep 2
+	copy_lib
+	sleep 2
+	copy_xmls_to_impala
+	if [[ $? -eq 0 ]];then
+                eecho "copy_xmls_to_impala sucess!"
+        else
+                eecho "copy_xmls_to_impala failed!"
+                exit 1;
+        fi
+	start_impala_statestore
+	sleep 2
+	start_impala_catalog
+	sleep 2
+	start_impala_impalad
+}
+
+function start_all
+{
+	start_all_hadoop
+	sleep 2
+        start_mysql
+	sleep 2
+	start_impala_statestore
+        sleep 2
+        start_impala_catalog
+        sleep 2
+        start_impala_impalad
+}
+
+
+function stop_all
+{
+	stop_impala_impalad
+	sleep 2 
+	killall -9 catalogd && echo "catalogd stop success!"
+	sleep 2 
+	killall -9 statestored && echo "statestored stop success!"
+	sleep 2 
+	stop_mysql
+	sleep 2 
+	stop_all_hadoop		
+}
+
+function restart_all
+{
+	stop_all
+	sleep 2
+	start_all
+	sleep 2
+}
+
+
+##############################################################################
+
+# Help commands
+#
+##############################################################################
+function help_command
+{
+	echo Command you can type
+	echo "	"  - init    	kill monitor q start stop clean
+	echo "	"  - start   	start impala service
+	echo "	"  - stop	stop implala service
+	echo "	"  - restart	restart impala service
+	echo "	"  - For details, type cmdname \'?\'
+	
+}
+
+
+function log_echo_with_date
+{
+	if [ $logOpt == "y" ]; then
+		echo `date +%y%m%d,%H:%M:%S` $* >> $logfile
+	fi
+}
+
+
+
+# Construct the server list
+makeServerList
+checkServerList
+
+
+firstline=y
+lastline=n
+while [ 1 ]; do
+	if [ $lastline = "y" ]; then
+		break
+	fi
+	if [ $firstline == "y" ] && [ "$1" != "" ]; then
+		cmdname=$1;	shift
+		p1=$1; shift
+		p2=$1; shift
+		p3=$1; shift
+		p4=$1; shift
+		cmdparam=$*
+		firstline=n
+		lastline=y
+		set_interactive off
+	else
+		echo -n "$imp_prompt"
+		read cmdname p1 p2 p3 p4 cmdparam
+	fi
+	log_echo_with_date '======' USER COMMAND '=====' $cmdname $p1 $p2 $p3 $p4 $cmdparam
+
+	if [ "$cmdname" == "" ];  then
+		continue
+	fi
+	
+	if [ "$cmdname" == "exit" ] || [ "$cmdname" == "q" ]; then
+		if [ "$p1" == '?' ]; then
+			echo Exit command finishes yt_ctl.
+			continue
+		fi
+		break
+	fi
+	
+	if [ "$cmdname" == "?" ] || [ "$cmdname" == "\'?\'" ] || [ "$cmdname" == "help" ]; then
+		help_command
+		continue
+	fi
+        
+	if [ "$cmdname" == "init" ]; then
+		if [ "$p1" != "" ] && [ "$p1" != "all" ]; then
+			eecho Invalid init command argument, $p1
+			continue
+		fi
+		init_all
+		continue
+	fi
+
+	if [ "$cmdname" == "start" ];then
+		start_all
+		continue
+	fi
+
+	if [ "$cmdname" == "stop" ];then
+                stop_all       
+                continue
+        fi	
+
+	if [ "$cmdname" == "restart" ];then
+                restart_all       
+                continue
+        fi
+
+	cat > $localTmpDir/wk.cmd <<EOF
+	$cmdname $p1 $p2 $p3 $p4 $cmdparam
+EOF
+	source $localTmpDir/wk.cmd
+	rm $localTmpDir/wk.cmd
+	continue
+done

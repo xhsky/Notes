@@ -1,0 +1,566 @@
+简介
+	时间，作者，开发语言，定义
+		由Facebook开源，最初用于解决海量结构化的日志数据统计问题的ETL工具。
+		是一种建立在Hadoop文件系统上的数据仓库架构，并对存储在HDFS、HBase等中的各种数据结构进行
+		ETL(使用类sql的查询语言(HQL))，可以通过Tez、Spark、Mapreduce来执行查询
+	 
+		
+	官网：http://hive.apache.org/
+	版本：
+		由FaceBook 实现并开源 
+		2011年3月，0.7.0版本发布，此版本为重大升级版本，增加了简单索引，HAING等众多高级特性 
+		2011年06月，0.7.1版本发布，修复了一些BUG，如在Windows上使用JDBC的的问题 
+		2011年12月，0.8.0版本发布，此版本为重大升级版本，增加了insert into 、HA等众多高级特性 
+		2012年2月5日，0.8.1版本发布，修复了一些BUG，如使 Hive 可以同时运行在 Hadoop0.20.x 与 0.23.0 
+		2012年4月30日，0.9.0版本发布，重大改进版本，增加了对Hadoop 1.0.0的支持、实现BETWEEN等特性 
+适用性(优缺)
+	1.hive是基于Hadoop的一个数据仓库工具，可以将结构化的数据文件映射为一张数据库表，并提供完整的sql查询
+	  功能，可以将sql语句转换为MapReduce任务进行运行。其优点是学习成本低，可以通过类SQL语句快速实现简单
+	  的MapReduce统计，不必开发专门的MapReduce应用，十分适合数据仓库的统计分析
+	2.Hive是建立在Hadoop上的数据仓库基础构架。它提供了一系列的工具，可以用来进行数据提取转化加载（ETL），
+	  这是一种可以存储、查询和分析存储在Hadoop中的大规模数据的机制。Hive定义了简单的类SQL查询语言，称为
+	  HQL，它允许熟悉SQL的用户查询数据。同时，这个语言也允许熟悉MapReduce开发者的开发自定义的mapper和
+	  reducer来处理内建的mapper和reducer无法完成的复杂的分析工作
+	3.可以随着hadoop集群做最大限度的扩展
+	  
+	
+	1.不支持记录级别的更新，插入或删除操作
+	2.hive依赖于hadoop，而MR启动需要消耗较长的时间，所以hive查询延时比较严重
+	3.hive不支持事务
+	4.不适用于在线事务处理(OLTP)，它适合传统的数据仓库的工作。可以维护海量数据，对数据进行挖掘分析
+	  
+	
+	支持标准sql，支持用户自定义函数(UDFs,UDAFs,UDTFs)
+	hive数据存储的格式：CSV，Apache parquet，Apache orc等
+		
+	hive和关系型数据库的比较
+		1.hive和关系数据库存储文件的系统不同，hive使用的是hadoop的HDFS（hadoop的分布式文件系统），关系数
+		  据库则是服务器本地的文件系统；
+		2.hive使用的计算模型是mapreduce，而关系数据库则是自己设计的计算模型；
+		3.关系数据库都是为实时查询的业务进行设计的，而hive则是为海量数据做数据挖掘设计的，实时性很差；实时
+		  性的区别导致hive的应用场景和关系数据库有很大的不同；
+		4.Hive很容易扩展自己的存储能力和计算能力，这个是继承hadoop的，而关系数据库在这个方面要比数据库差很多。
+
+	hive和hbase的比较：
+		相同点：
+			hbase与hive都是架构在hadoop之上的。都是用hadoop作为底层存储
+
+		不同点：
+			1.Hive是建立在Hadoop之上为了减少MapReduce编写工作的批处理系统，HBase是为了支持弥补Hadoop对实时
+			 操作的缺陷的项目
+			2.若操作RMDB数据库，如果是全表扫描，就用Hive+Hadoop,如果是索引访问，就用HBase+Hadoop
+			3.Hive query就是MapReduce jobs，可以从5分钟到数小时不止，hbase是列存储，非常高效
+			4.Hive本身不存储和计算数据，它完全依赖于HDFS和MapReduce，Hive中的表纯逻辑。hbase是物理表，不是逻
+			  辑表，提供一个超大的内存hash表，搜索引擎通过它来存储索引，方便查询操作。
+			5.hive需要用到hdfs存储文件，需要用到MapReduce计算框架(完成hive命令)
+			6.hdfs作为底层存储，hdfs是存放文件的系统，而Hbase负责组织文件。
+	相似项目：
+		pig：
+			hive的替代工具，pig是由yahoo开发完成的。
+
+架构
+	安装：
+		# jdk1.8安装
+		# hadoop安装
+		# hive安装
+			# wget http://apache.fayea.com/hive/stable-2/apache-hive-2.1.0-bin.tar.gz
+			# tar -xf apache-hive-2.1.0-bin.tar.gz
+			# mv apache-hive-2.1.0-bin /usr/local/
+			# cd /usr/local/
+			# ln -sv apache-hive-2.1.0-bin hive
+		# 添加变量
+			# vim /etc/profile
+				export JAVA_HOME=/usr/local/jdk
+				export HADOOP_HOME=/usr/local/hadoop
+				export HIVE_HOME=/usr/local/hive
+				export PATH=$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin:$PATH
+		4.建立相关目录
+			# hdfs dfs -mkdir /tmp
+			# hdfs dfs -mkdir -p /user/hive/warehouse
+			# hdfs dfs -chmod g+w /tmp
+			# hdfs dfs -chmod g+w /user/hive/warehouse
+		5.修改配置文件
+			# cd hive/conf
+			# cp hive-default.xml.template hive-default.xml
+			# cp hive-env.sh.template hive-env.sh
+			# cp hive-log4j2.properties.template hive-log4j2.properties
+			# cp hive-exec-log4j2.properties.template hive-exec-log4j2.properties
+		6.初始化并启动
+			# schematool -initSchema -dbType derby
+			# hive
+	结构
+		目录结构
+			源码目录
+			安装目录：
+				./bin：		所有的shell脚本
+					hive：
+						-i filename：		初始化sql文件
+						-e "SQLs"：		  从命令行执行sql语句 
+						-S：				 静默模式
+						-v：				 冗长模式，将执行sql打印至结果中
+						-d：
+							--define key=value
+							--database db_name			  启动时选择数据库
+						-H:
+							--help						  打印帮助信息
+							--hiveconfig property=value	 设置hive配置选项
+							--hivevar key=values			设置hive变量
+					./beeline
+					./hive-config.sh
+					./hiveserver2
+					./hplsql
+					./metatool
+					./schematool：
+						-dbOpts <databaseOpts>			 Backend DB specific options
+						-dbType <databaseType>			 Metastore database type
+						-dryRun							list SQL scripts (no execute)
+						-help							  print this message
+						-info							  Show config and schema details
+						-initSchema						Schema initialization
+						-initSchemaTo <initTo>			 Schema initialization to a version
+						-passWord <password>			   Override config file password
+						-upgradeSchema					 Schema upgrade
+						-upgradeSchemaFrom <upgradeFrom>   Schema upgrade from a version
+						-userName <user>				   Override config file user name
+						-verbose						   only print SQL statements
+
+					
+					
+				./example：	示例输入和查询文件
+				./jdbc
+				./scripts：	hive-metastore的升级脚本
+				./conf：	配置文件
+					hive-site.xml：
+						说明：hive的配置文件。由hive-default.xml复制而来。default文件包含大量变量
+							  设置，但并不直接更改。一般复制为hive-site.xml文件，且default文件不被
+							  hive所使用
+					hive-env.sh：
+						说明：运行环境文件。包含相关目录变量和客户端内存					   
+					hive-exec-log4j2.properties
+						说明：exec默认配置文件
+						
+					hive-log4j2.properties：
+						说明：log默认配置文件
+					beeline-log4j2.properties
+					ivysettings.xml
+					parquet-logging.properties
+					llap-cli-log4j2.properties
+					llap-daemon-log4j2.properties
+					
+					注：
+						可以设定特定服务器的特定配置文件，例如可以metastore的配置值可写在hivemetastore-site.xml
+						文件中，hiveserver2特定的配置值可以写在hiveserver2-site.xml文件中
+						
+						配置文件的优先级如下：位置靠后优先级越高
+							hive-site.xml - > hivemetastore-site.xml - > hiveserver2-site.xml - >' -hiveconf'命令行参数
+				./hcatalog：
+				./lib：		所需的jar文件
+				
+				配置文件
+		进程/端口：
+			java HiveServer2：
+				10000：服务器监听端口
+				10001：http模式传输时的端口
+				10002：hiveserver2 web ui的端口
+			Java HWIServer：已弃用
+				9999：hwi的web ui端口
+			
+		编程接口
+		管理软件：
+			图形界面：
+				Karmasphere的商业产品(http://karmasphere.com)
+				cloudera的开源Hue项目(http://github.com/cloudera/hue)
+				Qubole提供的"Hive即服务"方式(http://gubole.com)
+			命令行：
+				本身提供的CLI
+	命令
+		hive：
+			说明：hive的cli，其它命令都是通过 # ./hive --service 调用
+				--service metastore $PORT
+				--service hiveserver2 $PORT
+				
+				--service cleardanglingscratchdir [-r] [-v] [-s scratchdir]
+					-r      dry-run mode, which produces a list on console
+					-v      verbose mode, which prints extra debugging information
+					-s      if you are using non-standard scratch directory
+					
+					该工具测试是否正在使用暂存目录，如果没有，将删除。这依赖于HDFS写锁来检测是否正在使用暂存
+					目录。HDFS客户端打开一个$scratchdir/inuse.lck用于写入的HDFS文件，并且只在会话关闭时关闭它。
+					cleardanglingscratchdir会尝试打开$scratchdir/inuse.lck写入以测试相应的HiveCli/HiveServer2
+					是否仍在运行。如果锁正在使用，则临时目录将不会被清除。如果锁可用，则临时目录将被清除。注意，
+					NameNode最多可能需要10分钟才能从死的HiveCli/HiveServer2中回收临时文件锁的租约，此时
+					cleardanglingscratchdir将能够在再次运行时将其删除。
+		beeline
+			说明：hive的新cli
+		hiveserver2  
+		metatool
+		hive-config.sh  
+		hplsql	   
+		schematool
+		服务器
+		   
+		客户端
+	日志：
+		hive在客户端上生成日志和历史记录文件
+	优化
+	安全
+	集群
+		组件：
+			用户接口：
+				CLI：CLI启动的时候，会同时启动一个hive的副本。目前使用名为Beeline的新CLI替代
+				JDBC/ODBC：JDBC封装了Thrift，java应用程序可以通过指定的主机和端口连接到
+							另一个进程中的hive服务器。ODBC驱动允许支持ODBC协议的应用程序
+							连接到hive
+				WebUI：在2.2.0中被移除
+					说明：HWI(Hive Web Interface)是hive用来替代命令行的一种方式，提供一个简单的图形用户界面，
+						通过浏览器访问hive
+					配置：hive-site.xml
+						hive.hwi.listen.host					# 默认0.0.0.0，hwi的监听地址
+						hive.hwi.listen.port					# 默认9999，hiw的监听端口
+						hive.hwi.war.file						# 更改lib/hive-hwi-2.1.1.war
+					启动
+						# export ANT_HOME=/opt/ant				# Jetty需要Apache Ant才能启动HWI
+						# hive-bin下的lib中没有hive-hwi-*.war,需要从hive-src中的./hwi/web中打包成war文件，
+						  拷贝至hive-bin/lib目录中（# cd ./hwi/web;jar -cvf hive-hwi-2.1.0.war ./*）
+						# 将jdk/lib下的tools.jar同名拷贝至hive/lib目录下
+						# 将ant/lib/ant.jar拷贝至hive/ant-1.9.7.jar		# 注意版本号
+						# bin/hive --service hwi			
+						# http://ip:9999/hwi					# 多刷新几次
+				WebHCat：
+					说明：一个RSET API(not gui)，应用程序可使http请求访问hive metastore，操作hive命令
+				
+			HiveServer2：
+				说明：是一个服务器接口，使远程客户端能够执行Hive的查询并检索结果，目前的实现基于Thrift RPC，是
+					  HiveServer的改进版本，支持多客户端并发和身份验证。它旨在为开放API客户端(如JDBC和ODBC)提供
+					  更好的支持
+					  
+					  1.HiveServer2提供对通过HTTP传输发送Thrift RPC消息的支持
+				配置：hiveservser2.xml
+				
+					hive.server2.thrift.min.worker.threads				# Thrift工作线程的最小数，默认值5。
+					hive.server2.thrift.max.worker.threads 				# Thrift工作线程的最大数，默认为500。
+					hive.server2.thrift.port							# hiveserver2 thrift的tcp端口，默认为10000。即hiveserver2的传输模式为binary时的端口号
+					hive.server2.thrift.bind.host						# server2绑定的TCP接口。默认localhost
+					hive.server2.thrift.worker.keepalive.time			# 空闲工作线程的保持时间，默认60，单位s。
+					hive.server2.thrift.max.message.size				# server2将接受的最大信息的大小(byte),默认100*1024*1024
+					hive.server2.async.exec.threads						# server2的异步线程池中的线程数，默认50
+					hive.server2.async.exec.shutdown.timeout			# server2关闭时等待异步线程终止的时间，默认10，单位s
+					hive.server2.async.exec.wait.queue.size				# server2中异步线程池中等待队列的数量，默认100
+					hive.server2.async.exec.keepalive.time				#
+					hive.server2.table.type.mapping
+					hive.server2.session.hook
+					hive.server2.max.start.attempts
+					
+					# http模式	
+					hive.server2.transport.mode							# 服务器传输模式(binary/http)，默认binary	
+					hive.server2.thrift.http.port						# 处于HTTP模式时的端口号，默认10001
+					hive.server2.thrift.http.max.worker.threads			# 服务器池中的最大工作线程数，默认500
+					hive.server2.thrift.http.min.worker.threads			# 服务器池中的最小工作线程数，默认5
+					hive.server2.thrift.http.path						# 该服务的endpoint，默认cliservice
+					hive.server2.thrift.http.max.idle.time				# 连接服务器的最大空闲时间，默认1800，单位s
+					hive.server2.thrift.http.worker.keepalive.time		# 空闲的http线程的保持时间，默认60，单位s
+					
+					# 日志：用于Beeline客户端
+					hive.server2.logging.operation.enabled
+					hive.server2.logging.operation.log.location
+					hive.server2.logging.operation.verbose  
+					hive.server2.logging.operation.level
+					
+					# 认证
+					hive.server2.authentication							# 认证模式，默认为NONE(纯用SASL)，NOSASL、KERBEROS、LDAP、PAM和CUSTOM
+					hive.server2.enable.doAs							# 模拟连接的用户，默认为true(Hiveserver2以提交查询的用户执行查询处理)，false(查询以hiveserver2进程运行的用户运行)
+					
+					# KERBEROS模式设置
+					hive.server2.authentication.kerberos.principal 		# 服务器的Kerberos主体
+					hive.server2.authentication.kerberos.keytab 		# 服务器主体的kerberos keytab文件
+					# sasl模式设置
+					hive.server2.thrift.sasl.qop						# 仅当server2使用kerberos身份验证时才使用
+					# LDAP模式设置
+					hive.server2.authentication.ldap.url 				# LDAP URL(eg: ldap://hostname.com:389)，多值以空格分隔，依次尝试连接
+					hive.server2.authentication.ldap.baseDN 			# LDAP基本DN
+					hive.server2.authentication.ldap.guidKey			# 默认uid
+					hive.server2.authentication.ldap.Domain 			# LDAP域
+					hive.server2.authentication.ldap.groupDNPattern		# 
+					hive.server2.authentication.ldap.groupFilter		# 
+					hive.server2.authentication.ldap.groupMembershipKey	# 默认member
+					hive.server2.authentication.ldap.groupClassKey		# 
+					hive.server2.authentication.ldap.userMembershipKey	# 
+					hive.server2.authentication.ldap.userDNPattern		#
+					hive.server2.authentication.ldap.userFilter			#
+					hive.server2.authentication.ldap.customLDAPQuery	#
+					# 自定义模式设置
+					hive.server2.custom.authentication.class 			# 实现接口的自定义认证类org.apache.hive.service.auth.PasswdAuthenticationProvide
+					# 缓存
+					fs.hdfs.impl.disable.cache 							# 禁用HDFS文件系统缓存，默认为false
+					fs.file.impl.disable.cache 							# 禁用本地文件系统缓存，默认为false
+					# SSL加密
+					hive.server2.use.SSL 								# true/false，当hive.server2.transport.mode是binary和hive.server2.authentication是KERBEROS时，SSL加密当前不工作
+					hive.server2.keystore.path 							# 密钥库路径。
+					hive.server2.keystore.password 						# 密钥库密码
+					
+					# 临时目录
+					hive.scratchdir.lock
+					hive.exec.scratchdir
+					hive.scratch.dir.permission
+					hive.start.cleanup.scratchdir
+					
+					#Web UI：用于访问HiveServer2配置，本地日志和度量标准。它还可以用于检查有关正在执行的活动会话和查询的一些信息
+					hive.server2.webui.host								# web ui的访问地址，默认0.0.0.0
+					hive.server2.webui.port								# web ui监听的地址，设置为0或负数将禁用web ui功能，默认10002
+					hive.server2.webui.max.threads						# 线程的最大数量，默认50
+					hive.server2.webui.max.historic.queries				# 显示的过去查询的最大数量。默认25
+					hive.server2.webui.use.ssl							# web ui是否使用ssl加密，默认false
+					hive.server2.webui.keystore.path					# SSL证书密钥库位置
+					hive.server2.webui.keystore.password				# SSL证书密钥库密码
+					hive.server2.webui.use.spenego
+					hive.server2.webui.spnego.keytab					# Kerberos Keytab文件的路径，其中包含HiveServer2 WebUI SPNEGO服务主体。
+					hive.server2.webui.spnego.principal					# SPNEGO服务主体。特殊字符串_HOST会自动的值替换hive.server2.webui.host或正确的主机名,HTTP/_HOST@EXAMPLE.COM
+					
+					
+					注：
+						1.可选的环境变量，能够覆盖配置文件设置
+							HIVE_SERVER2_THRIFT_BIND_HOST 
+							HIVE_SERVER2_THRIFT_PORT
+				启动：
+					# ./bin/hive --service hiveserver2    或者# ./bin/hiveserver2
+				
+			Thrift服务器：已弃用
+				基于socket通讯，支持跨语言。hive Thrift服务简化了在多编程语言中的运行hive
+				的命令。绑定支持C++,Java，PHP，Python和Ruby语言
+			元数据存储：
+				由两部分组成：数据文件和元数据。元数据用户存放hive库的基础信息，它存储在
+				关系型数据库中(数据库信息，表名，列和分区信息及属性，表属性，数据所在目录等)
+				默认存储在自带的数据库derby中，线上使用一般为MySQL
+				目前支持的metastore的后台数据库有：mysql，postgresql，oracle，ms sql server
+			解析器：
+				编译器：完成HQL语句从词法分析、语法分析、编译、优化以及计划的生成
+				优化器：一个演化组件，当前的规则是：列修剪，谓词下压
+				执行器：顺序执行所有的job，若Task链不存在依赖关系，可以采用并发执行的方式执行job
+			hadoop：
+				用MR进行计算，用hdfs进行存储
+				
+				
+				
+			HCatalog：
+				说明：hive的一个组件，是一个hadoop表和存储管理层，可以使具有不同的数据处理工具的用户能够在网格上更容易
+				地读写数据
+				其hcat命令再hcatalog/bin目录中可用。但大多数的hcat命令可以作为hive命令发出  
+			WebHCat：
+				提供了一个管理MapReduce，Pig，Hive jobs，Hive metadata的http接口服务
+				其命令webhcat_server.sh在hcatalog/sbin目录中
+			Metastore：
+				说明：Hive表和分区的所有元数据都通过Hive Metastore访问。它是一个独立的关系型数据库。默认情况下
+					使用内置的Derby数据库，可提供单进程的存储服务。但对于生产环境而言，需要使用mysql等关系型数
+					据库。其磁盘存储位置由名为javax.jdo.option.ConnectionURL的Hive配置变量确定。默认情况下，此
+					位置为./metastore_db
+				元数据库：
+					oracle(11g)，mysql(5.6.17)，postgresql(9.1.13),ms sql server(2008 r2)
+				两种配置方式：
+					本地/嵌入式Metastore数据库(Derby)
+					远程Metastore数据库
+				配置：hivemetastore-site.xml
+					
+					javax.jdo.option.ConnectionURL：			包含元数据的数据存储的JDBC连接字符串(
+																jdbc:mysql://<host name>/<database name>?createDatabaseIfNotExist=true 
+																jdbc:derby:;databaseName=../build/test/junit_metastore_db;create=true)
+					javax.jdo.option.ConnectionDriverName：		包含元数据的数据存储的jdbc驱动程序名称(
+																com.mysql.jdbc.Driver
+																org.apache.derby.jdbc.EmbeddedDriver)
+					javax.jdo.option.ConnectionUserName:		连接远程元数据库的用户名
+					javax.jdo.option.ConnectionPassword：		连接远程元数据库的密码
+
+					hive.metastore.uris：						连接远程metastore的URI，多个以空格分隔。Hive Metastore
+																是无状态的，因此可以有多个实例来实现高可用性。Hive将默认
+																使用列表中的第一个，但会在连接失败时选择一个随机的，并尝试重新连接
+					hive.metastore.warehouse.dir				本地表的默认位置的URI
+					hive.metastore.rawstore.impl				实现org.apache.hadoop.hive.metastore.rawstore接口的类的名称。这个类用于存储和检索原始元数据对象
+					datanucleus.autoCreateSchema				在启动时若模式(表 列)不存在则创建，创建一次后设置为false。
+					datanucleus.fixedDatastore					数据存储区模式是否是固定的。
+					datanucleus.autoStartMechanism				是否在启动时初始化
+					datanucleus.schema.validateTables			默认false，根据代码验证现有模式
+					datanucleus.schema.validateColumns			默认false，根据代码验证现有模式
+					datanucleus.schema.validateConstraints		默认false，根据代码验证现有模式
+
+					hive.metastore.ds.connection.url.hook		用于检索JDO连接URL的钩子的名称。如果为空，则将javax.jdo.option.ConnectionURL中的值用作连接URL
+					hive.hmshandler.retry.attempts：默认1		如果发生连接错误，则重试对后备数据存储区的调用的次数
+					hive.hmshandler.retry.interval：默认1000	数据存储重试尝试之间的毫秒数
+					hive.metastore.server.min.threads：默认200	Thrift服务器池中工作线程的最小数量
+					hive.metastore.server.max.threads：默认100000 Thrift服务器池中的工作线程数上限
+					hive.metastore.filter.hook：默认org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl
+																Metastore钩子类，用于进一步过滤客户端的元数据读取结果。
+					hive.metastore.port：默认9083				Hive metastore监听端口。
+
+				启动：
+					./hive --service metastore -p <port_num>
+							
+				注：
+					若使用MySQL作为元数据的数据存储，请在启动Hive Client或HiveMetastore Server之前将MySQL jdbc库放在HIVE_HOME/lib中。
+
+					
+
+	
+
+					
+				
+			Thrift：
+				提供了可远程访问其它进程的功能，也提供jdbc和odbc访问hive的功能
+		
+		
+		部署模式：
+			1.单用户模式：
+				此模式连接到一个In-Memory的数据库Derby,在同一时间只能有一个进程连接使用数据库。
+				一般用于Unit Test
+			2.多用户模式：
+				通过网络连接到一个数据库(Mysql,PG,)中，常用
+			3.远程服务器模式
+				用于非java客户端访问元数据库，在服务器端启动MetaStoreServer，客户端利用Thrift
+				协议通过MetaStoreServer访问数据库
+具体服务相关
+	概念：
+		原理：
+			1.hive与hadoop交互：
+				所有的命令和查询都会进入Drive(驱动模块)，通过该模块对输入进行解析编译，对
+				需求的计算进行优化，然后按照制定的步骤执行(通常是启动多个MR任务)。当启动MR
+				任务时，hive本身不会生成java MR程序，只会通过一个表示job执行计划的xml文件驱
+				动执行内置的，原生的Mapper和Reducer模块(这个两个模块类似于微型的语言翻译程
+				序)。hive通过jobtracker通信来初始化MR，而不必部署在jobtracker所在的管理节点
+				上执行。
+			2.临时目录：
+				hive会在OS上和hdfs上创建临时目录，用来保存临时值和中间数据集。在某些非正常关
+				闭的情况下可能会遗留一些数据，正常情况下会自动删除
+					hdfs的tmp：   /tmp/hive-OS_USER_NAME/	由hive.exec.scratchdir配置
+					linux的tmp：  /tmp/OS_USER_NAME/		硬编码
+				当对hive写入数据时，hive会首先将这些数据写入hdfs的临时目录，然后再移至相应目
+				录。在所有情况下均是如此(hdfs,S3,NFS)
+			3.Hive的运行过程
+				由客户端提供查询语句，提交给Hive，Hive再交给Driver处理（
+					1，Compiler先编译，编译时要从Metastore中获取元数据信息，生成逻辑计划；
+					2，生成物理计划；
+					3，由Driver进行优化；
+					4，Executor执行时对物理计划再进行分解成Job，并将这些Job提交给MR的JobTracker
+					   运行，提交Job的同时，还需要提取元数据信息关联具体的数据，这些元数据信息送
+					   到NN），
+				JT拆分成各个Task进行计算，并将结果返回或写入HDFS
+		hive数据的物理结构：
+			hive会为每一个数据库在hdfs上建立一个目录，数据库中的表会以这个数据库目录的子目录
+			形式存储(/user/hive/warehouse/*.db/),当前默认数据库是default(/user/hive/warehouse)
+
+		
+		数据类型：
+			基本数据类型：
+				整型：
+					tinyint：1字节
+					smalint：2字节
+					int：4字节
+					bigint：8字节
+				浮点型：
+					float：单精度
+					double：双精度
+				定点数：
+					decimal：
+				布尔类型：
+					true/false
+				字符串：
+					string：字符序列，可使用单引号或双引号
+					varchar：动态字符序列
+					char：固定字符序列
+				时间：
+					timestamp：整数(距linux纪元时间的总秒数)、浮点数(精确到纳秒，小数点后保留9位)或字符
+							   串(即JDBC约定的时间字符串格式，YYYY-MM-DD hh:mm:ss.fffffffff)
+					date：日期
+				二进制：
+					binary：字节序列
+			复合数据类型：由基本数据类型组成，实际上调用的是内置函数
+				struct：
+					说明：和C语言中的struct或对象类似，都可以通过"点"符号访问元素内容
+					示例：
+						struct('john','doe')
+				map：
+					说明：是一组key-value集合
+					示例：map('first','join','last','doe')
+				array：
+					说明：是一个数组类型，元素编号从0开始
+					示例：array('join','doe')
+		内置运算符：
+			关系运算符：
+				=，!=，<，<=，>，>=，is null，is not null，like，rlike，regexp， 
+			算术运算符：
+				+，-，*，/，%，&，|，^，~
+			逻辑运算符：
+				and，&&，or，||，not，!
+			复杂类型的操作符：
+				A[n]：
+				M[key]：
+				S.x：
+		内置函数：
+		变量：
+			说明：hive管理的配置变量
+			分类：
+				hive配置变量：
+				metastore变量：
+				用于同hadoop交互的配置变量
+				用于传递运行时信息的环境变量
+			
+				
+	内部命令
+		SQL命令：
+			数据库：
+				# show databases;
+				# show databases like "h*";
+				
+				# desc database db_name;
+				
+				# create database db_name 
+				#   location '/path/dir'
+				#   comment "info";
+				
+				# drop database db_name cascade;									# 级联删除
+				# drop database db_name [restrict];								 	# 无法删除空目录
+			
+				# alter database db_name set dbproperties('key'='value')			# 设置属性信息，数据库的元数据信息是不可
+																					# 更改的，包括数据库名和数据库所在目录
+			表：
+				# show tables;
+				# show tables in db_name like "arg";
+				
+				# desc formatted tb_name;
+				# show partitions tb_name [partition(part_name1='value',part_name2='value')];
+				
+				
+				管理表/内部表：
+					说明：hive控制着数据的生命周期
+					示例：
+						# create tb_name(
+						
+						)
+				外部表：
+					说明：
+					示例：
+						# create external tb_name(
+						
+						) 
+						row format delimited fields terminated by ','
+						location '/path/dir';
+				分区表：
+			视图：
+			
+	
+			函数：
+				# show functions;
+				# desc function [extended] fun_name;
+			加载数据：
+				1.load data：
+					# load data local inpath '$(env:HOME)/path/file'
+					# into table tb_name
+					# partition (part1='value',part2='value');
+					
+ 对于包含 * 的查询(select * from tb_name)不会生成MapReduce作业
+	
+	
+	
+	
+	
+	
+	
+	
+	

@@ -1,0 +1,49 @@
+上传数据：
+	# hdfs dfs -put local_file /user/hive/dir
+下载数据：
+	# hdfs dfs -get /user/hive/dir ./
+	
+
+表
+	内部表：	# create table tab(f1 string,f2 string) row format delimited fields terminated by ',' 
+	外部表：	# create external table tab(f1 string,f2 string) row format delimited fields terminated by ',' location '/user/hive/dir'
+	
+	分区表：	# create table tab(f1 string,f2 string) partitioned by (f3 string) row format delimited fields terminated by ',';
+				# create external table tab(f1 string,f2 string) partitioned by (f3 string) row format delimited fields terminated by ','location '/user/hive/dir';
+				
+				
+	添加分区：	# alter table tab add partition(f3="2007");		
+
+
+	添加数据：	# load data inpath '/user/hive/file' into table tab partition (f3="2007");
+				# insert into tab1 partition (f3="2007") select f1,f2 from tab where f3="2007";
+				# insert into tab partition (f3="2007") values("a","b");
+				
+				
+下载数据
+	# hdfs dfs -get /user/path/dir ./
+备份
+	# tar -zcf ./dir -C /path/dir.`date +%F`.tgz
+上传数据
+	# hdfs dfs -put ./dir /user/path/dir
+建立外部表
+	> create external tab(f1 string,f2 string) 
+	> partitioned by (f3 string) 
+	> row format delimited fields terminated by ',' 
+	> location '/user/path/dir';
+添加分区
+	> alter table tab add partition(f3="str");
+导入数据
+	> create tab1(f1 string,f2 string)
+	> partitioned by (f3 string)
+	> row format delimited fiedls terminated by ',';
+	
+	> insert into tab1 partition (f3="str") select f1,f2 from tab where f3="str";
+
+
+
+	
+	
+	
+	
+	

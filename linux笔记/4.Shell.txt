@@ -1,0 +1,951 @@
+
+vim编辑器
+	
+	vi		visual interface
+	vim		VI iMproved
+	vim的功能	
+		1.Vim具有颜色显示功能
+        2.支持许多的程序程序语法，可直接进行程序除错
+	vim导师： # vimtutor
+	vi不可在后台执行    后台程序不可使用ctrl+c终止 
+	
+	配置
+		临时的配置：    :set(显示自行变动过的参数) 或  :set all(显示所有的环境参数)
+			:set ts=2(默认是4个，可设置为2)
+			:set number/nonu    					:set autoindent/noai（自动缩进ai）
+			:set ignorecase/ic/noic(忽略大小写)	 或 /str\c
+			:set hl/nohl（高亮显示查找到的文本）	:syntax no/off (语法高亮)
+			:set nobackup/backup（若改动，则会产生file~文件，记录原始的file信息，只记录第一次的）
+			:syntax on/off(是否依据程序相关语法显示不同颜色)
+			:set bg=light/dark(显示不同的颜色色调，默认是light，但不易阅读，可使用dark)
+		永久配置文件(环境设置与记录文件)：
+			/etc/vimrc	   ~/.vimrc    ~/.viminfo
+			
+			.viminfo -- 记载操作记录
+			.vimrc   -- 记录默认环境设置  (默认不存在，须手动创建)   
+			在.vimrc文件中 双引号是注释，若用#会报错
+			将设置写入文件时，有无：均可
+				
+		运行:help选项列出完全的配置列表
+		运行:help windows显示更多的windows命令
+	打开文件
+		·单文件：
+			# vi file					直接打开
+			# vim +n file				定位于第n行
+			# vim + file				定位于最后一行
+			# vim +/pattern file		定位于第一次被pattern匹配到的行的行首
+		·多文件编辑：	
+			# vi file1 file2 -o/O			水平/垂直
+				:n 下一个文件		:N  上一个文件	
+				:last 最后一个文件  :first 第一个文件
+				:files   	列出vim打开的文件
+				:sp file   在新窗口打开一个文件，若无file，则打开同一个文件(同步显示)
+			切屏(单文件)：	
+				横向 --- ctrl+w ，s
+				纵向 --- ctrl+w , v
+			切窗口：
+				ctrl+w ，箭头
+				ctrl+w+w
+			退出：关闭其他窗口(未更改)  ctrl+w,o / :qa
+			多编辑冲突：  .swp  .swo  .swn
+				r：若之前文件尚未保存，可按r。退出后须手动删除.filename.swp
+				d：直接删除.swp继续编辑
+					
+	vi的三种模式：
+		编辑模式	插入模式	末行模式
+	
+	vim快捷方式
+		进入插入模式： i/I  a/A  o/O
+		定位(n)： 
+			首行：gg   			末行：G				:n / nG / ngg
+			绝对行首：0			相对行首：^			绝对行尾：$/End
+		移动： 单词n--w/e/b   句子--(/) 段落--{/}
+				上下左右：h/j/k/l
+		翻屏：	ctrl+f/b 一屏		ctrl+d/u：半屏
+		删除： 字符：x/nx/X		单词：dw/ndw 	de/nde	 db/ndb
+				行：d$/d0/d^	从光标除到最后一行删除：dG
+		复制与粘贴： 一行 -- yy/p(P)   多行 -- nyy/p(P)		重光标所在行到最后一行：yG   行首/行尾：y0/y$
+		剪贴：       一行 -- dd/p(P)   多行 -- ndd/p(P)
+		取消操作： u   - undo
+		取消所取消的操作： ctrl+r   --- redo 
+		删除后再输入：c
+			cc	cw	
+		替换：单字符：r  连续替换：R
+		重复前一次的编辑操作：  .
+		显示文件信息：Ctrl+g
+		Visual Mode： v -字符	ctrl+v - 块 	V - 行
+			若要退出visual block 只需按v即可
+		退出：  q	q!	shift+z+q
+				wq/x	wq!	 shift+z+z  
+				:e! -- 重新读此文件  :e file
+		查询： /str  ?str		-- n/N
+		查询并替换：	:s/old/new    	-- 换第一个old
+						:s/old/new/g    -- 换一行的old
+						:1,5s/old/new 	-- 换1-5行的第一个old
+						:%s/old/new/gi 	-- 全文替换并忽略大小写
+		删除：			:10d			-- 删除第10行
+						:10,12d			-- 删除10-12行
+		.：表示当前行
+		$：表示最后一行
+		+n：表示向下的n行
+		执行命令：		:!Command
+		保存文件：		:addr1,addr2w file
+						:addr1,addr2w >> file
+		读取文件：		:r file
+		显示文件名：	:f
+	
+		用less查看文件时，按 v 可进入vi编辑器 
+	
+			
+	vi/vim多行注释和取消注释
+		 多行注释：
+			 1. 进入命令行模式，按ctrl + v进入 visual block模式，然后按j,或者k选中多行，把需要注释的行标记起来
+			 2. 按大写字母I，再插入注释符，例如//
+			 3. 按esc键就会全部注释了
+		 取消多行注释：
+			 1. 进入命令行模式，按ctrl + v进入 visual block模式，按字母l横向选中列的个数，例如 // 需要选中2列
+			 2. 按字母j，或者k选中注释符号
+			 3  按d键就可全部取消注释
+		
+
+
+1.简介及纲要
+	Shell简介：提供用户操作系统的一个接口,建立自动化管理主机的能力
+		Shell是一个命令解释器，它在操作系统的最外层，负责直接与用户对话，把用户的输入解释给操作系统，并处理各种各样的
+	操作系统的输出结果，输出到屏幕返回给用户。
+
+	只要能操作应用程序的接口都能称作shell
+		狭义的shell：指的是命令行方面的软件 	eg：bash
+		广义的shell：包括图形界面的软件-图形界面也能操作各种应用程序来调用内核工作
+	  远程管理命令行比较快，不容易出现断线或是信息外流的问题
+	
+	广义上的shell有两类
+		1.GUI:Graphic User Interface
+			windows
+			X-Window
+				Gnome：C
+				KDE：C++
+				XFce：适合嵌入式的简洁的桌面系统
+		2.CLI:Command Line Interface):
+			shell
+
+	Shell分类：各家的shell功能都差不多，但在某些语法的执行方面有所不同
+		在UNIX/Linux中主要有两大类Shell
+			1.Bourne Shell 
+				- Bourne Shell （sh）--(已被/bin/bash所代替)
+				- Korn Shell  （ksh）-- (兼容于bash)
+				- Bourne Again Shell  （bash） *
+				- POSIX Shell	 （sh）
+			2.C Shell
+				- C Shell  （csh）-- (已被/bin/tcsh所代替)
+				- TENEX/TOPS C shell （tcsh) - (整合C shell,提供更多的功能)
+				- Z shell	  (zsh) -- (基于ksh发展出来的，功能更强大的shell)
+
+
+	bash的优点：
+		1.命令记忆功能(history)
+		2.命令与文件补全功能([Tab])
+		3.别名设置(alias)
+		4.作业控制，前台 后台控制
+		5.脚本程序(shell script)
+		6.通配符
+
+	Shell有两种工作模式
+		1.交互模式
+		2.自动化模式(Shell Script模式)
+
+	查询本机中可用的shell
+		# cat /etc/shells
+		# chsh -l   -- 列出系统支持的shell
+	更改用户的Shell
+		- 要更改的Shell的绝对路径必须在/etc/shells中
+		- # chsh [ -s /bin/csh 用户]
+	查看bash的版本
+		- # echo $BASH_VERSION
+	bash的配置文件：/etc/bashrc
+
+	Shell脚本开发基本规范及习惯
+		1.开头指定脚本解释器
+		2.开头加版本等信息 
+		3.脚本中不用中文注释
+		4.脚本以.sh为扩展名
+		5.代码书写优秀
+			eg：成对的内容一次写出，防遗漏	
+				使用嵌套方式，排版缩进，易读
+				[]中括号两端要有空格
+
+	Shell脚本的的组成元素
+		- 注释
+		- 系统命令
+		- 文本处理工具（sort、grep、sed、awk）
+		- 变量
+			环境变量在~/.bash_profile(/etc/profile)文件里定义
+		- 条件判断
+		- 循环结构 
+		- 函数
+			shell函数无意义上的返回值
+
+	bash支持的引号
+		"" 	双引号：弱引用，对 \ 做转义，对 $ 的变量做解析
+		''	单引号：强引用，对其中的内容不作任何修改
+		``  斜点     执行命令
+
+2.注释
+	注释信息：
+		1.script的功能
+		2.script的版本信息
+		3.script作者与联络方式
+		4.script版权声明方式
+		5.script的历史记录
+		6.seript执行时需要的环境变量预先声明与设置
+		7.在较为特殊的代码旁加上批注
+
+		eg：
+			# Date：	13:50 2015-3-30
+			# Author：	Create by sky
+			# Mail：	192@qq.com
+			# Function:	This scripts function is .....
+			# Version:	1.1
+	在shell script中除了第一行的 #! 是用来声明shell的之外，其余#都是批注。若第一行无#!/bin/bash，用file识别变为ASCII文
+	件。若有，识别为bash文件
+			
+	
+3.系统命令
+	shell提供的常用命令：
+		- echo	变量名表	
+		- eval		-- 读入参数args，并将其组合成一个新的命令，然后执行
+		- exec 命令参数
+		- export 变量名
+		- read 变量名表
+		- shift
+
+	计算字符串长度的三种方法：
+		1.echo ${#chars}				*
+		2.echo $(expr length “$chars”)
+		3.echo ${chars} | wc -m		须减1
+		4.echo `$chars : ‘.*’`
+	计算命令所耗费的时间
+		- # time commands
+
+	linux产生随机数的六种方法：
+		1.# echo $RANDOM		// 0-32768
+			随机数生成器： 熵池
+				/dev/random：会阻塞用户进程，但更安全
+				/dev/urandom：软件模拟随机数，更方便，
+		2.# openssl rand -base64 10
+		3.# date +%s%N
+		4.# head /dev/urandom | cksum 
+		5.# cat /proc/sys/kernel/random/uuid
+		6.# mkpasswd	
+			- yum install expect -y
+		所有后面均可接 md5sum | cut -c 5-9  eg：echo $RANDOM|md5sum|cut -c 2-5
+
+
+	shell可以识别三种基本命令
+		内置命令	shell函数	外部命令
+	bash shell的内置命令：type [-tpa] name
+	  type 不加参数时，会显示name是外部命令还是bash的内置命令
+		-t：会将name以以下形式显示出其意义
+			file : 表示为外部命令
+			alias：命令别名
+			builtin：内置命令
+		-p：当name为外部命令时会显示出完整文件名
+			无显示有两种情况1 是内置命令 2 是别名
+		-a：根据PATH定义的路径将所有含name的命令都列出来，包括alias
+		
+		type主要在找出执行文件(而不是一般文件名),所以type也可以用作类 似which命令的
+	
+	命令的执行顺序：可由type -a command 查看
+		alias 
+		builtin 
+		$PATH
+
+	用于登录密码文件的制作
+		stty -echo 	关闭自动打印输入字符的功能
+		stty echo 		打开
+	将当前目录加入PATH中:空项目表示当前目录，一般加 .
+		最前端：PATH=.:$PATH
+		尾端：PATH=$PATH:.
+		中间：PATH=/bin/:.:/usr/bin
+
+	命令替换
+		1.	$(command)
+		2. `command`
+
+	echo的转义字符
+		echo语句默认以换行符结束
+			两种不换行： -n : no new line
+				- echo -n string
+				- echo -e “string \c”
+		echo的转义序列：	-e 启用转义字符解析
+			\a 响铃		\b 退格		\c 去除尾部的新行	\n 新的一行		\r 回车		\t 水平制表符	\\ 斜杠
+		
+	echo的彩色输出：	
+		8中基本颜色
+		
+	
+	
+4.文本处理工具
+	
+	统计文本：				wc
+	文本排序：				sort
+	文本/目录比对			diff
+	在文件中查找关键行		grep/sed
+	在行文本中添、删、改	sed
+	在列文本中显示指定列	awk
+	在列文本中计算			awk
+	在列文本中进行条件选择	awk
+
+
+
+
+	正则表达式：（REGular EXPression，REGEXP）
+		是一种字符串处理的标准依据，可以查找匹配特定准则的文本
+		如果想要以正则表达式的方式处理字符串，就需要使用支持正则表达式的工具程序才行 eg：vi sed awk grep
+		
+	·用来寻找匹配文本行的grep工具族：grep
+	·用来改变输入流的sed流编辑器(stream editor)
+	·字符串处理程序语言：awk Icon Perl Python Puby Tcl
+	·文件查看程序(分页程序)：more less
+	·文本编辑器：ed行编辑器 vi vim emacs 
+	
+	正则表达式的字符串表示方式依照不同的严谨度： 
+	   基础正则表达式：grep
+	   扩展正则表达式：还可以做组的字符串处理
+			{m,n} 不加\	 	() 不加\	支持或(|)：C|cat  (C|c)at
+	
+	三种查找整个文本文件的方法
+		- grep
+		- egrep(Extend grep):grep -E 可扩展的grep
+		- fgrep（fast grep）：grep -F	fgrep不支持正则表达式，
+		 92年POSIX标准将其合并为一个grep，通过不同的选项加以控制
+			
+	通配符与正则表达式的区别：
+		通配符是系统命令使用，一般用来匹配文件名或者什么的用在系统命令中。而正则表达式是操作字符串，以行为单位来匹配字符串使用的。
+		- 通配符：
+			[ ]   [ - ]   [! ] == [^ ]    *   ?  [:alpha:]  ~  -  .  ..
+			
+			[0-9] [a-z] [A-Z] 匹配一个字符
+			[abc]	匹配列表中的任何字符
+			[^abc]	匹配任何除了列表中的字符
+	
+		- 元字符：
+			- ^			串首
+			- $			串尾
+			- .			匹配单个任意字符
+			- *			匹配零个或多个前面的字符
+			- +			匹配一个或多个前面的字符
+			- ？		匹配零个或一个前面的字符
+			- [abc]	匹配括号中给出的任意一个字符
+			- [a-z]	匹配a到z之间的任意一个字符
+			- a|b		二选一，等同于[ab]
+			- (ab+		匹配一个或多个括号中的组合
+			- \* 		转义星号本身
+
+			\b	.	*	[ ]		[^ ]	[ - ] 	{n} {n,} {n,m}  ^  $ +
+			.  绝对有一个任意字符
+						  *  重复前一个字符 0到无穷
+						  .* 0个或多个任意字符
+						 {}  限定连续字符范围
+						 
+		三种括号的区别：
+			- ( )：括号内看成一个整体 
+			- [ ]：匹配括号内的其中一个
+			- { }：匹配几次
+
+	子字符串的提取
+		- 符号（从0开始）		*
+			·echo ${str:0}	-- 从第一个字符开始提取到最后一个
+			·echo ${str:5}	-- 从第六个字符开始提取到最后一个
+			·echo ${str:7:3}	-- 从第八个字符开始取3个字符
+		- 函数（从1开始）
+			·echo `expr substr $str 1 2`	- 从第一个字符开始取两个
+
+	表达式方式提取字符串
+		- 前面提取
+		- 后面提取
+		
+	
+	awk	：3个字母代表该语言的3个作者
+		- 版本：	旧版awk	新版awk(nawk)		GNU awk(gawk)
+		- 原理：
+			1.awk对文件或管道的内容一次只处理一行，将获取到的这一行赋给内部变量$0
+			2.这一行的内容按awk内部变量FS(Field Separator)定义的分隔符，缺省为空格(包括Tab)分解成字段，存储在从$1开始的变量中
+			3.awk中print命令打印字段	{print $1,$3}
+				‘ ,’是一个映射到内部的输出字段分隔符(OFS，Output Field Separator)
+		- 组成：
+			·awk命令	
+			·括在引号或写在文件中的指令 
+			·输入文件或命令
+		- awk的内置变量
+			·$0：一行的记录
+			·$n：行记录中的第n个字段
+			·NR：the Number of input Record，每条记录的行号(所有文件)
+			·FNR：每条记录的行号(当前文件·)
+			·NF：Number of field，行记录中字段的总数
+				$NF：当前行的最后一个字段
+			·FS：field separator，输入分隔符，默认是空白字符
+			·OFS：Output Field Separator；输出分隔符
+
+			·RS：Record Separator，行输入的分隔符(默认是回车)
+			·ORS：Output Row Separator，行输出的分隔符(默认是回车)
+		- 用户自定义变量
+			# awk ‘BEGIN{var=”variable testing”;print var}’
+			# awk -v var=”variable testing” ‘BEGIN{print var}’
+		- 输入
+			- 从文件输入
+				·# gawk ‘/匹配字符串/’ 文件名	-- 查找
+			- 其默认是# gawk ‘/匹配字符串/{print$0}’ 文件名
+				·# gawk ‘{处理动作}’文件名		
+				·# gawk ‘/匹配字符串/{处理动作}’ 文件名
+					eg：# gawk -F: ‘/root/{print $1,$3}’/etc/passwd
+			- 从命令输入	--通过管道接收命令
+				·# 命令 | gawk ‘/匹配字符串/’
+				·# 命令 | gawk ‘{处理动作}’
+				·# 命令 | gawk ‘/匹配字符串/{处理动作}’
+					eg：# date | gawk '{print "month:"$2" year:",$6}'
+		- 编写awk脚本
+			·将//{}写入文件file.awk(#!/bin/awk)
+			·用# gawk -f file.awk  file执行
+		- 对特定的列使用模式匹配符 ~
+			·	~//		!~//
+				eg: gawk ‘$1 ~/*/’file
+		- 比较表达式
+			< 	<=		==	!=	>	>= ~	!~
+				eg: gawk ‘$2 == 0’file
+		- 三目运算
+			# gawk ‘{ max=($1>$2)?$1:$2;print max}’ file
+			# gawk ‘{print($7>10 ? “high ”$7:”low 10”)}’ file
+		- 算术运算
+
+
+		- OFMT(Output Format)定义print中数字的格式(默认是%。6gd)
+			eg：# echo -e "1000 33\n222 33" | gawk '$1>100 {OFMT="%.2f";print $1/$2}' 
+		
+		printf函数	-- 与C中的printf相同
+			- 格式化输出
+				eg：# gawk ‘{printf(“%s\t%d\t\n”,$1,$4)}’file
+			- 修饰符
+				· -：左对齐
+				· #：显示八进制时前面加0，显示十六进制时前加0x
+				· +：显示正负值时的正数前加+，负数前加-
+				· 0：用0对显示值填充空白
+			
+	cut:
+		-d：指定字段分隔符，默认是空格
+		-f：指定要显示的字段
+			-f 1,3		-- 第一字段和第三字段
+			-f 1-3		-- 第一字段到第三字段
+			-f 11-		-- 第11字段到最后一列字段
+		示例：
+			1.对# ps aux命令的处理
+				# ps aux | grep ypbind | sed -r 's/ +/ /g' | cut -d" " -f2 
+			2.在命令行中替换换行符
+				# sed ':label;N;s/\n/,/;b label' file
+		注：
+			sed读取一行时，会先把换行符去掉，处理完后再添加上，所以是无法使用# sed 's/\n/,/g' file 进行换行
+			符替换的。
+	
+	grep：	grep [options]  pattern  [file,...]
+		grep:根据模式搜索文本，并将符合模式的文本行显示出来
+			-i：不区分大小写
+			--color
+			-v：反选
+			-o：只选择被匹配到的字符串
+			-A n：显示其后n行
+			-B n：显示其前n行
+			-C n：显示前后n行
+		pattern：文本字符和正则表达式的元字符组合而成的匹配条件
+			·匹配字数：
+				*：匹配其前面的字符任意次
+					.*：任意长度的任意字符
+				\?：匹配前面的字符1次或0次
+				\{m,n\}：匹配其前面的字符至少m次，至多n次
+			·位置锚定：
+				^：锁定行首
+				$：锁定行尾
+					^$：空白行
+				\<或\b：其后面的任意字符必须作为单词首部出现
+				\>或\b：其前面的任意字符必须作为单词尾部出现
+				\<root\>：一个root单词
+			·分组：
+				\(\):
+					\(ab\)*
+					后向引用：
+						\1：引用第一个左括号以及与之对应的右括号所包括的内容
+						\2:
+						\3
+	
+	排序命令：sort wc uniq
+		sort:	默认以升序排序
+			-n：按数字大小排序
+			-r：降序
+			-t：字段分隔符
+			-k：以某个字段来排序		eg: # sort -t : -k 3 /etc/passwd
+			-u: 去重	---- uniq	
+			-f：排序时忽略大小写
+		uniq：去掉相邻的重复行
+			-d：只显示重复的行
+			-c：显示每一行重复的次数
+			-u：仅显示不重复的行
+		wc：文本统计
+			-w -c -l
+		双向重定向：tee
+			一重到屏幕，一重到文件   
+		   eg：# last | tee last.txt | cat -d “ ” -f1
+			   # ls | tee -a his.txt | more
+				   · -a 追加
+	
+	字符转换命令：tr col join paste expand
+		tr：字符处理(转换或删除字符),是逐个字符进行处理而非集合
+			替换：# tr ‘a-z’ ‘A-Z’ <file
+			删除：# tr -d ‘aac’ <file
+				
+		col
+			# man col | col -b > b.txt
+				-b 在文字内有反斜杠 / 时，仅保留/后接的那个字符
+				常用于将man page转存为纯文本文件以方便查阅	
+		join 处理相关数据  将两个文件中有相同数据的那一行加在一起
+			# join -t ':' -1 4 /etc/passwd -2 3 /etc/group
+				以:分隔(默认空格)，将第一个文件的第4个字段和第二个文件的第三个字段相连接
+		paste --- 直接将两行粘在一起
+			# paste -d file1 file2 
+				-d 接分隔字段 默认以[Tab]分隔
+				- ：若文件部分写成- 表示来自stdin的数据 
+			# cat /etc/group |paste /etc/passwd /etc/shadow -| head -n3
+		expand --- 将[Tab]键转成空格键
+
+	切割文件命令：split
+		  -b：接切割成的文件大小 可加单位 b k m
+		  -l：以行数分割
+		分割：
+			# split -b 1m asdf
+		还原：#cat asdf?? >> asdfback
+		以行切割：  #ls -al | split -l 10 - aa
+		  如果需要stdout/stdin,但偏偏没有文件，有的只是-时，那-就会被当成stdin/stdout
+		参数代换：xargs
+		
+	
+	sed：对stdin进行操作
+		·模式： # sed [options] 'addresscommand' file
+						-n：静默模式，不再显示模式空间的内容
+						-i：直接修改源文件
+						-e Script -e Script：可以同时执行多个脚本
+						-f /path/to/script：按照Script对file进行处理
+						sed -f /path/to/script file
+						-r：使用扩展正则表达式
+		address：	双引号不支持？
+			1.startline,endline
+				eg：1,100		33,$
+			2./regexp/
+				eg：/^root/
+			3./pattern1,pattern2/
+				从第一次被pattern1匹配到的行开始，到第一次被pattern2匹配到的行结束
+			4.lineNumber		指定到某一行
+			5.startline,+N		从startline开始，向后再数N行
+		command:
+			d：删除符合条件的行
+			p：显示符合条件的行	一般与-n合用
+			a \string：在指定的行后面追加一行string
+			i \string：在指定的行前面追加一行string
+			r file：将指定的文件的内容添加至符合条件的行后
+			w file：将符合条件的行保存至file中
+			s/pattern/string/修饰符 ：查找并替换，默认只替换每一行第一个被模式匹配到的字符串
+			g：全局替换
+			i：忽略字符大小写
+			分隔符：	eg： s/ / /	s# # #		s@ @ @ 
+			&：引用模式匹配整个字符串
+		
+		以行为单位的新增/删除：
+			# nl passwd | sed '2,5d'				2-5行删除
+						  sed '3d'					删除第三行
+						  sed '4,$'					删除3到最后一行
+			# nl passwd | sed '2a new line'			2a：在第2行下新增一行
+													3i：在第3行上新增一行
+			# nl passwd | sed '2a new 1 line \
+				new 2 line'							新增2行，用\转义enter实现换行，多行亦如此
+		
+		以行为单位的替换与显示
+			# nl passwd | sed '2,3c a new line'		替换2-3行
+			# nl passwd | sed '1,3p'				将1-3行两次输出，有-n则只显示1-3行
+								
+		sed若进行多个命令时，每个动作须加 -e
+			# cat file | sed -e ‘4d’-e ‘5c new line’
+		
+		
+	文件的格式化与相关处理
+		格式化打印：printf
+			只能处理一行数据
+		数据处理：awk
+			将一行分成数个字段来处理(适合小型的数据处理)
+			$0: 一行的数据
+			$1: 第一个字段
+			$2: 第二个字段
+				awk的内置变量：  	NF:  每一行拥有的字段总数
+									NR:  当前的行数 
+									FS:  目前的分隔符 默认是空格键或[Tab]键
+			 awk的比较运算符 = =    赋值 =
+			 在{}内的有多条命令时，用 ；或[Enter]分割
+	
+	文件比较工具：diff cmp
+		diff：比较纯文本文件，以行为单位进行。通常用在比较同一文件的新旧版本区别上，不要去比较两个完全不相关的文件！
+			-b	忽略一行中的多个空白
+			-B	忽略空白行的区别
+			-i	忽略大小写
+			
+			diff和patch打补丁
+				# diff stock1.0 stock2.0 -u > 1.0upgrade2.0 		---补丁
+				# patch -b stock1.0 < 1.0upgrade2.0   			备份源文件 -b
+			
+			亦可比较两个目录下的区别：	# diff /etc/rc3.d /etc/rc5.d
+		
+		cmp：主要比较二进制文件，以字节为单位进行。
+			-s：将所有不同点都列出，cmp默认仅会列出第一个不同点
+	
+
+
+	sort
+		-r				反向排序
+		-n				按数字排序
+		-f				忽略字符串中的大小写
+		-u				移除重复显示
+		-t c			使用c作为字段分隔符
+		-k X			对字段X排序
+			
+	uniq   从输入中移除重复的行   -c  计算重复的次数    常与sort一起使用
+	
+		
+	read -p '>' -t 10 var
+	
+		
+	拼写检查
+		aspell			 基于 /usr/share/dict/words
+
+	
+5.变量
+	Shell变量分类：变量名称只能是字母或数字，开头不能是数字
+		1.全局变量/环境变量/系统变量：作用域为当前shell进程及其子进程，与其它shell无关
+		- 设置环境变量  -- 常见放在：/etc/profile
+			- export 变量名=value
+			- 变量名=value ；export 变量名
+			- declare -x 变量名=value
+		- 显示与取消环境变量
+			- 通过echo打印
+			- 通过env/printenv或set显示
+			- 用unset 变量名 来取消本地变量和环境变量(永久取消须在/etc/profile写入该命令)
+		2.局部变量/本地变量/用户自定义变量
+			- 设置本地变量：作用域为当前shell进程
+				·变量名=value
+				·变量名=‘value’
+				·变量名=“value”
+			- 设置局部变量：一般用于脚本
+				·在某个函数中直接定义：local var_name=value			---- 作用域为当前代码段
+		3.特殊变量
+			- 位置变量	：主要用于引用脚本参数
+				·$0	-- 文件名
+				·$n	-- 第n个参数	${10}
+				·$#	-- 参数的总个数
+				·$* 	-- 当做一个参数 
+				·$@	-- 当做不同的独立参数
+			- 进程状态变量
+				·$$	--当前shell的进程号(PID)
+				·$!	--Shell最后运行的后台Process的PID
+				·!$	--上一个命令的最后一个参数
+				·$-	--使用Set命令设定的Flag一览
+				·$?	--获取上一个命令的返回值(回转码)
+								- 0		--成功
+								- 1~125	--脚本命令、系统命令错误或参数传递错误
+								- 2 权限拒绝
+								- 126	--找到该命令了，但是无法执行
+								- 127	--未找到要运行的命令
+								- >128		--命令被系统强制结束
+								- $_	--在此之前执行的命令或脚本的最后一个参数
+	shift：造成参数变量偏移
+	shift n  --  直接拿掉前n个变量  shift 1 ==== shift							
+							
+	间接变量：
+		a=1
+		b=a
+		echo ${!b}			# 1
+	
+	声明变量：
+		declare [-aixrp] var
+			 -a：将变量var定义为数组(array)
+			 -i：                整型(integer)
+			 -x：与export相同，将var变为环境变量
+			 -r：声明为readonly类型，不可更改，不可重设
+			 -p：单独列出变量类型     declare -p var
+				declare +x var  将 - 变 + 取消x操作
+			只读变量：readonly 变量名=value
+			若要更改 退出Bash 或 unset 变量名
+
+	显示环境变量：env   export
+	显示变量(环境变量和自定义变量)：set   declare
+	自定义变量-->环境变量： export var
+	环境变量-->自定义变量： declare ？
+	环境变量与自定义变量的差别：该变量是否能被子进程所继续使用
+
+
+	变量内容的删除 替换
+	   删除  ${var#/*bin}
+		  #   --从左到右删除且 删除最短的
+		  ##  --               删除最长的
+		  %   --从右到左删除且 删除最短的
+		  %%  --               删除最长的
+	   替换  ${var/sbin/SBIN} 
+				 --- 第一个被替换
+			 ${var//sbin/SBIN}
+				 --- 全部被替换
+	变量的测试与内容替换
+	   echo $var
+		   -- 若输出为空 有两种可能1是var未定义 2是var是空字符串
+	   var=${var-aaaa}
+		   -- 若变量未设置，用aaa代替
+	   var=${var:-aaa}
+		   -- 若变量未设置或为空。用aaa代替
+	变量合并/增加：
+		eg：	a=123
+				b=456
+				c=${a}-${b}	：123-456
+		eg：	a=123
+				a=$a:456		: 123:456
+
+	数组
+		- 定义
+			- array_name=(red green blue yellow magenta)
+		- 输出
+			输出变量长度：echo ${#array_name}
+			输出元素个数：echo ${#array_name[*]}
+
+			for((i=0;i<${#array[*]};i++))
+				echo "${array[$i]}"
+
+	shell变量的输入与输出
+		- 三种输入方法：
+			1.直接赋值
+			2.脚本传参
+			3.read从标准输入获得
+				- 设置提示信息：read -p "pls input a number:" a1
+				- 设置等待时间：read -t 6 -p "pls input two numbers:" a1 a2
+		- 两种输出方法
+			1.单行输出		echo *
+			2.多行输出		cat << END 
+								*
+								*
+								END
+
+	变量的数值运算：bash shell里默认仅支持到整型的数据
+		1.$(( ))		括号内的空格数量可任意  *
+			- echo $(( ))		
+			- result=$(( ))
+			- ((result= ))
+		2.let			一般不用
+			- i=2; let i=i+1; echo $i
+		3.expr
+			- # expr 2 + 2			运算符左右都有空格
+			- # expr $[2+2]
+			- 使用 * 时： # expr 2 \* 2
+			- 判断文件或字符串的扩展名
+				# expr “test.pub” :  “.*\.pul”
+			- 判断变量是否为整数
+				# expr $a +0 $> /dev/null
+				# [ $? -eq 0 ] && echo int || echo chars
+			- 计算字符串的长度
+				# echo $(expr length “$chars”)
+		4.bc	UNUX下的计算器 支持小数
+				- 命令行	# bc   - 进入后进行运算
+				- 脚本		echo $i+7 | bc		seq -s “+” 100 | bc
+		5.$[]	括号内不需空格
+				- echo $[2+3]
+				
+6.逻辑语句
+	条件测试的三种方式
+		- test *
+		- [ * ]	
+			1.中括号内的变量，用“”括起来
+			2.中括号内的常量，用单或双引号括起来
+			3.中括号两边必须有空格
+		- [[ * ]]		- 在[[ ]]中可以使用通配符进行模式匹配(&& || > <)。但不能应用于[ ]中
+				
+	条件测试类型：
+		1.整数测试
+		2.字符测试
+		3.文件测试
+		
+			常用整数比较操作符
+				在[]中使用的比较符		在(())和[[]]中使用的比较符			
+					-eq							==							
+					-ne							!=							
+					-gt							>							
+					-ge							>=
+					-lt							<
+					-le							<=
+		
+				在[]中使用>或<须加\来转义，=在[]和[[]]中均可用
+		
+			常用字符串操作符
+				-z "字符串"			若串长度为0则为真
+				-n "字符串"			若串长度不为0则为真
+				"串1"="串2"			可使用==代替=
+				"串1"!="串2"
+				
+				所有的字符串测试必须用""引起来
+		
+			常用文件测试操作符
+				-e file		测试文件是否存在
+				-s file 	测试文件是否为空(文件大小非0为真)
+
+				-f file		测试文件是否存在且为普通文件
+				-d file		测试文件是否存在且为目录
+				-L file		测试文件是否存在且为链接文件		也可用-h
+
+				-r file		测试当前用户是否对该文件有可读权限
+				-w file		测试当前用户是否对该文件有可写权限
+				-x file		测试当前用户是否对该文件有可执行权限
+
+				file1 -nt file2		file1比file2新则为真
+				file1 -ot file2		file1比file2旧则为真
+				
+				
+
+	逻辑操作符：遵循短路原理
+		·在[ ]中使用：
+			-a		-o		!
+		·在[[ ]]中使用：
+			&&		||		！
+					
+	
+	逻辑操作语句
+		1.条件语句
+			if  *  ;then
+				Commands
+			elif  *  ;then
+				Commands
+			else
+				Commands
+			fi
+		2.多选择语句
+			case “字符串” in 
+				a|A ) commands ;;
+				[3-5]) commands ;;
+				*) commands [;;]
+			esac
+					匹配模式：
+					- *  ：匹配任意字符
+					- ？ ：匹配任意单字符
+					- [ ]: 匹配字符范围
+		3.loop循环
+			- 当型循环
+				while	条件
+				do
+					Commands
+				done
+					-- while read读取不规则的文本数据
+						eg：	cat data.txt |　＼
+								while read NAME AGE MONEY
+								do
+									echo $NAME,$AGE,$MONEY
+								done
+					-- while无限循环
+						eg：	while :;do
+
+								done
+					-- while按行读取文件
+						eg：	while read LINE;do
+
+								done < /path/file
+			- 直到型循环
+				until	条件                  ---- 此法可略
+				do
+					Commands
+				done
+				- for循环
+					for 变量名 in 变量取值列表  ==== for(( expr1;expr2;expr3 ))
+					do										do
+						Commands								Commands
+					done									done
+						-- "in 变量取值列表"可省略，相当于 in "$@"
+								eg：for i   ===== for i in "$@"
+						-- 变量取值列表通常有三种集合
+							1.数字/字符集合
+								· 1 2 5 6 9
+								· {1..100}
+							2.文件集合
+								· /etc/*.conf
+							3.指令结果集合
+								·$(find /etc/ -perm -003)
+
+
+		条件判断：
+			command1 && (commands2) || (commands3)
+
+			
+7.函数
+	Shell函数：是结构化编程的重要思想，其主要作用是代码重用
+		- 语法1：						 语法2：
+			function 函数名{				函数名(){
+				Commands						Commands
+				return n						return n
+			}								}
+		- 执行：
+			- 本地执行
+				- 直接调用函数名	注意不加()
+					eg：函数名
+			- 函数库执行(组建自己的库文件)
+				- 将函数写到某个库文件中，在其它文件中调用
+					eg： ./lib.sh		---> max()
+						在test.sh中调用：
+						1. source path/lib.sh
+						2. max
+		- 带参数的函数执行
+			eg：函数名 参数1 参数2
+
+	自定义执行状态返回值: 	0-255
+		在程序最后可告知退出状态   eg：  exit n / return n
+			exit是退出进程，return是退出函数，两者均可带返回值
+		执行之后可用 echo $? 看结果是不是n  
+	
+		若脚本没有明确定义退出状态码，则最后一条命令的退出码即为脚本的退出状态码。若只写exit，未写数字，也是未明确定义，以最后一条命令为准
+	函数返回值：
+		函数中所要返回的信息用echo输出，在函数外接收。
+
+	getopts：用来检测命令行中传递给脚本的有效参数，常用在while loop中
+				
+8.文本图形dialog			
+			
+			
+			
+			
+ grep data -r dir   --- 搜索目录下文件内容
+ {}：界定符
+	
+文件清空
+	1.# echo > file
+	2.# > file
+	3.# cat /dev/null > file
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+	

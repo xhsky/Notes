@@ -1,0 +1,271 @@
+shell能解译使用者输入的命令并执行。这些命令本身，通常用来访问文件系统，建立进程，管理进程，操作输入输出设备，管理内存以及操作和网络相关的应用
+
+bash的官方网站：http://www.gnu.org/software/bash
+
+检查shell的版本
+	# bash --version
+	# echo $BASH_VERSION
+	
+自行编译
+	解压	# tar xvf 
+	设定	# ./configure
+	编译	# make
+	测试	# make test
+				这一步就是对上一步 make 的检查了，要确保 make 是没有错误的，也就是这一步的 test、check要全部是 OK 的，error 为0
+	安装	# make install
+	清除	# make clean		
+	
+shell可直接安装到个人目录下，供其私下运用
+
+
+# su - user -c "Command"		# 执行命令完成后直接返回当前用户
+
+更改shell
+	# chsh				# 要更改的shell必须写在/etc/shells中
+	
+Windows平台部署Bash Shell环境
+	1.Cygwin		# 在windows上创建一个Linux-like环境
+	2.MSYS			# 在windwows上建立一个POSIX兼容的shell环境
+	
+登录主机	
+	主机登录
+	远程登录
+		# ssh -l user IP
+		# ssh user@ip
+		# ssh ip
+		
+文件(6)
+	一般文件 			# 纯文本文件 二进制文件  	-
+	目录	 										d
+	设备文件			# 字符文件 块文件			c b
+	内部进程通信文件	# Socket文件 管道文件(Pipe/FIFO)	s p
+	特殊文件			# 符号连接文件				l
+	隐藏文件			# .
+查看文件类型
+	# file file_name
+	
+权限的所有组合值的大小皆在0-7之间，故也将其视为一种八进制的数字系统
+	SUID		# set user id
+	SGID		# set group id
+	sticky biy
+
+
+在一对单引号中不可以出现单引号，用转义字符也不行
+	eg: # echo 'my name is \' tom'		错误
+续行符
+	\[Enter]
+
+字符集合	# 选其中一个
+	[xyz]		# x或y或z
+	[a-z]		# 小写字母
+	[A-Z]		# 大写字母
+	[a-zA-Z]	# 大小写字母
+	[0-9]		# 数字
+	[a-zA-Z0-9]	# 英文字母及数字
+		由于-代表字符集合的范围，故要把-也纳入集合时，须将其放在集合的开头或结尾
+		非语法中！也须放在开头，否则失去'非'意义
+大括号扩展
+	{}
+利用重定向输入做简易编辑
+	eg	# cat > test.txt			# ctrl+d
+前、后台工作：提高系统的生产力
+shell脚本第一行#!称为sha-bang，它是sharp(#)、bang(!)的简称
+
+查看当前shell处于第几层
+	echo $SHLVL
+	
+sh和bash会调用不同的配置文件
+bash的启动配置文件
+	登录(login)
+		先执行/etc/profile,然后在用户主目录下寻找.bash_profile、.bash_login、.profile其一，按顺序选择一个执行
+	注销(logout)
+		若有.bash_logout则执行
+	执行新shell(非登录shell)
+		1.交互式shell：直接执行shell命令，产生子shell。此时，bash会读取并执行/etc/bashrc及~/.bashrc
+		2.shell脚本：若执行file.sh，会先检查BASH_ENV变量的内容，若该变量有定义，则执行该变量所对应的文件中的内容再执行file.sh	
+sh的启动配置文件
+	登录(login)
+		读取并执行/etc/profle和~/.profile
+	执行新shell
+		1.交互式shell：直接执行sh命令，产生子shell。此时，sh先检查ENV变量的内容，若有，则先执行其对应的内容
+		2.shell脚本：不调用任何启动文件，没有检查其它环境变量的操作
+	
+# help				# 显示所有内置命令列表
+# help -s comm		# 显示内置命令的格式语法	
+	
+	： 			# 什么都不做，返回0
+		eg：利用：建立一个空文件	# ：> test.txt
+与history命令相关的变量有3个
+	1. HISTFILE			# 记录history的文件
+	2. HISTFILESIZE		# 文件最多记录的条数
+	3. HISTSIZE			# 交互式中可记录的历史指令条数
+	
+	
+查看命令的类型
+	# file cmd
+
+fc 命令显示了历史命令文件内容或调用一个编辑器去修改并重新执行以前在 shell 中输入的命令。
+	
+# set					# 显示所有sell变量和函数的内容 
+		#set -o			# 显示bash shell所有属性的开关状态
+		# set -o **		# 开启bash shell的某个属性
+		# set +o **		# 关闭bash shell的某个属性
+		# set -C / # set -o noclobber		# 保护已存在的文件，拒绝被覆盖
+		# set -u		# 当变量不存在，则显示错误信息
+
+read命令后没有指定接收数据的变量，则默认的变量名称为REPLY
+
+# exec		# 执行指定的程序，取代原来的shell
+# eval $var	# 进行变量代换，予以执行
+	
+	
+# which
+	# which -a 
+# locate	
+	
+# （Comm1;Comm2;Comm;....）			# 开启一个子shell环境，在其中执行命令组
+# { Comm1;Comm2;Comm;.... }			# 在现行shell中执行命令组	注：{}左右须有空格
+	
+# script file		#  将屏幕上执行命令后的所有信息记录到file中
+	
+命令行编辑方法			# 使用了GNU的Readline函数库，其功能时提供函数给应用程序调用，应用程序便可以有方便的命令行编辑能力
+	1.Emacs
+	2.vi
+
+	命令行编辑
+		移动光标
+			C-a				# 移动到行首
+			C-e				# 移动到行尾
+			C-b				# 向左移动一个字符
+			C-f				# 向右移动一个字符
+			E,b				# 向左移动一个单词
+			E,f				# 向右移动一个单词
+			C-l				# 清屏
+		删除字符
+			C-h				# 删除左侧字母
+			C-d				# delete			# 当无字符时，会注销
+		删除单词
+			E,d				# 自光标开始处向右删除此单词
+			C-w				# 自光标开始处向左删除此单词
+		删除行
+			C-k				# 自光标开始处向右删除行
+			C-u				# 自光标开始处向左删除行
+			C-a，C-k		# 删除整行
+		复原
+			C-_				# 复原删除的操作
+		黏贴
+			C-y				# 将之前删除的字符串贴到光标所在位置
+		重复执行
+			E,N,操作动作	# N表示要将操作动作执行三次
+		历史命令
+			C-r				# 搜寻历史命令
+								C-g		# 中断
+								Enter	# 执行
+								Esc		# 写在面
+			C-p				# 调出前一个命令
+			C-n				# 调出下一个命令
+			E,<				# 调出第一个命令(标号最小的)
+			E,>				# 调出最后一个命令(标号最大的)
+		命令自动补齐
+			Tab				# 亦可用E,/		但此法可略
+			E,@				# 自动补齐主机名(hosts)
+			E,~				# 自动补齐账号
+			E,$				# 补齐变量			eg：PATH
+			
+bash shell没有所谓的数据形态之分
+每个变量都只在当前的shell环境中有效，即每一个shell环境都会维护一份自己的变量空间，互不影响
+变量命名时，=两边不可有空格
+
+取变量值
+	1.$var
+	2.${var}
+取消变量或函数
+	# unset var/func			# 将其在变量空间释放。不加任何参数，会先尝试取消变量，若失败，则取消同名函数
+								# 注：只读变量不能删除
+		# unset -v var			# 表示要取消的是变量
+		# unset -f func			# 表示要取消的是函数
+清空变量
+	# var_name=					# 把变量内容删除，其值为null(右值为空)
+
+双引号中可有三种操作
+	1.替换变量
+	2.替换命令执行结果
+	3.替换算术运算结果
+	
+所见即所得
+	1.	''
+	2.	\
+			
+子shell无法继承父shell中的变量，只有让父shell中的变量变成环境变量才行
+	# export var
+	# declare -x var
+
+	# export			# 显示所有环境变量
+		
+	取消和清空环境变量同变量
+			
+只读变量
+	1.readonly var				# 直接使用readonly可现实只读变量列表
+									# readonly -a array			# 只读数组
+									# readonly -f func			# 只读函数
+	2.declare -r var
+
+取消所有别名
+	# unalias -a
+			命令行会对第一个token进行别名替换，若第一个token不是别名，则其后token被忽略
+显示或获取某一个元素的值
+	${数组[索引值]}
+显示或取出所有元素的值
+	1. ${数组[@]}		# 得到空白相隔开的字符串
+	2. ${数组[*]}		# 得到一整个字符串
+取得数组个数
+	${#数组[@]}	/ ${#数组[*]}
+		# 若某个数组元素是字符串，则取得其字符串长度值		${#数组[索引]}
+取消数组
+	# unset array_name				# 取消某个元素	# unset array[N]
+
+Here Document：
+		# Command << 标记
+			....
+			....
+			....
+			标记
+	当标记用""时，可进行变量/命令替换
+	当标记用''时，则原样输出
+	当标记前有-时，会将内容前的tab符去掉
+	
+	eg：可用Here Document做多行注释
+			: << 标记
+				注释1
+				注释2
+			标记
+高级变量有3个主题
+	1.变量扩展			# ${变量名称}
+					${var-default}			# var为不存在，返回值为default	
+					${var:-default}			# var为不存在或为空，返回值为default
+					${var=default}			# var为不存在，则var为default
+					${var:=default}			# var为不存在或为空， 则var为default
+					${var:?"info"}			# var为不存在或为空，则输出var:info
+					${var+default}			# var存在，则返回default
+					${var:+default}			# var存在且不为空，则返回default
+	2.命令替换 			# $(命令)
+	3.算术扩展			# $((算术式))
+			
+进程名称用[]含括，表示它是一个核心进程（ps）			
+		
+	# grep '".*" 4[0-9][0-9]' /var/log/httpd/access.log | grep -o '".*" 4[0-9][0-9]' | sort | uniq -c | sort -n | tee alog.txg
+		# 从apache中取出4xx的错误行，再取出符合样式的数据交给sort排序(使相同数据排在一起)，
+		  用uniq -c去重并记录重复次数，在以数字排序。并用tee打印结果同时保存到alog文件中
+	流程控制使程序具有人工智能
+	
+tape archive
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

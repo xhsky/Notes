@@ -1,0 +1,36 @@
+网络通信
+
+MAC地址：Media Access Control
+MAC算法：解决信道争用问题
+	Ethernet：CSMA/CD 
+	Taken ring
+	
+广播信号所能到达的主机所组成的范围称为广播域
+
+DNS不能动态配置，只能写配置文件了
+
+设备别名
+	eth#
+		网络别名：eth#:#/
+	lo
+	ppp#
+定义在/etc/modprobe.conf
+
+路由表
+	路由条目的类型
+		默认网关：0.0.0.0
+		网络路由：Network/Mas
+		主机路由：IP/32
+		
+查看路由条目：
+	# route -n
+	# netstat -rn
+	
+	
+防火墙
+  应用层防火墙:Tcp_wrapper
+  IP防火墙:IPtables
+	
+	
+	
+	

@@ -1,0 +1,399 @@
+版本控制系统(VCS)
+	版本控制是一种记录若干文件内容变化，以便将来查阅特定版本修订情况的系统
+
+	本地版本控制系统
+		eg：rcs，它的工作原理基本上就是保存并管理文件补丁（patch）。文件补丁是一种特定格式的文本文件，
+				记录着对应文件修订前后的内容变化。所以，根据每次 修订后的补丁，rcs 可以通过不断打补丁，
+				计算出各个版本的文件内容。
+
+	集中化的版本控制系统(CVCS)			不同系统上的开发者协同工作
+		eg：CVS，Subversion，Perforce
+
+		都有一个单一的集中管理的服务器，保存所有文件的修订版本，而协同工作的人们都通过客户端连到这台服务器，取出最新的文件或者提交更新。
+		但有中央服务器的单点故障问题
+
+	分布式版本控制系统(DVCS)
+		eg：Git，Mercurial，Bazaar，Darcs 
+		客户端把原始的代码仓库完整地镜像下来，还可以指定和若干不同的远端代码仓库进行交互
+		分布式版本控制系统通常也有一台充当“中央服务器”的电脑，但这个服务器的作用仅仅是用来方便“交换”修改，没有它也一样干活，只是交换修改不方便而已
+
+		
+
+简介
+	时间，作者，开发语言，定义
+		C语言开发，诞生于2005年.2008年，GitHub网站上线，开源项目免费提供Git存储
+		git是一个版本控制工具，github是一个用git做版本控制的项目托管平台
+	官网：http://git-scm.com/
+	版本
+	协议
+适用性(优缺)
+	1.直接记录快照，而非差异比较
+	2.近乎所有操作都是本地执行，最后提交即可
+	3.在保存到Git之前，所有数据都要进行内容的校验(SHA-1)和(checksum)计算，并将此结果作为数据的唯一标识和索引
+	4.多数操作仅添加数据到数据库
+	5.代理一个Git仓库只需要花费很少的资源，几乎从不需要整个服务器来支持它的运行
+架构
+	安装：
+		# yum 安装
+			# yum install git
+			# cd /dir.git
+			# git config --global user.name 'sky'
+			# git config --global user.email 'sky@org.com'
+			# git init 
+		# 编译：
+			# yum install curl-devel expat-devel gettext-devel openssl-devel zlib-devel perl-devel
+			# tar -zxf git-1.7.2.2.tar.gz
+			# cd git-1.7.2.2
+			# autoconf
+			# ./configure --prefix=/usr/local/git
+			# make
+			# make install
+			# git config --global user.name 'sky'
+			# git config --global user.email 'sky@org.com'
+			# cd /path/dir
+			# git init
+			# git add *
+			# git commit -m "clean"
+	结构
+		目录结构：配置
+			# git config --list
+				运行Git前的配置				# git config
+					- /etc/gitconfig	所有用户普遍适用的配置。	--system
+					- ~/.gitconfig		当前用户的配置				--global
+					- .git/config		当前项目配置				无
+
+					注：每一个级别的配置都会覆盖上层的相同配置	
+						
+			忽略特殊文件
+				说明：一般我们总会有些文件无需纳入Git的管理，也不希望它们总出现在未跟踪文件列表。通常都是些自动生成的文件，比如日志文件，
+					或者编译过程中创建的临时文件等
+				示例：在当前目录下建立.gitignore文件，写入正则
+					1.空行或以#开头的行都会被Git忽略
+					2.可使用正则匹配：
+						*：匹配零个或多个任意字符
+						?：匹配一个任意字符
+						/：以此开头防止递归，以此结尾指定为目录
+						!：模式前，取反
+					3.
+						*.a				# 忽略所有 .a的文件
+						!lib.a			# 跟踪lib.a的文件，不受上面影响
+						/TODO			# 忽略当前目录下TODO文件，而非递归目录
+						build/			# 忽略在build目录下的所有文件
+						doc/*.txt		# 忽略doc目录下的*.txt文件，而非doc目录下的递归目录
+						doc/**/*.pdf	# 忽略doc目录及其子目录下的*.pdf文件
+						a[1-9]			# 忽略所有a1,a2,...,a9文件
+						b[abc]			# 忽略所有ba,bb,bc文件
+							
+					4. .gitignore文件本身可放到版本库里，对其做版本管理
+		Git支持的传输协议
+			本地传输：
+				说明：简单，同时保留了现存文件的权限和网络访问权限，但有时需要先挂载远程硬盘
+				示例：
+					# git clone /path/dir		或 	# git clone file:///path/dir
+						只给路径，git会使用硬链接或复制它所需要的文件，若使用file://则git会调用网络传输，较慢
+					# git remote add [shortname] /path/dir
+			SSH：
+				说明：唯一一个同时支持读写操作并验证授权的网络协议，所有数据传输都是加密和授权的，会在传输之前尽可能压缩数据。
+					SSH的限制在于你不能通过它实现仓库的匿名访问
+				示例：
+					# git clone ssh://user@ip:/path/dir		或 		
+					# git clone user@ip:/path/dir
+			Git：
+				说明：守护进程监听9418端口。Git协议是最快的传输协议，但无加密和授权机制
+				示例：
+					# git clone git://path/dir.git
+			Http(s)
+				示例：
+					git clone http(s)://ip/path/dir.git
+			
+			
+			注：1.除了http协议外，其它所有协议均要在服务器端安装并运行Git，两个网络协议（HTTP 和 Git）通常都是只读
+				2.支持ftp和ftps协议，但低效并不推荐
+			
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		工作流
+			工作目录(dir)：		持有实际文件
+			暂存区(index)：		临时保存更改(add)，一般在.git目录中(用于将需要的文件一次性提交)
+			本地仓库(HEAD)：	指向最后一次提交的结果(commit)
+			
+				工作区 ---add---> index ---commit---> HEAD
+				
+			对于任何一个文件，在工作目录下只有两种状态
+				已跟踪：			经过add的文件或目录，在Git内都只有三种状态
+						已暂存(staged)
+						已修改(modified)	
+						已提交(committed)
+				未跟踪：Untracked	未经过add的文件或目录
+				
+			
+			
+		版本库(Repository)	.git		Git用来保存元数据和对象数据库的地方
+			HEAD			指向Git项目当前分支的头指针
+			branches		Git项目分支信息，新版git已不再使用该目录
+			config			Git项目配置信息
+			description		Git项目描述信息
+			hooks			默认的"hooks"脚本，被特定时间发生前后触发
+			info			含exclude文件，指Git项目要忽略的文件                             
+			object			Git的数据对象，包括：commits，trees，blobs，tags
+			refs			指向所有git项目分支的指针
+			
+			index			暂存区
+		
+		对象
+			commit：包含指向tree对象的索引、上次commit的指针和其它提交信息的元数据
+			tree：	记录目录树内容(目录的校验和)及其各个文件对应的blob对象索引
+			blob：	存储当前版本的文件快照
+			
+			commit --> tree --> blob
+		
+		分布式工作流程
+			集中式工作流：		一个存放代码仓库的中心服务器，可以接受所有开发者提交的代码。
+			集成管理员工流：	
+			司令官与副官工作流：
+	内部命令:
+		帮助：
+			# git --version					# 查看版本
+		配置：
+			# git config --global/system/local	commands
+				global：定义全局配置文件
+				system：定义用户配置文件
+				local：	定义项目配置文件
+				commands:
+					--list										# 查看所有值
+					--edit										# 编辑相应配置文件
+					--add section.key value						# 增加一个配置项
+					--get section.key							# 获取一个配置项
+					--unset section.key							# 删除一个配置项
+					
+					--remove-section section					# 删除一个section及其内容
+					--rename-section section1 section2			# 重命名section
+					
+					--replace-all section.key value				# 对所有section.key的值进行更改并最终保留一个section.key
+					--get-all section.key						# 获得所有section.key对应的value
+					--unset-all section.key						# 删除所有section.key的配置项
+					
+					--get-regexp 'section/key'					# 正则获取
+					--bool-or-int/bool/int/path	section.key		# 查看value的类型
+					
+					alias.name command							# 将command设置为别名name
+				
+			
+			# git config --global core.editor vim				# 设置模板提交及标签信息编辑器，默认使用vi
+			# git config --global commit.template ~/.gitinfo	# 设置git commit时显示在你的编辑器中的默认信息
+			# git config --global core.pager ''					# 设置git所使用的分页器，默认是less
+			# git config help.autocorrect 30					# 自动匹配正确的命令，在十分之一数字后运行
+
+					
+					
+		建立git仓库
+			# git init
+				适合于实际编辑生产过程.在工作目录下，可进行实际的编码、文件管理操作和保存项目在本地工作。如果开始创建一个项目将包含有源代码和和版本跟踪
+				记录的时候你可以使用"git init"或"git clone"一个已经存在的版本库的时候，它将包含".git"目录和源文件的拷贝。
+			# git init --bare 这个仓库只保存git历史提交的版本信息，而不允许用户在上面进行各种git操作
+				主要是用作分享版本库。可以向其他人分享存储在本地的版本库，以便于实时分享代码更新和团队协作 。通过使用"git push"命令，可将本地更新
+				提交至"中心版本库"。其他开发者可以使用"git pull"命令接受提交的版本更新。如果在一个多人协作的项目团队或者同一个项目需要在不同电脑上
+				面完成的时候，bare可以满足你的分布式开发需求。
+				
+			注：用户不能将分支上传至服务器正使用的分支，故用bare
+		获取帮助
+			# git help config
+			# git --help
+			# man git
+			# git --version 
+		本地编辑：
+			# git add file/dir				# 将文件加入暂存区
+			# git status [file]				# 查看当前状态
+			# git commit -m "comment"		# 提交
+				-a			跳过暂存区，直接将所有add过的文件暂存提交
+				
+			# git diff [file]				# 查看工作区和暂存区的差异
+			# git diff --cached/--staged	# 查看暂存区和提交的差异
+			# git diff HEAD -- file			# 查看工作区和提交的差异
+			
+			# git rm file					# 从工作区和暂存区删除
+				-f
+			# git rm --cached file			# 从暂存区删除
+		
+			# git mv file1 file2			# 移动文件
+				运行 git mv 就相当于运行了下面三条命令：
+					# mv file1 file2
+					# git rm fiel1
+					# git add fiel2
+			# git grep string				# 从工作目录搜索string
+				-n							# 显示行号
+				--count						# 显示每个文件包含了多少个匹配
+				-p							# 显示string匹配的方法或函数
+				
+			# git stash						# 将当前工作现场储藏
+			# git stash list				# 查看
+			恢复
+				1.# git stash pop
+				2.#	git stash apply			不删除stash内容
+				  # git stash drop
+		远程仓库：
+			
+			master：是运行 git init 时默认的起始分支名字
+			origin：是运行 git clone 时默认的远程仓库名字
+			# git remote [-v]											# 查看当前库的远程库
+				-v：显示对应的地址
+			# git remote add [shortname] user@ip:/path/dir				# 添加远程仓库
+			# git remote rename name new_name							# 重命名
+			# git remote rm name										# 删除远程仓库
+			
+			下载
+			1.git clone	
+				克隆一个本地仓库
+				# git clone git://path/dir.git
+				# git clone user@host:/path/dir [repo]
+				# git clone /path/dir 							本地
+					最后加名称可更改名字
+					
+					Git会自动将此远程仓库命名为origin，并下载其中所有的数据，建立一个指向它的master分支的指针并将其在
+					本地命名为origin/master(用于记录远程分支最新历史)，但你无法在本地更改其数据。接着，Git建立一个属于
+					你自己的本地master分支，始于origin/master分支相同的位置，你可以就此开始工作			
+	
+			2.git fetch
+				只取数据记录，并不会修改工作目录中的内容。后需merge合并
+				# git fetch 			更新git remote中所有的远程repo所包含分支的最新commit-id, 将其记录到.git/FETCH_HEAD文件中
+				# git fetch remote		更新名称为remote_repo的远程repo.....
+				# git fetch remote_repo remote_branch_name 						   更新名称为remote_repo的远程repo上的分支
+				# git fetch remote_repo remote_branch_name:local_branch_name       更新名称为remote_repo的远程repo上的分支：remote_branch_name，并在本地创建local_branch_name本地分支保存远端分支的所有数据
+			3.git pull
+				取回数据记录并合并：基于本地的FETCH_HEAD记录，比对本地的FETCH_HEAD记录与远程仓库的版本号，然后
+				git fetch 获得当前指向的远程分支的后续版本的数据，然后再利用git merge将其与本地的当前分支合并。
+	
+				# git pull remote_repo remote_branch:local_branch				   取回远程分支的更新记录并同本地分支合并
+					若远程分支同当前分支合并，则
+						# git pull remote remote_branch
+					若远程分支同当前分支相联系
+						# git pull remote
+			上传	默认不会上传标签
+				# git push remote_repo local_branch_name							推送到远程分支后依旧叫此名称
+					由于远程库是空的，我们第一次推送master分支时，加上了-u参数，Git不但会把本地的master分支内容推送的远程新的master分支，还会把本地的master分支和远程的master分支关联起来，在以后的推送或者拉取时就可以简化命令
+				# git push remote_repo local_branch_name:new_name					可命名为new_name
+				# git push remote_repo												若当前分支同远程分支相联系，可直接上传
+		分支		
+			说明：Git中的分支，其实本质上仅仅是个指向commit对象的可变指针。使用master作为分支的默认名字。在若干次提交后，其实已经有了
+				一个指向最后一次提交对象的master分支，它在每次提交的时候都会自动向前移动。分支其实就是从某个提交对象往回看的历史
+					用于平常编辑代码，可将分支合并到master分支用来发布新版本
+					HEAD：一个指向你正在工作中的本地分支的指针
+			分支策略
+				master分支一般是稳定的，仅用来发布新版本，平常不能在上面编辑。一般在dev分支上编辑，合并代码。开发一个新feature，最好新建一个分支
+			示例：
+				# git branch				# 查看本地分支
+						-a					# 查看所有分支(包括远程)
+						-r					# 查看远程分支
+						-v					# 查看各分支最后一个提交对象的信息
+						--merged			# 查看哪些分支已并入当前分支(即为当前分支的上游)
+						--no-merged			# 查看尚未合并的分支
+				# git branch b_name			# 创建分支
+				# git checkout b_name		# 切换分支
+				# git checkout -b b_name	# 创建并切换分支
+				# git branch -d b_name								# 本地删除分支
+				# git push remote_repo  :remote_bransh_name			# 远程删除分支
+				# git push remote_repo --delete remote_bransh_name	# 远程删除分支,只是从服务器上移除这个指针。Git服务器通常会保留数据一段时间直到垃圾回收运行，所以如果不小心删除掉了，通常是很容易恢复的
+				
+				分支合并：
+					merge：
+						说明：会将两个分支的最新快照以及二者最近的共同祖先进行三方合并，结果生成一个新的快照并提交
+						示例：合并某分支到当前分支
+							# git merge b_name			
+							# git status 
+							# vim 
+							# git commit 
+							
+							# git merge --no-ff -m "comment" b_name  
+								--no-ff：表示禁用Fast forward，合并后会有一个新的commit，用git log来查看时能看到合并记录
+								Fast forward：如果顺着一个分支走下去可以到达另一个分支的话，那么Git在合并两者时，只会简单地把指
+											  针右移至最新commit_id，因为这种单线的历史分支不存在任何需要解决的分歧，所以这种合
+											  并过程可以称为快进
+								直接将b_name的文件覆盖至当前分支，若是两个分支的同一个文件不同，则手动编辑解决，然后git add并commit
+					rebase：
+						说明：将提交到某一分支上的所有修改都移至另一分支上
+						示例：
+							# git checkout b_name1
+							# git rebase b_name2		# 将b_name2分支的所有修改应用到当前分支上
+							# git status
+							# vim
+							# git add *
+							# git rebase --continue
+							# git checkout b_name1		# 现在回到b_name1分支，进行一次快进合并
+							# git merge b_name2
+					注：
+						1.这两种整合方法的最终结果没有任何区别，但是变基使得提交历史更加整洁。 你在查看一个经过变基的分支的历史记录时会发现，尽管实际的开发工作是并行的，但它们看上去就像是串行的一样，提交历史是一条直线没有分叉。
+						2.目的是为了确保在向远程分支推送时能保持提交历史的整洁，该项目的维护者就不再需要进行整合工作，只需要快进合并便可
+						3.无论是通过变基，还是通过三方合并，整合的最终结果所指向的快照始终是一样的，只不过提交历史不同罢了。 变基是将一系列提交按照原有次序依次应用到另一分支上，而合并是把最终结果合在一起。
+						
+				跟踪分支	直接将本地分支和远程分支相联系
+					# git checkout --track remote_repo/remote_branch			# 建立本地分支和远程分支名相同且联系
+					# git checkout -b b_name remote_repo/remote_branch			# 建立本地分支b_name和远程分支相联系
+					# git branch --set-upstream local_branch remote/branch  	# 将本地分支同远程分支相联系		
+					
+					# git branch -vv						# 查看所有跟踪分支(本地缓存记录)
+					# git fetch --all						# 抓取所有的远程分支信息
+		返回版本
+			# git reset --hard commit_id
+								HEAD		当前版本
+								HEAD^		上一个版本
+								HEAD~100	前第一百个版本
+			丢弃工作区的修改
+				# git checkout -- file 			用最新版本的file来替换工作区的file
+			将暂存区文件删除
+				# git reset HEAD file			
+			修改最后一次提交
+				# git commit --amend			主要用于修改上次提交说明，但提交的是当前的暂存区				
+		标签		
+			说明：发布一个版本时，通常先在版本库中打一个标签，是标签版本库的一个快照，不能移动
+				轻量级的(lightewight)：	像是个不会变化的分支，实际上它就是个指向特定提交对象的引用
+				含附注的(annotated)：	实际上是存储在仓库中的一个独立对象，它有自身的校验和信息
+			区别：
+				建议使用含附注型的标签，以便保留相关信息
+				临时性加注标签，或不需要旁注额外信息，可用轻量级标签
+			命令：
+				# git tag									# 列出所有标签	
+				# git tag -l 'v1.8*'						# 匹配模式查找
+				# git show [name]							# 查看标签
+				
+				# git tag -a name -m "version"				# 含附注标签，默认打在本地当前版本上
+				# git tag name								# 轻量级标签，默认打在本地当前版本上
+				# git tag name commit_id					# 给某个commit_id打轻量级标签
+				# git tag -a name commit_id -m "version"	# 给某个commit_id打附注标签
+				# git tag -d name							# 删除本地标签			
+				远程
+					# git tag -d v_name
+					# git push remote_repo :refs/tags/v_name
+				# git push remote_repo t_name				# 推送标签到远程库
+				# git push remote_repo --tags				# 推送所有本地标签到远程库				
+		
+		历史
+			# git log				查看提交历史
+				-p -2				按补丁格式显示最近两次提交的内容差异
+				--stat				仅显示简要的增改行数统计
+				--pretty=oneline	每个提交放在一行显示
+				--graph				查看分支合并图
+				
+			# git　reflog			查看本地命令历史，常用于将从旧版本返回新版本
+			# gitk：				随git一同发布，相当于git log的可视化版本
+		
+		打包命令
+		 git archive 7ee6dc97e8 | gzip > ../dreambased-0.1.tar.gz
+
+
+小结
+
+搭建Git服务器非常简单，通常10分钟即可完成；
+
+要方便管理公钥，用Gitosis；
+
+要像SVN那样变态地控制权限，用Gitolite。

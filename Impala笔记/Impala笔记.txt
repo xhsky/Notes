@@ -1,0 +1,697 @@
+
+Cloudera：在Hadoop生态系统中，规模最大，知名度最高的公司
+	官网：http://www.cloudera.com	Apache 许可证
+	下载：http://archive.cloudera.com/cdh5/
+	
+	CDH：Cloudera Distribution Hadoop
+		是 Cloudera 针对 Apache Hadoop 开发的 100% 开源的企业级发行版。截至目前为止，CDH共有5个版本，其中，前两个
+		已经不再更新，最近的两个，分别是CDH4，CDH5，它们每隔一段时间便会更新一次
+	CM：Cloudera Manager
+		提供强大的集群管理功能，如自动化部署、集中管理、监控和诊断工具
+		
+	Cloudera Express版本是免费的
+	Cloudera Enterprise是需要购买注册码的
+	
+		两者包含CDH和CM，而企业级多了些组件和业内支持
+		
+		
+	Hortonworks Hadoop区别于其他的Hadoop发行版的根本就在于，Hortonworks的产品均是百分之百开源。
+	Cloudera CDH有免费版和企业版，企业版只有试用期
+	apache hadoop则是原生的hadoop
+
+	目前在中国流行的是apache hadoop，Cloudera CDH，当然Hortonworks也有用的
+
+		Hadoop是介于数据库和应用之间的一种既能用于存储和处理数据，又能处理应用业务逻辑的一个混合体，通常称之为"数据平台"
+		
+	Apache Ambari是一个基于web的工具，用于配置、管理和监视Apache Hadoop集群，支持Hadoop HDFS,、Hadoop MapReduce、Hive、
+	HCatalog,、HBase、ZooKeeper、Oozie、Pig和Sqoop。Ambari同样还提供了集群状况仪表盘，比如heatmaps和查看MapReduce、Pig、
+	Hive应用程序的能力，以友好的用户界面对它们的性能特性进行诊断。
+	
+	
+	
+	
+	
+Cloudera Impala：使用Impala来实现SQL on Hadoop，实现对海量数据的实时查询分析
+	1.是Cloudera在受到Google的Dremel启发下开发的实时交互SQL大数据查询工具，在CDH4.1中发布(2014.10)，是Hadoop上的实时计算平台
+	2.Impala是用来进行大数据查询的补充工具，它并没有取代像Hive这样基于MapReduce的分布式处理框架。
+	3.提供sql语义，能查询存储在Hadoop的hdfs和HBase中  
+	
+	
+		Impala与本地Hadoop安全性和Kerberos集成以进行身份??验证，并且通过Sentry模块，可以确保适当的用户和应用程序获得正确的数据授权
+		Impala使用与Apache Hive相同的元数据，SQL语法（Hive SQL），ODBC驱动程序和用户界面（Hue Beeswax），为面向批量或实时查询提供了一个熟悉且统一的平台
+		
+架构组成
+	说明：
+		1.Impala是分布式，大规模并行处理(MPP)的数据库引擎
+		2.Impala没有再使用缓慢的Hive+MapReduce批处理，而是通过使用与商用并行关系数据库中类似的分布式查询引擎()由Query Planner、
+		Query Coordinator和Query Exec Engine三部分组成),可以直接从HDFS或HBase中用SELECT、JOIN和统计函数查询数据，从而大大降低了延
+		迟。Impala主要由Impalad，State Store和CLI组成。
+	架构：
+		
+		SQL APP ODBC								Hive metastore		HDFS(namenode) 		Statestore		Catalog
+		
+		
+					impalad								impalad						impalad
+						Query Planner						Query Planner				Query Planner
+						Query Coordinator					Query Coordinator			Query Coordinator
+						Query Executor						Query Executor				Query Executor
+						
+					HDFS(datanode)|HBase				HDFS(datanode)|HBase		HDFS(datanode)|HBase
+				
+			1.SQL发送请求至某一个impalad的planner
+			2.planner解析成执行计划发送给自身的coordinator
+			3.Coordinator进行任务调度，发送给所有的executor
+			4.executor执行该执行计划(同本节点的存储交互)，并相互交互。然后将结果返回给中心Coordinator
+			5.中心Coordinator将结果汇总后返回给客户端
+			
+			注：Coordinator只有接受请求时才起作用。且impala对内存要求高(汇总的节点)，故可对后端的impalad做负载均衡(客户端代码完成，框架本身不支持负载)
+		
+	组件：
+		Statestored:	健康
+			1.跟踪集群中的Impalad的健康状态及位置信息，以便于分布式资源对查询的响应，由statestored进程表示，
+			2.它通过创建多个线程来处理Impalad的注册订阅和与各Impalad保持心跳连接，各Impalad都会缓存一份State Store中的信息，当
+			  Statestored离线后(Impalad发现State Store处于离线时，会进入recovery模式，反复注册，当State Store重新加入集群后，自
+			  动恢复正常，更新缓存数据)因为Impalad有State Store的缓存仍然可以工作，但已缓存数据无法更新，将会以缓存信息进行工作
+		
+		Catalogd：	数据信息同步
+			当Impalad的集群中执行的sql语句引起元数据变化时，catalogd进程会将这些变化推送到其它Impalad进程节点。
+			
+			一个Impala集群只需一个catalogd进程和statestored进程。且所有catalogd的请求都是通过statestored进程发送，故statestored和
+			catalogd应运行在同一个节点上，后台进程间的通信最大限度降低了refresh/invalidate metadata命令的依赖								
+		
+			Hive Metastore：
+				Impala使用Hive Metastore来存储一些元数据，为Impala所使用，通过存储的元数据，Impala可以更好地知道整个集群中数据、
+				以及节点的状态，从而实现集群并行计算，对外部提供查询分析服务。
+									
+									使用mysql或postgreSQL作为元数据库存储表定义信息
+									
+		Impalad：	处理
+			1.与DataNode运行在同一节点上，由Impalad进程表示，
+			2.接收客户端(impala-shell,Hue,JDBC/ODBC)的各种请求，与其它节点分布式并行工作，并把本节点的结果通过网络流式的传送回给
+			  Coordinator，由Coordinator返回给客户端。同时Impalad也与Statestored保持连接，用于确定哪个Impalad是健康和可以接受新的
+			  工作。
+			3.在Impalad中启动三个ThriftServer: beeswax_server(连接客户端)，hs2_server(借用Hive元数据),be_server(Impalad内部使用)和
+			  一个ImpalaServer服务。
+			
+				客户端可以随便连接到任意一个impalad实例，被连接的impalad实例将充当本次查询的协调者（Coordinator)，Coordinator通过JNI调
+				用java前端解释SQL查询语句，生成查询计划树，再通过调度器把执行计划分发给其它impalad实例进行并行计算。当所有计算完毕时，
+				其它各个impalad实例将会把各自的计算结果发送给充当Coordinator的impalad实例，由这个Ordinator实例把结果返回给客户端。每个
+				impalad进程可以处理多个并发请求。
+			
+		CLI:
+			提供给用户查询使用的命令行工具（Impala Shell使用python实现），同时Impala还提供了Hue，JDBC， ODBC使用接口
+	查询处理过程
+		1.客户端通过Hue Beeswax，Impala shell或者ODBC这样的客户端接口来提交查询请求给Impalad
+		2.Impala接受查询并且分布式查询引擎通过集群来创建和分发查询任务
+			1.Coordinator通过JNI调用Java前端对用户的查询SQL进行分析生成执行计划树				--- 不同的操作对应不用的PlanNode, 如：SelectNode， ScanNode， SortNode， AggregationNode， HashJoinNode等等。
+			2.Java前端产生的执行计划树以Thrift数据格式返回给Impala C++后端(Coordinator)
+			3.由Coordinator根据执行计划，数据存储信息
+					1.通过调度器Coordinator::Exec对生成的执行计划树分配给相应的后端执行器Impalad执行
+					2.通过调用GetNext()方法获取计算结果，如果是insert语句，则将计算结果通过libhdfs写回HDFS当所有输入数据被消耗光，执行结束，之后注销此次查询服务。
+				
+				Impalad分为Java前端与C++处理后端，接受客户端连接的Impalad即作为这次查询的Coordinator
+				执行计划分为多个阶段，每一个阶段叫做一个PlanFragment，每一个PlanFragment在执行时可以由多个Impalad实例并行执行(有些PlanFragment只能由一个Impalad实例执行,如聚合操作),整个执行计划为一执行计划树
+				数据存储信息：	Impala通过libhdfs与HDFS进行交互。通过hdfsGetHosts方法获得文件数据块所在节点的位置信息
+				调度器：		现在只有simple-scheduler, 使用round-robin算法
+			
+		3.每个节点直接读取本地的HDFS或HBase中的数据来完成部分分布式查询任务，以提升查询性能。 
+		4.impalad将结果返回给客户端。
+	
+	
+	Impala接口：
+		·impala-shell
+		·Apache Hue基于web的用户接口
+			Hue是一个开源的Apache Hadoop UI系统，最早是由Cloudera Desktop演化而来，由Cloudera贡献给开源社区，它是基于Python Web
+			框架Django实现的。通过使用Hue我们可以在浏览器端的Web控制台上与Hadoop集群进行交互来分析处理数据，例如操作HDFS上的数据，
+			运行MapReduce Job等等
+		·JDBC/ODBC
+			JDBC（Java DataBase Connectivity)：java数据库连接,是一种用于执行SQL语句的Java API，可以为多种关系数据库提供统一访问，
+											  它由一组用Java语言编写的类和接口组成
+			ODBC(Open Database Connectivity)：开放数据库互连,是微软公司开放服务结构中有关数据库的一个组成部分
+			JDBC-ODBC桥驱动程序为java应用程序提供了一种把JDBC调用映射为ODBC调用的方法
+			JDBC和ODBC都是数据库驱动程序
+	
+	与Hadoop生态系统的集成
+		1.与Hive集成
+			·Hive与Impala都是用mysql/postgresql作为元数据库存储表定义信息
+		2.与HDFS集成
+			·Impala使用分布式的文件系统HDFS作为主要的数据存储方式，依赖其冗余机制来避免节点的 硬件或网络故障。
+			·Impala表的数据以文件的形式存储在HDFS中
+		3.与HBase集成
+			·HBase是替代HDFS作为Impala的数据存储的另一种方式
+			·HBase不支持SQL语句，一般作为海量数据存储使用
+			·通过在Impala中定义到HBase表的映射关系，可实现Impala查询HBase中的数据，也可实现Impala与HBase表的连接查询
+			
+	Impala与Hive
+		 Impala相对于Hive所使用的优化技术
+			1.没有使用MapReduce进行并行计算，虽然MapReduce是非常好的并行计算框架，但它更多的面向批处理模式，而不是面向交互式的SQL执行。
+			  与MapReduce相比：Impala把整个查询分成一执行计划树，而不是一连串的MapReduce任务，在分发执行计划后，Impala使用拉式获取数据
+			  的方式获取结果，把结果数据组成按执行树流式传递汇集，减少的了把中间结果写入磁盘的步骤，再从磁盘读取数据的开销。Impala使用
+			  服务的方式避免每次执行查询都需要启动的开销，即相比Hive没了MapReduce启动时间。
+			  
+			2.使用LLVM产生运行代码，针对特定查询生成特定代码，同时使用Inline的方式减少函数调用的开销，加快执行效率。
+			 
+			3.充分利用可用的硬件指令（SSE4.2）。
+			 
+			4.更好的IO调度，Impala知道数据块所在的磁盘位置能够更好的利用多磁盘的优势，同时Impala支持直接数据块读取和本地代码计算checksum。
+			 
+			5.通过选择合适的数据存储格式可以得到最好的性能（Impala支持多种存储格式）。
+			 
+			6.最大使用内存，中间结果不写磁盘，及时通过网络以stream的方式传递。
+		
+		Impala与Hive的异同
+			数据存储：		使用相同的存储数据池都支持把数据存储于HDFS, HBase。
+
+			元数据：		两者使用相同的元数据。
+
+			SQL解释处理：	比较相似都是通过词法分析生成执行计划。
+
+			执行计划：
+				Hive: 		依赖于MapReduce执行框架，执行计划分成map->shuffle->reduce->map->shuffle->reduce…的模型。如果一个Query会被编译成
+						多轮MapReduce，则会有更多的写中间结果。由于MapReduce执行框架本身的特点，过多的中间过程会增加整个Query的执行时间。
+							
+				Impala: 	把执行计划表现为一棵完整的执行计划树，可以更自然地分发执行计划到各个Impalad执行查询，而不用像Hive那样把它组合成管
+						道型的map->reduce模式，以此保证Impala有更好的并发性和避免不必要的中间sort与shuffle。
+
+			数据流：
+				Hive: 		采用推的方式，每一个计算节点计算完成后将数据主动推给后续节点。
+				
+				Impala: 	采用拉的方式，后续节点通过getNext主动向前面节点要数据，以此方式数据可以流式的返回给客户端，且只要有1条数据被处理完，
+						就可以立即展现出来，而不用等到全部处理完成，更符合SQL交互式查询使用。
+
+			内存使用：
+				Hive: 		在执行过程中如果内存放不下所有数据，则会使用外存，以保证Query能顺序执行完。每一轮MapReduce结束，中间结果也会写入HDFS
+						中，同样由于MapReduce执行架构的特性，shuffle过程也会有写本地磁盘的操作。
+							
+				Impala: 	在遇到内存放不下数据时，当前版本1.0.1是直接返回错误，而不会利用外存，以后版本应该会进行改进。这使用得Impala目前处理
+						Query会受到一定的限制，最好还是与Hive配合使用。Impala在多个阶段之间利用网络传输数据，在执行过程不会有写磁盘的操作(insert除外)
+
+			调度：
+				Hive: 		任务调度依赖于Hadoop的调度策略。
+				
+				Impala: 	调度由自己完成，目前只有一种调度器simple-schedule，它会尽量满足数据的局部性，扫描数据的进程尽量靠近数据本身所在的物理
+						机器。调度器目前还比较简单，在SimpleScheduler::GetBackend中可以看到，现在还没有考虑负载，网络IO状况等因素进行调度。但目前
+						Impala已经有对执行过程的性能统计分析，应该以后版本会利用这些统计信息进行调度吧。
+
+			容错：
+				Hive: 		依赖于Hadoop的容错能力。
+				
+				Impala: 	在查询过程中，没有容错逻辑，如果在执行过程中发生故障，则直接返回错误（这与Impala的设计有关，因为Impala定位于实时查询，
+						一次查询失败，再查一次就好了，再查一次的成本很低）。但从整体来看，Impala是能很好的容错，所有的Impalad是对等的结构，用户可
+						以向任何一个Impalad提交查询，如果一个Impalad失效，其上正在运行的所有Query都将失败，但用户可以重新提交查询由其它Impalad代替
+						执行，不会影响服务。对于State Store目前只有一个，但当State Store失效，也不会影响服务，每个Impalad都缓存了State Store的信息，
+						只是不能再更新集群状态，有可能会把执行任务分配给已经失效的Impalad执行，导致本次Query失败。
+
+			适用面：
+				Hive: 		复杂的批处理查询任务，数据转换任务。
+				
+				Impala：	实时数据分析，因为不支持UDF，能处理的问题域有一定的限制，与Hive配合使用,对Hive的结果数据集进行实时分析。
+		
+	
+	Impala和Dremel
+		1.Impala是开源的，Dremel是google的
+		2.Dremel在超大数据集上实现了可接受的交互响应时间主要是使用了以下两种技术：
+			一种新的，针对嵌套关系数据（或者说具有嵌套结构的数据）列储存格式
+			分布式可扩展聚集算法，允许查询的结果可以在数千个机器上并行地计算
+			
+			Trevni：Hadoop的高效的二进制列储存格式
+			Impala加上Trevni将实现Dremel论文中描述的查询性能，而且在SQL的功能性上对Dremel还有所超越
+			
+			
+			
+	Impala优缺点：
+		优点：
+			1.基于内存计算，对PB级的数据进行交互式查询分析
+			2.C++编写，LLVM编译运行
+			3.具有数据仓库的特性
+			4.支持Data Local
+			1.支持SQL查询，快速查询大数据。
+			2.可以对已有数据进行查询，减少数据的加载，转换。
+			3.多种存储格式可以选择（Parquet, Text, Avro, RCFile, SequeenceFile）。
+			4.可以与Hive配合使用
+			5.可以直接操作HDFS、HBase中存储的数据
+					数据存储：
+						·HDFS：	Impala表的数据以文件的形式存储在HDFS中
+						·Hbase：	可代替HDFS存储Impala的数据，但Hbase不支持sql语句，通过在Impala中定义Hbase表的映射关系，可以实现Impala查询Hbase数据
+				支持如下HDFS的支持文件格式：Text file、SequenceFile、RCFile、Avro file、Parquet
+				支持的压缩格式有：Snappy、GZIP、Deflate、BZIP，其中Snappy压缩格式的性能更好一些
+				支持的接口：JDBC Driver、ODBC Driver、Apache Hue基于web的用户接口、Impala Shell、Impala Query UI
+		
+		缺点：
+			1.不支持用户定义函数UDF。
+			2.不支持text域的全文搜索。
+			3.不支持Transforms。
+			4.不支持查询期的容错。
+			5.对内存要求高(官方建议128G)。
+			6.依赖hive metastore
+		
+		
+		
+        
+		
+Impala SQL：
+	综述：
+		1.Impala SQL的重点在于查询，所以只包含很少的DML语句，它不具备update/delete语句。对过期的数据通常使用直接删除(通过
+		  drop table，alter table...drop partition语句)或替换(insert overwrite语句)的方式变相删除
+		2.数据加载通过insert语句完成，通常是通过对其它表的查询转换后进行批量插入操作。可使用insert into向已存在的数据的表中
+		  添加数据或使用insert overwrite语句将整个分区内容替换，但没有针对单行记录操作的insert ...values语法
+		3.常需使用Hadoop现有的数据文件创建创建Impala表定义，然后使用Impala进行实时查询。这些数据文件和表元数据可以被Hadoop其
+		  它组件共享
+		4.Impala适用于数据仓库类型大数据集进行操作，可以基于一个逗号分隔的文本文件使用create table语句创建一个外部表
+		5.因为Impala读取的大量数据可能是不完全对齐的，它不支持字符串类型的长度限制，故可使用string作为一个数据列，而不是char(1)
+		  或varchar(64)
+		6.在数据仓库中，经常使用分区表
+		7.可通过UDFs执行自定义的比较和转换逻辑
+	
+	数据库：
+		create database db1;			在hdfs上建立以db1.db为名的目录，其下有各表名目录
+	表：
+		删除表
+			# drop table [if exists tab1];			
+		建立表
+			1.外部表：
+				# create external table tab1(f1 int ,f2 int) 
+				# row format delimited fields terminated by ',' 
+				# location '/path/dir';
+					
+					其定位路径是文件上级目录，该目录下所有文件都会加入表中成为数据
+		
+			2.内部表：
+				# create table tab1(f1 int,f2 int)
+				# row format delimited fields terminated by ',';
+				
+					存储是使用impala默认的存储位置
+					
+			3.分区表：将某个分区的数据单独存放，当我们指定的where条件是针对某个分区的查询时，impala将只会扫描该分区的数据文件，减少磁盘IO，提高差选效率
+				内部分区表
+					# create table tab1 (f1 int,f2 int,f3 int)
+					# 	partitioned by (f4 string,f5 string)
+					# 	row format delimited fields terminated by ',';
+				
+					# insert into tab1 partition (f4="str",f5="str") values(1,2,3);
+					
+					hdfs上目录结构：
+						./f4=value/f5=value/***.0			
+						
+					内部分区表删除后，对应目录一并被删除 
+			
+				外部分区表
+					# create external tab1(f1 int,f2 int,f3 int) 
+					# 	partitioned by (f4 string,f5 string)
+					# 	row format delimited fieds terminated by ','
+					# 	location '/path/dir';
+						
+						其定位路径是目录，该目录下为建立内部分区表所形成的目录结构
+						
+					手动添加分区并指定键值(各级目录):
+						# alter table tab1 add partition(f4="str",f5="str");
+						
+					外部分区表删除后，对应数据目录依然存在
+		查询：
+			# show tables;
+			# show databases;
+			# desc tab1;
+			# use db1;		
+			# select version();		
+		    # select current_database();
+			# connect ip
+			# desc fromatted tab1;			查询表详细信息
+		插入：
+			# insert overwrite table tab2 select id,name from tab1;
+			# insert overwrite table tab2 partition(col_name) select * from tab1;
+				tab1中需有col_name字段且在最後一位
+		
+	注释：   在Sql中直接使用
+		单行注释：	-
+		多行注释：	/*   */
+				
+	数据类型：
+		变量：
+			bigint	：八字节整型				
+			int		：四字节整型				
+			smallint：二字节整型				
+			tinyint	：一字节整型				
+			boolean	：true/false				
+			double	：八字节浮点型，别名叫作real
+			float	：四字节浮点型				......
+			string	：string的值为ascii字符集，其它字符集可能会有异常
+			timestamp：表示某一个时间点，精度为纳秒，可接受的时间格式：2016-01-05 17:45:30
+				interval表达式
+					通过interval关键字(+/-操作符或date_add()/date_sub()函数)可实现对日期型数据某个时间单元的数学运算
+					可指定的时间单元：year(s),month(s),week(s),day(s),hour(s),hour(s),minute(s),second(s),millisecond(s),microsecond(s),nanosecond(s)
+					eg：> select now() + interval 1 day
+						> selcet date_sub(now(),interval 5 minutes)
+				Impala使用GMT时间(格林尼治时间)，而非本地时区存储时间
+					
+					类型转换：> select cast(127 as timestamp)
+		常量：
+			eg：select后的选择列表、where子查询或函数调用的参数
+			数值常量
+				整型常量：一般用数字序列表示
+				浮点型常量：包含"."
+				指数常量：包含"e"的数字序列，指数常量默认被解释为浮点型
+			字符常量：用单引号或双引号引用。若常量中表示单双引号，需用双单引号来引用
+				\n：换行
+				\0：表示ASCII码的null字符(其在impala-shell中输出时不可见)
+				\%,\_：like操作符的通配符
+				\xxx：八进制数字代表一个ASCII码的字符
+				\\：不转义
+			布尔常量：true或false，无需引号引用，大小写均可
+			时间戳常量：Impala会自动把格式正确的string常量转换为timestamp常量
+			NULL：	
+					
+	SQL操作符：是一组比较函数
+		between：表达式 between 下限值 and 上限值			# 一般用于数字类型
+			eg：select id from test between 1 and 5；
+		比较操作符：
+			=、！、<>：所有类型均可使用
+			<、<=、>、>=：所有类型均可使用。对于bool值，true总大于false
+			in，between：
+				eg：select * from test where str in ('a','ab');
+			null：null值无论同谁比较结果都是null，若要判定一个值是否为null，须使用is null或is not null
+				eg：select * from test where id is not null；
+			like：string数据的比较操作符。其中通配符，_表示单个字符，%表示匹配多个字符。
+				eg：select * from test whete str like 'ab_';
+					select * from test whete str like 'ab%';
+			regexp：用来检查一个值是否与一个正则相匹配
+				^：匹配开头
+				$：匹配结尾
+				.：单个字符
+				*：多个字符
+				+：前面正则表达式的一个或多个实例
+				?：前面正则表达式的零个或一个实例
+						
+					eg：select * from test where str regexp 'a.*'
+				
+	模式对象：
+		别名：可在表、列、列表达式后紧跟"as 别名"的语法来设置别名，as是可选的
+			eg：select str as name from test;
+		标识符：
+			2.合法的标识符使用反引号无影响
+			3.标识符只能包含ASCII字符
+			4.为了使用一个与Impala预留关键字匹配的标识符，需要使用反引号引用
+			5.Impala对大小写不敏感。在底层，Impala总将表或列名转换成小写字符
+		数据库：
+			1.创建数据库是轻量级操作，不需要为数据库指定配置属性，故没有alter database命令
+			2.每个数据库物理上存储在HDFS的一个目录中
+			3.当连接到Impala时，默认是连接default数据库，在default数据库中创建的表在HDFS上比其他用户建立的表具有更高级别
+	表：CREATE TABLE，默认文件格式为未压缩文本
+		物理上，每个表与HDFS的一个目录相关联。表的数据包括在这个目录下的所有数据文件
+					
+		内部表：这种表由Impala管理，使用Impala工作区指定的目录，通过create table语句创建，使用impala-shell的insert或
+			    Hive的load data向其中加载数据
+		外部表：使用任意的HDFS目录作为数据存储，目录中的数据文件可以被不同的Hadoop组件共享通过create external table创建，
+			   其数据来自HDFS已存在的数据，当HDFS的操作时，需用refresh更新，当drop table时，仅删除表和数据的联系，HDFS上不会删除
+		大表：通常表现为分区表，数据文件被分离在不同的HDFS子目录中
+	视图：
+		作用：实现更细粒度的访问控制。用户只能查询允许看到的列
+			eg：create view v1 as select c1,c2 avg(c3) from test group by c1,c2 order by c1 limit5;
+			select * from v1；
+		显示原始的create view语句：
+			> desc formatted v1;
+		不能向Impala视图进行插入操作
+		若视图对应的表为分区表，则分区修剪的优化操作将依赖于原始的查询语句。若针对视图的where条件中包含了分区键，Impala不会进行分区修剪
+	
+	内嵌函数
+			使sql返回经过格式化、运算、类型转换后的结果，而无须经过另一个应用进行特别处理
+			可以使用select语句调用。对于大多数的函数，可以忽略from子句，直接对常量进行运算
+		
+			# select abs(-1);																# 1
+			# select concat('The rain','in Spain');											# The rain in Spain	
+			# select power(2,5);															# 32
+			# select bin(11);																# 1011
+			# 
+		
+			当使用from子句并把一列作为函数的输入参数时，该函数将会对结果集中的相应列进行运算
+			
+			# select s,concat(a,'is a name.') from tab1;
+			
+			若输入参数是null，则函数输出结果也是null
+			聚合函数不会返回null值，总是忽略参与运算的列中的null值	
+	SQL解析
+		发现Impala目前在SQL解析方面还有优化的余地，当前的问题，一个是SQL解析速度很慢，另一个是如果SQL比较复杂的话存在硬解析的问题，非常耗时。虽然和现在更加成熟的关系数据库Oracle、MySQL等还有一定差距，但是我相信这些只是时间问题。
+	
+	稳定性
+		可能是因为依赖于Hive的原因，通过Thrift接口来与后端进行交互，并发性比较差。当并发稍微高一点点的时候，就会出现impalad进程挂掉的问题，有时候可能还会出现类似的僵尸进程。
+		
+	Impala与Hive都是构建在Hadoop之上的数据查询工具各有不同的侧重适应面
+		相同：
+			从客户端使用来看Impala与Hive有很多的共同之处，如数据表元数据、ODBC/JDBC驱动、SQL语法、灵活的文件格式、存储资源池等
+		不同：
+			Hive适合于长时间的批处理查询分析，而Impala适合于实时交互式SQL查询，Impala给数据分析人员提供了快速实验、验证想法的大
+			数据分析工具。
+			
+		可以先使用hive进行数据转换处理，之后使用Impala在Hive处理后的结果数据集上进行快速的数据分析。
+							
+Impala-shell：可在连接后连按两次[tab]键，显示所有命令
+	命令：
+		# impala-shell
+			连接当前主机的impalad，默认数据库是default
+		# impala-shell -B --output_delimiter="," -o file.txt -q "sql" --print_header
+			-B：对结果去格式化，并按照指定的分隔方式分隔(默认是\t)，可避免Impala对结果进行格式化的性能负载
+			--output_delimiter：与-B一同使用，指定分隔符
+			-o：指定查询结果输入文件
+			-q：指定单个sql语句，可不加分号
+			--print_header：打印各个字段名
+		# impala-shell -i hostname:port 
+			指定连接的主机和端口
+		# impala-shell -p
+			对所有查询显示执行计划和每个查询语句底层执行步骤的详细信息
+		# impala-shell -h
+			显示帮助信息
+		# impala-shell -v
+			显示版本信息
+		# impala-shell -V
+			启用详细信息输出，默认启动
+		# impala-shell --quiet
+			禁用详细信息输出
+		# impala-shell -f file.sql
+			指定sql脚本，sql语句以;分隔
+		# impala-shell -c
+			查询失败继续执行
+		# impala-shell -r
+			连接后刷新数据信息，效果与执行refresh语句相同
+		# impala-shell -d db_name
+			连接到指定的数据库，效果与执行use语句相同
+	查询参数的设置
+				1.abort_on_default_limit_exceeded(若limit N超出则中断)		默认值：false
+					该参数与default_order_by_limit结合使用
+					eg：> set defaulst_order_by_limit=10
+				2.abort_on_error
+笛卡尔连接
+	当两张没有关联条件的大表进行join时，会产生笛卡尔连接（通过cross join）
+		# select year,mouth from y_tab cross join m_tab;
+					
+
+	
+
+
+数据：
+	上传：
+		# hdfs dfs -put local_file /path/dir
+	下载：
+		# hdfs dfs -get /path local_file
+	
+	加载到Impala：
+		1.使用外部表：已有数据文件，建立impala外部表，定位至数据文件的位置
+		2.通过insert插入数据：无数据文件，通过对其它表的数据进行过滤转换生成新的数据。Impala不具备传统数据库的ACID属性，插入数据后不需要做commit操作
+			eg：# insert [overwrite] table tab1 select f1,f2,f3 from tab2 where f4=value;
+		3.load data
+			LOAD DATA INPATH 'hdfs_file_or_directory_path' [OVERWRITE] INTO TABLE tablename  [PARTITION (partcol1=val1, partcol2=val2 ...)]
+		
+	更新数据：
+		# invalidate metadata;
+			原因：impala通过hive来进行更改的操作后，自身无法识别
+			作用：使所有的Impala元数据失效并重新同步
+		# refresh tab_name
+			原因：hdfs命令对数据文件操作后Impala无法识别
+			作用：使impala识别数据的变更的情况
+				
+	收集数据：
+		# compute stats tb_name;
+
+	显示执行计划：
+		1.# explain SQL			# 显示查询执行计划
+								# set explain_level=N		设置显示级别(N=0,1,2,3),默认为2，从低到高
+								
+		2.# SQL
+		  # profile;			# 显示最近一次的查询计划
+			   
+	在impala-shell中执行linux命令
+		# shell <shell>;
+			   
+			   
+Impala的监控：
+	Statestored： 	http://ip:25020
+	Catalog：		http://ip:25010
+			   
+		
+			   
+
+
+Impala管理：
+	1.准入控制和查询队列
+		说明：
+			准入控制可以实现三个属性：
+				·内存限制：		可对并发执行的使用的内存设置上限，超过限制的查询会被放在队列中等待执行
+				·并发查询数目：	为实现高吞吐量，将超过数目的查询放入等待队列
+				·超时队列：		超过某个时间后，将所有在等待队列中的查询全部终止，而非无限期等待
+		配置：
+			
+				
+				
+	2.使用YARN资源管理
+	3.为进程，查询，会话设定超时限制
+	4.通过代理实现Impala的高可用
+	5.管理磁盘空间
+
+
+Impala存储：
+	文件格式支持：
+		文件类型		格式			压缩编码				Impala是否可直接创建		Impala是否可直接插入
+		Rarquet			结构化		Snappy(默认),Gzip			    	是					是，insert，load data
+		Text			非结构化	LZO,Gzip,bzip2,Snappy				是					是，但若使用了LZO的压缩方式，必须在hive中完成表创建和数据加载
+		Avro			结构化		Snappy,Gzip,deflate,Bzip2			是					否，通过load data加载或hive中insert
+		RCFile			结构化		Snappy,Gzip,deflate,Bzip2			是					否，通过load data加载或hive中insert
+		SequenceFile	结构化		Snappy,Gzip,deflate,Bzip2								否，通过load data加载或hive中insert
+		
+	压缩编码：
+		Snappy：推荐，在压缩率与解压速度上实现了很好的平衡
+		Gzip：
+		Deflate：
+		Bzip2：
+		LZO：
+	
+	文件格式：
+		Text：
+			说明：文本格式易于阅读，便于在不同的应用中交换数据
+			查询性能：
+				1.该存储文件格式占用磁盘较大
+				2.若对性能要求高，可转换为其它二进制文件格式
+			数据文件：
+				1.当impala对文本表进行查询时，会遍历对应目录中的所有文件，但会忽略以"."开头的文件
+				2.每条insert语句会产生一个单独的文件，但impala对少量大数据文件查询性能高，故不建议以insert...values方式
+				  批量加载数据，建议使用insert...select语句
+			数据加载：
+				1.insert...select
+				2.load data或直接将文件拷贝至impala表目录
+			数据文件转换
+				# create table csv like file_format_table;
+				# alter table csv set serdeproperties ('serialization.format'=',','field.delim'=",");
+				# insert into csv select * from file_format_table;
+			示例：
+				# create table csv(f1 int,f2 string) row format delimited fields terminated by ',' [stored as textfile];
+			
+			注：
+				1.impala对float和double数据列使用字符串inf表示无穷，使用nan表示不是一个数字
+				2.impala将字符串"\N"表示NULL。当使用Sqoop时，须指定--null-non-string和--null-string确保所有的NUll被正确处理。
+				  默认情况下，Sqoop使用字符串"null"表示NULL值，这可能导致Impala行转换错误。对于已存在的表可通过设置表属性来解
+				  决：# alter table name set tblproperties ("serialization.null.format"="null")
+		Parquet：
+			说明：parquet是高效可扩展的基于列式存储的二进制文件格式。擅长对表中列进行扫描查询
+				该数据文件是按列组织的，单列的值能以很高的压缩比进行压缩，对于某列的值进行查询(eg:sum,avg等聚集操作)能使用
+				最小的IO最快的返回结果
+	
+			加载数据：
+				·数据在impala表中
+					非parquet表：使用insert...select插入，在转换过程中还可以进行过滤，重新分区等操作
+					parquet表：
+				·数据为Parquet格式数据
+					1.通过load data直接加载
+					2.使用外部表
+					3.直接将数据文件拷贝至对应数据目录下，复制时使用hdfs distcp -pb命令，可使复制过程中使用原始文件的块大小进行复制
+				·数据为非Parquet格式数据
+					使用load data或外部表加载到与文件原始格式相同的Impala表中，然后使用insert...select插入，在转换过程中还可以进行
+					过滤，重新分区等操作
+			示例：
+				创建parquet表：
+					1.创建
+						# create table parq(f1 int,f2 string) row format delimited fields terminated by ',' stored as parquet;
+					2.克隆另外一张parquet表
+						# create table parq like other_parq_tab stored as parquet;
+					
+	
+	
+	
+	建议：
+		1.重建表时可使用insert...select语句
+		2.若自身的架构将被查询的语句放在内存中，则不要使用压缩。因为在内存中查询没有与磁盘交互的IO消耗，同时又增加了对数据解压的CPU负载
+Impala优化：
+	1.物理和模式设计
+		数据类型：
+			使用数值类型，避免使用string类型
+				string与数值类型相比，需要更高的内存消耗，更大的存储，更慢的计算(与数值相比慢了80&)
+				字符串类型的数字和unixtime类型的数字可以使用bigint类型来存储
+			decimal与float/double
+				当前udf中不支持使用decimal作为分区key
+			与char/varchar相比，使用string更合适。但SAS中适合使用char/varchar
+		分区设计：
+			预估分区数量：key1数量*key2数量*keyN数量
+				分区数量不要超过100k
+		普通问题：
+			表的列数：最大2k，但不是硬限制。过多的column会减慢hive metastore的元数据更新和检索速度
+				也会导致过大的列统计信息，特别是增量统计信息
+			string的大小：1M，较大的string可能会导致impala异常	
+		文件格式：
+			Parquet/Snappy：写速度比较慢
+		块大小
+		
+	2.内存使用
+	3.集群和硬件推荐
+	4.benchmark测试
+	5.多租户
+	6.查询调优
+	7.外部交互(hive,sentry,parquet)
+Impala编译
+
+	
+ETL，是英文 Extract-Transform-Load 的缩写，用来描述将数据从来源端经过抽取（extract）、转换（transform）、加载（load）至目的端
+的过程。ETL一词较常用在数据仓库，但其对象并不限于数据仓库	   
+
+	
+
+软件会出现三种版本 
+	1.alpha内部测试版本，极不稳定，一般也不会出现的公众视线，仅供内部测试人员测试用。 
+	2.beta公共测试版，就是对外发布软件的测试版，收集公众的意见和建议。 
+	3.就是正式版了，一般都很稳定。	
+	
+	
+	
+	谷歌三篇论文：
+		gfs mr bigtable
+		
+		后来又开源三篇：
+			percolator(caffeine)：不同于mr，只分析增长的部分，然后更新整个索引系统
+			pregel：图计算，
+			dremel：P B级别秒分析， 开源实现drill(apache)，impala(cdh)
+			
+			
+	HBase只做数据存储，本身操作很少。结合impala、hive、mr对hbase上的数据进行分析
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+	
+	
+	
+	
+	
+	
+	
+	

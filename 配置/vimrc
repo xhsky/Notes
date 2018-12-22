@@ -1,0 +1,181 @@
+call plug#begin('~/.vim/plugged')
+Plug 'Valloric/YouCompleteMe'
+Plug 'davidhalter/jedi-vim'
+Plug 'mattn/emmet-vim'      " html, css插件
+"Plug 'ferreum/completor-tmux'
+call plug#end()
+filetype plugin indent on
+
+" jedi sets
+"let g:jedi#completions_command = "<C-N>"   " 往下选择
+""let g:jedi#popup_select_first = 3
+""let g:jedi#auto_initialization = 0
+""let g:jedi#auto_vim_configuration = 0
+""let g:jedi#use_tabs_not_buffers = 1
+""let g:jedi#use_splits_not_buffers = "left"
+
+"-d: 转向定义, c-o返回"
+
+" YCM sets
+let g:ycm_min_num_of_chars_for_completion = 2
+let g:ycm_autoclose_preview_window_after_completion = 1
+let g:ycm_seed_identifiers_with_syntax = 1
+
+map <leader>g  :YcmCompleter GoToDefinitionElseDeclaration<CR>
+
+
+" emmet-vim 配置 """"""""""""""""""""""""""""""""""""""""""""
+let g:user_emmet_mode='inv'                   " 在所有模式中启用emmet
+let g:user_emmet_leader_key='<C-Y>'           " 定义关键key
+" 仅为html/css启用
+let g:user_emmet_install_global = 0
+autocmd FileType html,css EmmetInstall
+
+" emmet-vim 配置 """"""""""""""""""""""""""""""""""""""""""""
+
+set bg=dark
+syntax enable
+
+"  Line number display 
+set number
+set relativenumber  "rnu
+set numberwidth=2
+
+" Indentation
+set foldmethod=indent
+"set foldcolumn=4
+set tabstop=2
+set shiftwidth=2
+"set autoindent   "自动缩进
+set smartindent
+set expandtab
+set nowrap
+set sidescroll=20
+
+set modelines=10
+
+" Automatic Completion
+noremap! ( ()<left>
+noremap! [ []<left>
+noremap! { {}<left>
+noremap! < <><left>
+noremap! ' ''<left>
+noremap! " ""<left>
+inoremap , , 
+
+" map
+let mapleader = "-"
+" 将单词转为大写
+noremap <leader>U <esc>viwgUea
+" 给单词加上引号和括号
+inoremap <leader>" <esc>bi"<esc>lea"
+inoremap <leader>' <esc>bi'<esc>lea'
+inoremap <leader>< <esc>bi<<esc>lea>
+inoremap <leader>( <esc>bi(<esc>lea)
+inoremap <leader>[ <esc>bi[<esc>lea]
+inoremap <leader>{ <esc>bi{<esc>lea}
+nnoremap <leader>" bi"<esc>lea"<esc>
+nnoremap <leader>' bi'<esc>lea'<esc>
+nnoremap <leader>< bi<<esc>lea><esc>
+nnoremap <leader>( bi(<esc>lea)<esc>
+nnoremap <leader>[ bi[<esc>lea]<esc>
+nnoremap <leader>{ bi{<esc>lea}<esc>
+" 为文件加入时间戳
+nnoremap <F2> o# Date: <Esc>:read !date<CR>kJ
+nnoremap <F3> <Esc>:set expandtab<CR>:%retab<CR>
+nnoremap <F4> <Esc>:set foldlevel=100<CR>
+
+
+" Completion display
+set showmatch matchtime=10
+" Lookup setting
+set incsearch
+set hlsearch           "高亮
+set wrapscan
+
+" Bottom information
+set showmode
+set showcmd
+set ruler
+set cmdheight=1
+
+
+" 添加各类文件信息
+" html
+autocmd BufNewFile *.html,*.htm exec ":call Set_html_title()"
+func Set_html_title()
+  call setline(1, "<!DOCTYPE html>")
+  call setline(2, "<html lang=\"en\">")
+  call setline(3, "<head>")
+  call setline(4, "  <meta charset=\"UTF-8\">")
+  call setline(5, "  <title>Title</title>")
+  call setline(6, "</head>")
+  call setline(7, "<body>")
+  call setline(8, "  <a></a>")
+  call setline(9, "</body>")
+  call setline(10, "</html>")
+endfunc
+
+" python
+autocmd BufNewFile *.py exec ":call Set_python_title()"
+func Set_python_title()
+  call setline(1,"#!/usr/bin/env python")
+  call setline(2,"# coding:utf8")
+  call setline(3,"# sky")
+  call setline(4,"")
+  call setline(5,"if __name__ == \"__main__\":")
+  call setline(6,"    pass")
+endfunc
+
+" shell
+autocmd BufNewFile *.sh exec ":call Set_shell_title()"
+func Set_shell_title()
+  call setline(1,"#!/bin/bash")
+  call setline(2,"# sky")
+endfunc
+
+"func SetTitle()
+"  if &filetype == 'python'
+"    "call setline(1,"#!/usr/bin/env python")
+"    "call setline(2,"# coding:utf8")
+"    "call SetComment_python()
+"    "call setline(4,"")
+"    "call setline(5,"import sys")
+"    "call setline(6,"")
+"    "call setline(7,"reload(sys)")
+"    "call setline(8,"sys.setdefaultencoding('utf8')")
+"    "call setline(9,"")
+"    "call setline(10,"if __name__ == \"__main__\":")
+"    call setline(1,"#!/usr/bin/env python")
+"    call setline(2,"# coding:utf8")
+"    call SetComment_python()
+"    call setline(4,"")
+"    call setline(5,"if __name__ == \"__main__\":")
+"  elseif &filetype == 'sh'
+"    call setline(1,"#!/bin/bash")
+"    call SetComment_shell()
+"  endif
+"endfunc
+
+" plugin
+"set nocompatible
+"filetype plugin on
+
+" encoding
+let &termencoding=&encoding
+set fileencodings=utf-8,gbk
+set fileformats=unix,dos,mac
+" 超过10min中未操作则自动保存
+set updatetime=600000
+autocmd CursorHold,CursorHoldI *.* :w!
+
+
+"  error correction 
+noremap! ： :
+noremap! ， , 
+noremap! 。 . 
+noremap! × *
+noremap! ” ""<left>
+noremap! （ ()<left>
+
+

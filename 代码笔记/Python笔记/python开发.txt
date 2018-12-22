@@ -1,0 +1,157 @@
+pip安装：
+	# wget -c https://bootstrap.pypa.io/get-pip.py ; python get-pip.py
+
+Virtualven安装：
+	说明：Virtualenv是用来创建一个隔离的Python环境
+	# pip install virtualenv
+
+	
+	优点：
+		1. 在没有权限的情况下安装新套件
+		2. 不同应用可以使用不同的套件版本
+		3. 套件升级不影响其他应用
+	
+	
+	
+	
+	
+	命令：
+		# virtualven [options] DIST_DIR
+			--version             		# 显示版本号
+			-h							# 帮助
+		    -v							# 显示详细创建信息
+		    -q							# 不显示创建信息
+			-p PYTHON_EXE				# 在创建虚拟环境时指定python程序，默认指向/usr/bin/python
+								
+			--clear              		# 清空非root用户的安装并重头开始创建隔离环境
+			
+		    --no-site-packages   		# 隔离环境不能访问系统全局的site-packages目录 
+			--system-site-packages		# 隔离环境可以访问系统全局的site-packages目录
+								
+		  --always-copy         		# Always copy files rather than symlinking.
+			--unzip-setuptools    		# 安装时解压Setuptools或Distribute
+			--relocatable         		# 重定位某个已存在的隔离环境。使用该选项将修正脚本并令所有.pth文件使用相对路径，则该环境可迁移
+		  
+			--no-setuptools       		# 在新隔离环境中不安装setuptools
+			--no-pip             		# 在新隔离环境中不安装pip
+			--no-wheel           		# 在新隔离环境中不安装wheel
+			
+			--extra-search-dir=DIR		# 用于查找setuptools/pip发布包的目录。可以添加任意数量的-extra-search-dir路径。
+			--download            		# 从PyPI下载包
+			--no-download				# 禁止从PyPI下载任何数据
+			--prompt=PROMPT       		# 定义隔离环境的命令行前缀
+		 
+		 
+			说明：
+				1.默认情况下 隔离环境不能访问系统全局的site-packages目录
+		# 控制virtualenv
+			# source ./bin/activate		# 进入虚拟环境
+			# deactivate				# 退出
+			# rm -f env_name			# 直接删除
+		# 管理virtualevn
+			说明：virtualenvwrapper是virtualenv的扩展工具，可以方便的创建、删除、复制、切换不同的虚拟环境
+			安装：# pip install virtualenvwrapper
+			# virtualenvwrapper
+			
+使用 #!/usr/bin/env python：			
+	脚本解释器在linux中可能被安装于不同的目录，env可以在系统的PATH目录中查找。同时，env还规定一些系统环境变量。有时候我们执行一些脚本时就碰到这种情况。
+	这种写法主要是为了让你的程序在不同的系统上都能适用
+	大部分情况下，/usr/bin/env是优先选择的，因为它提供了灵活性，特别是你想在不同的版本下运行这个脚本；而指定具体位置的方式#!/usr/bin/bash，在某些情况
+	下更安全，因为它限制了代码注入的可能
+	
+	
+Socket:
+	说明：socket通常也称作"套接字"，用于描述IP地址和端口，是一个通信链的句柄，应用程序通常通过"套接字"向网络发出请求或者应答网络请求(打开/关闭/读写)
+	函数：
+		sk=socket.socket(family,type[,protocal])
+			说明：
+			参数：
+				family：
+					socket.AF_INET			# ipv4，默认
+					socket.AF_INET6			# ipv6
+					socket.AF_UNIX			# 只能够用于单一的Unix系统进程间通信
+				type：
+					socket.SOCK_STREAM		# 流式socket，即TCP,默认
+					socket.SOCK_DGRAM		# 数据报socket，即UDP
+					socket.SOCK_RAW			# 原始套接字，普通的套接字无法处理ICMP、IGMP等网络报文，而SOCK_RAW可以；其次，SOCK_RAW也可以处理特殊的IPv4报文；此外，利用原始套接字，可以通过IP_HDRINCL套接字选项由用户构造IP头
+					socket.SOCK_RDM 		# 是一种可靠的UDP形式，即保证交付数据报但不保证顺序。SOCK_RAM用来提供对原始协议的低级访问，在需要执行某些特殊操作时使用，如发送ICMP报文。SOCK_RAM通常仅限于高级用户或管理员运行的程序使用。
+					socket.SOCK_SEQPACKET 	# 可靠的连续数据包服务
+				protocal：
+					0　　					# 默认，与特定的地址家族相关的协议,如果是0，则系统就会根据地址格式和套接类别,自动选择一个合适的协议
+					
+	
+	服务端：
+		sk.bind(address)
+			说明：将套接字绑定到地址。address格式取决了family值。在AF_INET下，以元组(host,port)的形式表示
+			参数：
+		sk.listen(backlog)
+			说明：开始监听传入连接
+			参数：backlog指定在拒绝连接之前，可以挂起的最大连接数量。表示内核已经接到了连接请求，但服务器还没有调用accept进行处理的最大连接数。该数不
+			  能无限大，因为要在内核中维护连接队列
+		sk.accept()
+			说明：接受连接并返回(conn,address),其中conn是新的套接字对象，可以用来接收和发送数据。address是连接客户端的地址。接收TCP客户的连接（阻塞式）等待连接的到来
+			  
+			  
+			  
+			  
+		
+	客户端：	
+		sk.connect(address)
+			说明：连接address上的socket。address地址以元组(ip,port)形式显示。若报错，则返回socket.err错误。
+			参数：
+		sk.connect_ex(address)
+			说明：同上，但会有返回值。连接成功则返回0，失败则返回编码
+		
+		
+			
+	通用：		  
+		sk.setblocking(bool)
+			说明：是否阻塞（默认True），如果设置False，那么accept和recv时一旦无数据，则报错
+			参数：True/False
+		
+		sk.recv(bufsize[,flag])
+			说明：接收socket的数据。数据以字符串形式返回。bufsize指定最多可以接受的数量。flag提供有关消息的其它信息，通常忽略
+		sk.recvfrom(bufsize[.flag])
+			说明：与recv()类似，但返回值是（data,address）。其中data是包含接收数据的字符串，address是发送数据的套接字地址
+		
+		sk.send(string[,flag])
+			说明：将string的数据发送到连接的socket。返回值为发送的字节数量。该值可能小于string的字节大小(可能未将数据全部发送)
+		sk.sendall(string[,flag])
+			说明：将string的数据发送到连接的socket，但在返回之前会尝试发送所有数据。成功返回None，失败则抛出异常。内部通过递归调用send，将所有内容发送出去
+		sk.sendto(string[,flag],address)
+			说明：将string的数据发送到指定的socket，address是形式为(ipaddr，port)的元组的远程地址。返回值是发送的字节数。该函数主要用于UDP协议
+		
+		sk.settimeout(timeout)
+			说明：设置套接字操作的超时期，timeout是一个浮点数，单位是秒。值为None表示没有超时期。
+		
+		sk.getpeername()
+　　		说明：返回连接套接字的远程地址。返回值通常是元组(ip,port)
+		sk.getsockname()
+			说明：返回套接字自己的地址。通常是一个元组(ip,port)
+		sk.fileno()
+			说明：套接字的文件描述符
+		sk.close()
+			说明：关闭套接字
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+				
+			

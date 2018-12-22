@@ -1,0 +1,498 @@
+
+
+shell登录
+	用户登录流程
+		1.现寻找/etc/passwd中是否有该账号，若无，退出。若有，将其UID与GID读出，该账号的shell设置与主文件夹也一并读出
+		2.核对密码表
+		
+		
+	登录式shell：
+		·正常通过某终端登录
+		·su - user
+	非登录式shell
+		·su user
+		·图像终端下打开命令窗口
+		·自动执行的shell脚本
+		
+			
+		登录式shell读取配置文件：
+			/etc/profile 			--> 
+			/etc/profile.d/*.sh 	--> 
+			~/.bash_profile 		--> 
+			~/.bashrc 				--> 
+			/etc/bashrc
+		非登录式shell读取配置文件：
+			~/.bashrc --> /etc/bashrc --> /etc/profile.d/*.sh
+		
+		
+		
+	bash的配置文件
+		·全局配置
+			/etc/profile	/etc/profile.d/*.sh		/etc/bashrc
+		·个人配置
+			~/.bash_profile		~/.bashrc
+		当全局和个人相冲突时，以个人配置为准
+
+		profile类文件
+			·设定环境变量
+			·运行命令或脚本
+		bashrc类文件
+			·设定本地变量
+			·定义命令别名
+
+		bash的环境配置文件：
+			- /etc/issue		本地登陆界面与欢迎信息
+			- /etc/issue.net 	使用telnet连接时显示的登录界面与欢迎信息
+								可在ssh配置文件中修改Banner /etc/issue.net使ssh连接时显示信息
+			- /etc/motd			其内容将会在所有用户登录后显示(一般用于显示通知信息)
+			- /etc/man.config	规定了使用man的时候man page的路径
+			- ~/.bash_history
+			- ~/.bash_logout	规定了当前用户退出时的信息
+			- /etc/nologin.txt	若用户的shell为/sbin/nologin，当该用户登录时，系统会输出此文件的内容
+			
+			配置文件修改后不用注销直接读取：source 配置文件名  或 . 配置文件名
+
+		
+		用户登录时，bash首先自动执行系统管理员建立的全局登录脚本；/etc/profile，然后在用户家目录下按顺序查找三个特殊文件中的
+		一个: .bash_profile   .bash_login   .profile 但只执行最先找到的那个
+
+		不同的shell，默认的用户配置文件不同
+			 sh        .profile
+			 bash      .bash_profile
+			 csh       .cshrc
+			 ksh       .profile
+			 zsh       .zshrc	
+			
+			
+
+系统设置
+	终端类型：	
+		1.虚拟终端：	ctrl+Alt+n	tty
+		2.物理终端：	pty
+		3.控制台：		console，直连主机的
+		4.模拟终端：	在GUI中的终端 
+		5.串行终端：	ttys 
+		6.伪终端：		pts/n
+
+	
+	定义文件
+		shell			/etc/shells
+		port			/etc/services
+		protocols		/etc/protocols
+		
+	终端机的设置环境：stty  set
+		stty -a 显示所有的按键与按键内容
+		set -C：禁止对已存在的文件使用 >
+			强制覆盖式输出，则使用 >|
+			set +C：关闭上述功能
+
+
+	命令行编辑 g v
+		·回到行首：			ctrl+a
+		·回到行尾：			ctrl+e
+		
+		·删除光标前内容：		ctrl+u
+		·恢复ctrl+u删除的字符	ctrl+y
+		·删除光标后内容：		ctrl+k
+		
+		·锁住终端				ctrl+s 
+		·解锁终端				ctrl+q
+		
+		·向前翻找命令			ctrl+p
+		·向后翻找命令			ctrl+n
+		
+		·向右移动				ctrl+f
+		·向左移动				ctrl+b
+		
+		·向后删除				ctrl+d
+		·向前删除				ctrl+h
+		
+		·当前位置删除一个单词：ctrl+w
+		·每次跳跃一个单词(只能在终端使用)：ctrl+左右箭头
+		·清屏：				ctrl+l	=== clear
+		
+		·在上次光标所在字符和当前光标所在字符之间跳转		ctrl+x      
+		·将光标当前字符与前面一个字符替换					ctrl+t       
+		·补全					ctrl+i
+		
+		·终止目前的命令		ctrl+c
+		·暂停目前的命令		ctrl+z
+		
+		·输入结束[EOF]			ctrl+d
+		·就是enter				ctrl+m/j/o
+		
+		·花括号展开			
+						- 以 ，分隔展开
+						- 以 .. 展开(数字或字母均可)
+		ctrl-\ 发送 SIGQUIT 信号给前台进程组中的所有进程，终止前台进程并生成 core 文件。
+		
+		·撤销前一次动作		alt+?				
+		
+	linux命名规则
+		1.文件名不能超过255个字符		--(完整路径名称及目录(/)的完整文件名为4096个字符)
+		2.文件名中不能有/，但能有空格
+		3.严格区分大小写
+		4.目录和文件不能同名
+
+	linux的基本原则
+		1.有单一的小程序组成，组合小程序完成复杂任务
+		2.一切皆文件
+		3.尽量避免捕获用户接口
+		4.配置文件保存为纯文本格式
+
+	
+	命令别名：只在当前shell的生命周期内有效
+		- 设置：# alias 别名=‘命令’
+		- 取消：# unalias 别名
+		- 显示已有别名：# alias
+		- 使用原来命令：# \command
+		- 可写入bashrc类文件中	
+		
+	历史命令：history
+		- 本次登录所执行的命令暂存在内存中，注销系统后才会记录到.bash_history文件中
+		- history 5 		 	显示最近5条命令
+		- history -w 			将内存中的history命令写入 .bash_history中
+		- history -c 			将内存中的历史命令清空
+		- history -d 500 		删除内存第500个命令
+		- history -d 500 10 	删除内存中500到510的命令
+		- HISTORYSIZE 			命令缓冲区大小
+		- HISTFILE				记录历史命令的文件名/root/.bash_history
+		
+		export HISTSIZE=0	将禁用history
+		
+		用历史命令执行命令
+			1. !number 		-- 执行第number条命令
+			2. !str 		-- 由最近的命令向上搜索，执行以指定字符串开头的命令
+			3. !!       	-- 执行上一条命令
+			4. ctrl+r	
+			5.上一个命令的最后一个参数： !$   Alt+.(只支持本地)	 Esc+.
+			6.上一条命令的第一个参数：	 !^
+
+		同一账号同时多次登录的.bash_history的写入问题：
+			若账号退出，则写入。如此则最后一个退出的账号的历史命令将会覆盖其余同账号的命令
+		缺点：history无法记录时间
+			当你从命令行执行 history 命令后，通常只会显示已执行命令的序号和命令本身。如果你想要查看命令历史的时间戳，那么可以执行：
+			# export HISTTIMEFORMAT='%F %T'
+
+		
+		有 4 种方法可以重复执行上一条命令：
+			1. 使用上方向键，并回车执行。
+			2. 按 !! 并回车执行。
+			3. 输入 !-1 并回车执行。
+			4. 按 Ctrl+P 并回车执行。
+		
+	
+	语系设置：locale
+		Locale是根据计算机用户所使用的语言，所在国家或者地区，以及当地的文化传统所定义的一个软件运行时的语言环境
+		locale把按照所涉及到的文化传统的各个方面分成12个大类，这12个大类分别是： 
+			1、语言符号及其分类(LC_CTYPE) 
+			2、数字(LC_NUMERIC)  
+			3、比较和习惯(LC_COLLATE) 
+			4、时间显示格式(LC_TIME) 
+			5、货币单位(LC_MONETARY) 
+			6、信息主要是提示信息,错误信息,状态信息,标题,标签,按钮和菜单等(LC_MESSAGES) 
+			7、姓名书写方式(LC_NAME) 
+			8、地址书写方式(LC_ADDRESS) 
+			9、电话号码书写方式(LC_TELEPHONE) 
+			10、度量衡表达方式 (LC_MEASUREMENT) 
+			11、默认纸张尺寸大小(LC_PAPER) 
+			12、对locale自身包含信息的概述(LC_IDENTIFICATION)
+		
+		1.Linux系统默认支持的语系数据： /etc/sysconfig/i18n(当前系统所用)
+		2.终端接口(Bash)的语系        :  $LANG
+		3.你的文件原本的编码
+		4.打开终端机的软件            ：例如在GNOME下的窗口界面
+		
+		影响显示结果的语系变量(locale) 
+			-- 这些语系文件都放在/usr/lib/locale目录中
+		整体系统默认的语系：/etc/sysconfig/i18n
+		   查看Linux主机所支持的语系：locale -a
+		   查看系统使用的各个语系：locale
+		
+		完全的locale表达方式是 [语言[_地域][.字符集] [@修正值]
+			- locale定义文件	/usr/share/i18n/locales/
+			- 字符集			/usr/share/i18n/charmaps/
+			- 语系文件			/usr/lib/locale/
+		
+		语系编码转换  iconv
+			iconv --list 列出iconv支持的语系数据
+			iconv -f 原编码 -t 新编码 filename [-o newfile]
+				-o newfile：若要保留原文件，则可建立新编码文件newfile
+				
+		Windows使用的是GB2312编码，大多数linux系统支持的是UTF-8编码，而远程登陆时使用的是本地编码，所以会出现乱码的问题；
+		现有几种解决方案：
+			1.更改服务器编码
+				# vim .bash_profile
+					LANG=zh_CN.GB2312
+					export LANG
+			2.更改远程登录软件编码，设为UTF-8
+			
+	文件查找：
+		1.查找命令
+			# which		依据PATH来查找文件
+				-a		将所有查到的命令均列出，而非仅列出第一个
+			# type
+		查找文件
+		2.# locate：非实时，模糊匹配，依据是系统文件数据库，速度快。
+			# locate file
+				-i		不区分大小写
+				-r		可接正则
+		  # whereis file
+				-b		只找二进制格式的文件
+				-m		只找manual路径下的man文件
+				-s		只找source源文件
+				-u		找不在上述选项中的其它文件
+								
+				两则都依据同一个数据库查找文件
+				手动生成文件数据库：# updatedb 	
+							/etc/updatedb.conf		/var/lib/mlocate/mlocate.db
+		3.# find：实时，精确，速度慢		
+		
+			-name file		按文件名查找
+			-iname file	文件名查找时不分大小写
+
+			-user user		根据用户查找
+			-group group	根据用户组查找
+			-uid uid		根据uid查找
+			-gid gid		根据gid查找
+
+			-nouser			查找没有用户的文件
+			-nogroup		查找没有用户组的文件
+
+			-type f/d/s/l/c/b/p		按文件类型查找
+			-size {+|-}nK/nM/nG		按文件大小查找
+
+			-mtime/ctime/atime [+|-]N		默认为N天
+				-mtime 0 表示文件修改时间距离当前为0天的文件，即距离当前时间不到1天（24小时）以内的文件。
+				-mtime 1 表示文件修改时间距离当前为1天的文件，即距离当前时间1天（24小时－48小时）的文件。
+				-mtime＋1 表示文件修改时间为大于1天的文件，即距离当前时间2天（48小时）之外的文件
+				-mtime -1 表示文件修改时间为小于1天的文件，即距离当前时间1天（24小时）之内的文件
+			-mmin/cmin/amin [+|-]N			默认为N分钟
+
+			-perm mode：	精确匹配
+			-perm /mode：	任意一位匹配即可
+			-perm -mode：	文件权限能完全包含此mode即可
+		
+			查找后的动作
+				1.	-ls/-print
+				2.	-ok command {} \;			每一个操作都需要用户确认		
+				3.	-exec command {} \;			操作不需要用户确认	
+				4.	| xargs command				用管道，不需占位符和\;
+				
+			# find / -name "*.txt"      须加引号，否者报错(shell先执行*.txt，只支持一个参数，若为多个，自然报错)
+			
+		 linux下删除乱码文件名, 不废话: 
+			# ls -i 		列出文件的节点ID, 如: 123456789 
+			# find ./ -inum 123456789 -print -exec rm -rf {} \;
+		 
+	数据流重定向
+		标准输出  标准错误输出  标准输入
+		
+		标准输入输出(3)： >  <　>>
+		stdout：   >  >> 		只输入正确信息        
+		stderr：	2>  2>>  	只输入错误信息              
+		stdin： 	 <
+				&>   &>>   错误与正确信息同输入
+		显示信息时：错误信息在前，正确信息在后
+		重定向 -> 文件 和 设备
+		
+		<<：here document（在此处生成文档）
+		 - cat << END ......END    
+		 - cat >> file << EOF
+		 - cat << ENDOF >> file
+		
+	管道命令：	|
+		- 所有输出(不论正确错误)都输入： *** &> ***
+		- 所有输出都当做正确输入(经过管道)： *** 2>&1 | ***
+		- 错误消息无法穿越管道
+		- ( command ; command ) 使两个命令的结果当做一个整体的结果
+		
+	命令执行的判断依据：  ；  &&   ||
+		- ;   	cmd1 ; cmd2  两个命令无关系
+		- &&  	cmd1 && cmd2  cmd1成功才执行cmd2
+		- ||  	cmd1 || cmd2  cmd1失败才执行cmd2
+
+
+	linux帮助
+		1.内部命令帮助： 			# help 内部命令
+		2.外部命令帮助：			# 外部命令 --help
+		3.内外部命令使用手册： 		# man [章节号] 命令
+		4.在线文档info				/usr/share/info/ 	(偏重于命令自身的历史信息)
+		5.How-To文件				/usr/share/doc		(详细用法及原理说明)
+		
+		CLDP中文文件计划：					http://www.linux.org.cn/CLDP
+		The Linux Documenttation Project	http://www.tldp.org
+		
+		
+		命令手册：man		--- 	/etc/man.config	
+									/usr/share/man/
+		man分章节(8)	-- 用whatis Command查看该命令在哪一章节
+			1.用户命令(/bin /usr/bin /usr/local/bin)
+			2.系统调用
+			3.库调用
+			4.特殊文件(设备文件)
+			5.文件格式(配置文件的语法)
+			6.游戏
+			7.杂项(不便归类的命令)
+			8.管理命令(/sbin /usr/sbin /usr/local/sbin)
+			9.跟kernel有关的文件
+			
+			
+			# man -f command 	该命令显示摘要信息和章节
+			# man -k comm		模糊查询(内有荣comm)
+			
+			# whatis command === # man -f command
+			# apropos comm	 === # man -k comm
+						需由makewhatis构建数据库		
+			# man -M /path/man_dir command			指定目录显示命令帮助
+			
+		man内容解析
+			<>：必选	[]：可选	... ：可以出现多次  |：多选一	{}：分组
+			
+			NAME			命令名称及功能简要说明
+			SYNOPSIS		概要
+			DESCRIPTION		命令功能的详尽说明，可能包括每一个选项的意义
+			OPTIONS			说明每一个选项的意义
+			EVVIRONMENT		与此命令相关的环境参数
+			AUTHOR			作者
+			FILES			此命令相关的配置文件
+			REPORTING BUGS	有问题请留言
+			COPYRIGHT		版权
+			EXAMPLES		使用示例
+			SEE ALSO		另外参照
+
+		命令求助
+			1.	whatis 
+			2.	command --help
+			3.	man 和 info
+			4. 	/usr/share/doc/
+		
+			
+	dd命令：
+		if=数据来源
+		of=数据存储目标
+		bs=1
+		count=2
+		eg：	# dd if=/dev/sda of=/root/mbr.backup bs=512 count=1		
+				# dd if=/root/mbr.backup of=/dev/sda bs=512 count=1
+				# dd if=/dev/zero of=/root/file bs=1M count=3
+				
+				
+	查看Linux的系统版本： 
+		- # lsb_release -a	--须有软件包支持
+		- # uname -a
+	    	以上两种方法支持所有版本
+		- # cat /etc/redhat-release	只支持rhel centos
+				- rhel：	# rpm -q redhat-release
+				- centos: 	# rpm -q centos-release		
+	查看linux内核
+		- # cat /proc/version
+		
+	查看linux系统是32位还是64位
+		# getconf LONG_BIT			如果返回的结果是32则说明是32位，返回的结果是64则说明是64位。 
+		# uname -a 					输出的结果中，如果有x86_64就是64位的，没有就是32位的。			
+				
+	与文件系统及程序的限制关系：ulimit
+     ulimit -a  显示当前用户的所有限制数据			
+				
+				
+	Cache Memory(缓存内存)：
+		当你读写文件的时候，Linux内核为了提高读写性能与速度，会将文件在内存中进行缓存，这部分内存就是Cache Memory(缓存内存)。
+		即使你的程序运行结束后，Cache Memory也不会自动释放。这就会导致你在Linux系统中程序频繁读写文件后，你会发现可用物理内存
+		会很少。
+		其实这缓存内存(Cache Memory)在你需要使用内存的时候会自动释放，所以你不必担心没有内存可用。
+				
+		buffers是指用来给块设备做的缓冲大小，他只记录文件系统的metadata以及 tracking in-flight pages.
+		cached是用来给文件做缓冲。
+		即：buffers:		用来存储，目录里面有什么内容，权限等等。		
+			cached:			直接用来记忆我们打开的文件	
+				
+	# hash		- 显示所缓存的命令（当用path查找过某个命令后缓存到hash，再一次使用该命令时直接找缓存）
+	
+	显示当前目录下的目录
+		# ls -d */
+		# ll | grep  "^d"
+		
+	注销  logout  exit Ctrl+d
+	
+	关机  poweroff  shutdown now   halt -p
+		# shutdown 时间	[警告信息]				用于安全关闭Linux系统
+			-t second			过几秒关机
+			-k					只发警告信息，并不关机
+			-r 					重启
+			-h					关机
+			-n					不经过init程序，直接以shutdown的功能来关机
+			-f					关机开机后，强制略过fsck的磁盘检查
+			-F					关机开机后，强制进行fsck的磁盘检查
+			-c					取消已在进行的shutdown命令
+		
+		# reboot	重启
+		# powerf    是reboot的链接文件，关机
+		# halt		是reboot的链接文件,关机
+			
+	Linux硬限制和软限制：
+		说明：为了防止失控的进程破坏系统的性能
+		硬限制和软限制区分：
+			1.软限制是实际限制对资源的使用（即资源使用不能超过软限制），硬限制的作用是控制软限制，不是限制资源使用。
+			2.硬限制设定后,设定软限制时只能是小于或等于硬限制。用户可以在已有的硬限制范围内，随意的更改自己的软限制
+			3.超级用户和普通用户都可以缩小硬限制,但超级用户可以扩大硬限制,普通用户则不能扩大硬限制.用户如果将硬限制设置在比原硬限制更小的范围内，那么他在当前shell内将没办法再将此硬限制恢复了，而管理员级别的用户可以随意多次更改硬限制	
+		设置：通过/etc/security/limits.conf文件进行限制
+			格式：username|@groupname type resource limit
+				username|@groupname：	设置需要被限制的用户名，组名前面加@和用户名区别。也可以用通配符*来做所有用户的限制
+				type：					有soft，hard和-，soft指的是当前系统生效的设置值。hard表明系统中所能设定的最大值。soft的限制不能比
+										har限制高。用 - 就表明同时设置了soft和hard 的值
+				resource：
+				　　core 		- 限制内核文件的大小
+				　　date 		- 最大数据大小
+				　　fsize		- 最大文件大小
+				　　memlock 	- 最大锁定内存地址空间
+				　　nofile 		- 打开文件的最大数目
+				　　rss 		- 最大持久设置大小
+				　　stack 		- 最大栈大小
+				　　cpu 		- 以分钟为单位的最多 CPU 时间，进程最长的执行时间，超过了进程会终止。
+				　　nproc 		- 进程的最大数目
+				　　as 			- 地址空间限制
+				　　maxlogins 	- 此用户允许登录的最大数目
+
+        - core - limits the core file size (KB)                        -c
+        - data - max data size (KB)                                    -d
+        - fsize - maximum filesize (KB)                                -f
+        - memlock - max locked-in-memory address space (KB)            -l
+        - nofile - max number of open file descriptors                 -n
+        - rss - max resident set size (KB)                             -m
+        - stack - max stack size (KB)                                  -s
+        - cpu - max CPU time (MIN)                                     -t
+        - nproc - max number of processes                              -u
+        - as - address space limit (KB)                                -v
+        - maxlogins - max number of logins for this user
+        - maxsyslogins - max number of logins on the system
+        - priority - the priority to run user process with
+        - locks - max number of file locks the user can hold           -x
+        - sigpending - max number of pending signals                   -i
+        - msgqueue - max memory used by POSIX message queues (bytes)   -q
+        - nice - max nice priority allowed to raise to values: [-20, 19] -e
+        - rtprio - max realtime priority                               -r
+
+		
+	linux终端显示标准：80*25
+	
+	
+	命令行中执行的脚本会继承当前shell的export变量
+	系统自动执行的脚本不会继承
+	
+	cat主要有三大功能：
+		1.一次显示整个文件。$ cat filename
+		2.从键盘创建一个文件。$ cat > filename  
+		   只能创建新文件,不能编辑已有文件.
+		3.将几个文件合并为一个文件： $cat file1 file2 > file
+	watch -n # command
+	
+	mkdir -m 755 aaa		建立权限为755的目录
+	删除 -aaa- 文件： rm ./-aaa-    -rm -- -aaa-
+                  避免首位字符是 -
+		
+	设置用户超时时间：
+		在/etc/profile中， TMOUT=60，即表示60秒后仍无操作将会注销
+		
+	/etc/securetty 
+		本文档定义了root可login的terminal，一般而言预设为tty1至tty8，root只能从定义中的terminal登入。

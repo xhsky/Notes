@@ -1,0 +1,61 @@
+http://blog.csdn.net/lfsf802/article/details/50460293
+
+单机Weblogic安装
+1.安装jdk
+2.安装weblogic
+	# java -jar fmw_12.1.3.0.0_wls.jar
+	# 开始图形安装
+		安装类型：Weblogic Server
+		
+		创建域：
+			选择生产模式
+			选择Administrator Server	Managed Server，Cluster and Coherence
+			Administration Server:
+				Listen Address： AllLocalAddresses
+			Managed Server:
+				选择add
+			Machine：
+				选择add
+			将AdminServer和受管服务器添加到右边
+			在配置进度时，速度较慢
+			
+注：
+	weblogic安装后进入console页面很慢，需要优化jdk
+		# vim jdk/jre/lib/security/java.security
+			将 securerandom.source=file:/dev/random 更改为 securerandom.source=file:/dev/./urandom
+	
+
+	
+集群安装：
+	1.每台都按照单机方式安装(目录一致，域名相同)
+	2.启动Admin Server
+		其中一台进入weblogic/Middleware/Oracle_Home/user_projects/domains/base_domain执行：
+		# ./bin/startWebLogic.sh
+	3.进入图形界面:
+		http://ip:7001/console
+		配置Managed Server
+		
+	4.启动Managed Server
+		# 集群将Admin Server中 "Middleware/Oracle_Home/user_projects/domains/base_domain/security/SerializedSystemIni.dat" 复制到其它几台上
+		进入weblogic/Middleware/Oracle_Home/user_projects/domains/base_domain执行：
+		# ./bin/startManagedWebLogic.sh managed_server_name1 http://10.6.134.136:7001
+		其它server启动需到相应服务器上(未配置nodemanage)
+		# ./bin/startManagedWebLogic.sh managed_server_name2 http://10.6.134.136:7001
+		
+	
+	
+
+控制台部署项目：
+		项目分发后的路径：
+			weblogic/Middleware/Oracle_Home/user_projects/domains/base_domain/servers/MANAGED_SERVER_NAME/tmp/_WL_user/PROGRAM_NAME/v4xvz2/war/PROGRARM_NAME
+
+查看版本：
+		# cd Middleware/OPatch
+		# ./opatch lsinventory -jdk $JAVA_HOME
+		
+默认部署war包大小为1G，可更改大小：
+	在Middleware/user_projects/domains/base_domain/bin/setDomainEnv.sh中设置：JAVA_OPTIONS="${JAVA_OPTIONS} -Dweblogic.deploy.MaxPostSize="1610612736"" 后重新启动
+		-Dweblogic.deploy.MaxPostSize="1610612736"   12.1版本需打补丁包   12.2可直接加参数
+	
+配置jvm参数：
+	Middleware/user_projects/domains/base_domain/bin/setDomainEnv.sh

@@ -1,0 +1,126 @@
+介绍：
+	起源于美国加州大学伯克利分校AMPLab的大数据分析平台，立足于内存计算，从多迭代批量
+	处理出发，兼顾数据仓库，流处理和图计算等多种计算范式，是大数据系统领域的全栈计
+	算平台。也是Apache基金会的顶级开源项目
+	
+	官网：http://spark.apache.org/
+	
+	发展：
+		2009：		Spark诞生于AMPLab
+		2010：		开源
+		2013.6：	Apache孵化项目
+		2014.2：	Apache顶级项目
+		2014.2：	Cloudera宣称加大Spark框架的投入来取代MapReduce
+		2014.4：	MapR投入Spark阵营，Apache Mahout放弃MapReduce，将使用Spark作为计算引擎
+		2014.5：	Pivotal Hadoop集成Spark全栈
+		2014.5.30：	Spark 1.0.0 发布
+		2014.7：	Hive on Spark项目启动 
+	Spark与MapReduce：
+		说明：Spark是MapReduce的替代方案，同时兼容HDFS，Hive等分布式存储层
+			1.中间结果输出：
+				基于MapReduce的计算引擎通常会将中间结果输出到磁盘上，进行存储和容错。而Spark
+				将执行模式抽象为通用的有向无环图执行计划(DAG)，无须将Stage中间结果输出到HDFS
+				中
+			2.数据格式和内存分布：
+				由于MapReduce Schema on Read处理方式会引起较大的处理开销。Spark抽象出分布式内
+				存存储结构弹性分布式数据集RDD，进行数据存储。
+				
+				RDD支持粗粒度写操作，读取操作可以精确到每条记录，能够用来做分布式索引。Spark可
+				以控制数据在不同节点上的分区，自定义分区策略(eg：Hash分区等)。Shark和Spark SQL
+				在spark上实现了列式存储和列存储压缩
+			3.执行策略：
+				MapReduce在数据Shuffle之前花费了大量时间来排序。spark在Shuffle中不是所有的任务
+				都要排序，支持基于Hash的分布式聚合，调度中采用任务执行计划图(DAG)，每一轮输出
+				的结果在内存中缓存
+			4.任务调度的开销
+				MapReduce是为了运行长达数小时的批量作业而设计的。提交一个任务的延迟非常高。Spark
+				采用事件驱动的类库AKKA来启动任务，通过线程池复用线程来避免进程/线程启动和切换开销
+	Spark的特性：
+		1.打造全栈多计算范式的高效数据流水线
+		2.轻量级快速处理
+			充分利用和集成Hadoop等其他第三方组件，避免代码重写。同时将中间结果缓存在内存中来减少
+			磁盘IO
+		3.支持多语言
+			支持通过Scala，Java及Python编写程序。自带了80多个算子，同时允许在shell中进行交互
+		4.与HDFS等存储层兼容
+			可以独立运行，也可以读取已有的任何Hadoop数据，可运行在任何Hadoop数据源上(hive,HBase,HDFS)
+				
+		5.
+			RDD模型适合粗粒度的全局数据并行计算，不适合细粒度的异步更新计算	
+			对于特定需求，要针对特定工作负载达到最优性能还需要使用其他的数据库系统(图计算的GraphLab
+			在特定计算性能上优于GraphX；流计算中的Storm在实时性要求很高的场合要比Spark Streaming更好)
+	
+Spark架构：
+		
+Spark安装：
+	说明：
+		Spark需要先安装JDK，Scala等依赖，且由于Spark是计算框架，需要预先在集群内有存储数据的
+		持久化层(eg：HDFS，Hive，Cassandra等)
+	安装：
+		1.安装jdk
+		2.安装scala
+			# 官网 http://www.scala-lang.org
+			# wget http://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz
+			# 解压，移动
+			# vim /etc/profile
+				export SCALA_HOME=/usr/local/scala
+				export PATH=$SCALA_HOME/bin:$PATH
+			# . /etc/profile
+		3.配置免密码登录
+			# Master --> Workers
+		4.安装Hadoop
+		5.安装Spark
+
+	
+计算模型：
+工作机制：
+Benchmark：
+BDAS：
+	说明：Spark已发展为包含众多子项目的大数据计算平台。伯克利将Spark的整个生态系统称为伯克利数据分析
+		栈(BDAS)。
+		
+	项目结构：
+		
+			Spark Streaming		Graphx			MLbase		      Shark		Hive	Storm	MPI
+			(流处理程序)	  (图谱计算)  (界面友好，机器学习)	(SQL API)
+			
+								Spark										Hadoop
+						快速内存优化执行引擎								  MR
+						
+										Tachyon(alpha) 内存文件系统
+										
+										HDFS Hadoop分布式文件系统
+										
+										Memos Cluster resource manager，multi-tenancy
+		
+	子项目：
+		spark：
+				整个BDAS的核心组件，是一个大数据分布式编程框架。将分布式数据抽象为弹性分布式数据集
+			(RDD),实现了应用任务调度、RPC、序列化和压缩，并为运行在其上的上层组件提供API。Spark将数
+			据在分布式环境下分区，然后将作业转化为有向无环图(DAG)，并分阶段进行DAG的调度和任务的分
+			布式并行处理
+		shark：
+				是构建在Spark和Hive基础之上的数据仓库。已经终止开发。它提供了能够查询Hive中所有存储
+			数据的一套SQL接口，兼容下游的Hive QL语法。底层复用Hive的解析器、优化器及元数据存储和序列
+			化接口。Shark会将Hive QL编译转化为一组Spark任务，进行分布式运算
+		Spark SQL：
+				提供在大数据上的SQL查询功能，类似于Shark在整个生态系统的角色，它们可以统称为SQL on Spark
+			而Shark依赖于Hive，必须维护一套hive分支。而Spark SQL使用Catalyst做查询解析和优化器，并在底层
+			使用spark作为执行引擎实现SQL的Operator。
+		Spark Streaming：
+				将数据流按时间片积累为RDD，然后将每个RDD进行批处理，进而实现大规模的流数据处理，其吞吐量
+			能超越主流流处理框架
+		GraphX：
+				基于BSP模型，在Spark之上封装类似Pregel的接口，进行大规模同步全局的图计算，尤其是当用户进
+			行多轮迭代时，基于Spark的内存计算的优势尤为明显
+		Tachyon：
+				是一个分布式内存文件系统，为提供更高的性能，将数据存储剥离Java Heap。用户可以
+			基于Tachyon实现RDD或者文件的跨应用共享，并提供容错机制，保证数据的可靠性
+		Mesos：
+				是一个资源管理框架，提供类似YARN的功能。用户可在其中插件式地运行Spark、MapReduce、
+			Tez等计算框架的任务，Mesos会对资源和任务进行隔离，并实现高效的资源任务调度
+		BlinkDB：
+			是一个用于在海量数据上进行交互式式SQL的近似查询引擎。
+		
+		
+Spark调优：

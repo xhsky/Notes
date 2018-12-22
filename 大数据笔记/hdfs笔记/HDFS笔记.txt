@@ -1,0 +1,873 @@
+简介
+	时间，作者，开发语言，定义
+		HDFS(Hadoop Distributed File System)即Hadoop分布式文件系统， 它为Hadoop分布式计算框架提
+		供高性能、高可靠、高可扩展的存储服务。
+	官网
+		http://hadoop.apache.org/
+	版本
+适用性(优缺)
+	HDFS的设计基础与目标
+		·硬件错误是常态：
+			集群规模足够大的时候，节点故障的概率将会是足够大，即为常态。因此需要冗余，且可运行在廉价PC机上
+		·流式数据访问：
+			即数据批量读取而非随机读写，可在多个冗余副本上进行读取，Hadoop擅长做的是数据分析而不是事务
+			处理(旨在提高数据的吞吐量，而非用户交互性的小数据)
+		·适合存储大规模数据集
+			存储在HDFS上的文件大多是GB和TP级别
+		·简单一致性模型：
+			为了降低系统复杂度，对文件采用一次性写多次读的逻辑设计，即文件一经写入，关闭，就再也不能修改
+		·程序采用“数据就近”原则分配结点执行
+		
+		不足：
+			1.实时访问数据弱
+				数据访问时间无法达到秒或毫秒级别(可考虑使用HBase)。
+			2.大量小文件：
+				当hadoop启动时，NameNode会将所有的元数据读入内存，以此构建目录树。一般来说，一个HDFS上的
+				文件，目录和数据块的存储信息大概在150B(若NameNode的内存为16GB，只能存放480万个文件)
+			3.多用户写入，任意修改文件：
+				HDFS上的文件只能有一个写入者，并且写数据操作总在文件末。不支持多个写入者，也不支持在文件
+				的任意位置进行修改。
+架构
+	安装
+	结构
+		目录结构
+			源码目录
+			安装目录
+				配置文件
+					hdfs-site.xml:
+						hadoop.hdfs.configuration.version:默认为1，该配置文件的版本
+						dfs.namenode.rpc-address:默认为空，
+						dfs.namenode.rpc-bind-host:
+						dfs.namenode.servicerpc-address:
+						dfs.namenode.servicerpc-bind-host:
+						dfs.namenode.secondary.http-address:默认0.0.0.0:50090，Secondary Namenode http提供的地址和端口
+						dfs.namenode.secondary.https-address:默认0.0.0.0:50091，Secondary Namenode https提供的地址和端口
+						dfs.datanode.address:默认0.0.0.0:50010，datanode用于数据传输的地址和端口
+						dfs.datanode.http.address:默认0.0.0.0:50075，datanode http提供的地址和端口
+						dfs.datanode.ipc.address:默认0.0.0.0:50020，datanode ipc(进程间通信)提供的地址和端口
+						dfs.datanode.handler.count:默认10，datanode服务的线程数
+						dfs.namenode.http-address:默认0.0.0.0:50070，dfs Namenode web ui监听的地址和端口
+						dfs.namenode.http-bind-host:默认为空，http将要绑定的实际地址。若该选项被设置，则会覆盖dfs.namenode.http-address的主机名部分
+						dfs.namenode.heartbeat.recheck-interval:默认300000，设置datanode失效宕机的时间间隔，单位毫秒
+						dfs.http.policy:默认HTTP_ONLY，设置datanode支持的http协议(HTTP_ONLY/HTTPS_ONLY/HTTP_AND_HTTPS)
+						dfs.client.https.need-auth:默认false，是否需要ssl客户端证书身份认证
+						dfs.client.cached.conn.retry:默认为3，hdfs客户端从缓存中提取socket的次数，一旦超出，则会尝试创创建一个新的socket
+						dfs.https.server.keystore.resource:默认ssl-server.xml，提取ssl服务器keystore信息的资源文件
+						dfs.client.https.keystore.resource:默认ssl-client.xml，提取ssl客户端keystore信息的资源文件
+						dfs.datanode.https.address:默认0.0.0.0:50475，datanode https提供的端口和地址
+						dfs.namenode.https-address:默认0.0.0.0:50470，namenode https提供的端口和地址
+						dfs.namenode.https-bind-host:
+						dfs.datanode.dns.interface:默认default，
+						dfs.datanode.dns.nameserver:默认default，
+						dfs.namenode.backup.address:默认0.0.0.0:50100，backup node服务的端口和地址，若端口为0，则该服务器将会从一个空闲的端口启动
+						dfs.namenode.backup.http-address:默认0.0.0.0:50105，backup node http服务的端口和地址，若端口为0，则该服务器将会从一个空闲的端口启动
+						dfs.namenode.replication.considerLoad:默认true，设定chooseTarget是否考虑target的负载
+						dfs.default.chunk.view.size:默认32768，在浏览器上查看文件的字节数
+						dfs.datanode.du.reserved:默认0，每个volume的保留空间(bytes)，为非dfs使用
+						dfs.namenode.name.dir:默认file://${hadoop.tmp.dir}/dfs/name，指定namenode存储的目录(fsimage)，若该值是以,分隔的目录，则在每个目录中都存储一份fsimage，以实现冗余
+						dfs.namenode.name.dir.restore:默认false，设置为true，则namenode尝试恢复以前失败的dfs.namenode.name.dir的目录
+						dfs.namenode.fs-limits.max-component-length:默认255，定义路径的每个组件的UTF-8编码的最大值(byte)，值为0则禁用该项检查
+						dfs.namenode.fs-limits.max-directory-items:默认1048576
+						dfs.namenode.fs-limits.min-block-size:默认1048576
+						dfs.namenode.fs-limits.max-blocks-per-file:默认1048576
+						dfs.namenode.edits.dir:默认${dfs.namenode.name.dir}，设定namenode存储事务的目录，若该值是以,分隔的目录，则在每个目录中均存储一份以实现冗余
+						
+						dfs.namenode.edits.journal-plugin.qjournal:默认org.apache.hadoop.hdfs.qjournal.client.QuorumJournalManager。
+						dfs.permissions.enabled:默认为true，true：在hdfs上启用权限检查，false：将权限检查关闭
+						dfs.permissions.superusergroup:默认值supergroup，超级用户组的名称
+                        
+						dfs.cluster.administrators:默认为空，设置可以访问namenode的servlets等的用户和用户组，格式：user1,user2 group1,group2
+						dfs.namenode.acls.enabled:默认false，是否启用hdfs的acl，当禁用时，namenode将拒绝所有设置或获取acl相关的rpc
+						
+                        dfs.namenode.lazypersist.file.scrub.interval.sec:默认300，NameNode定期扫描带命名空间中有丢失块的LazyPersist文件，并解除它们与命名空间的链接。该值为连续扫描之间的间隔。将其设置为负值以禁用此行为。
+						
+                        dfs.block.access.token.enable:默认false，true：设置access token为访问datanode的工具。false，在访问datanode节点时不检查access token
+						dfs.block.access.key.update.interval:默认600，namenode更新access key的间隔(min)
+						dfs.block.access.token.lifetime:默认600，access token的声明周期(min)
+                       
+                        
+						dfs.datanode.data.dir:默认file://${hadoop.tmp.dir}/dfs/data，设置datanode数据的存储目录，若该值是以,分隔的目录列表，则数据会
+                                            在每个目录中存储一份。通常目录在不同的设备上。对于hdfs的存储策略，应使用不同的设备类型(SSD,DISK
+                                            ARCHIVE,RAM_DISK),默认存储类型为DISK。若本地文件系统允许，则会创建不存在的目录
+						dfs.datanode.data.dir.perm:默认700，即dfs.datanode.data.dir设置的目录的权限
+                        
+						dfs.replication:默认3，在创建文件时的默认的复制数，可以手动指定
+						dfs.replication.max:默认512，默认复制块的最大数
+						dfs.namenode.replication.min:默认1，默认复制块的最小数
+						dfs.blocksize:默认134217728，文件的默认块大小(byte)，可以使用单位(k,m,g,t,p,e 不区分大小写)
+						
+                        dfs.client.block.write.retries:默认3，在向应用发出失败信号之前，尝试向datanode写入数据的次数
+						dfs.client.block.write.replace-datanode-on-failure.enable:默认true，
+						dfs.client.block.write.replace-datanode-on-failure.policy:
+						dfs.client.block.write.replace-datanode-on-failure.best-effort:
+                        
+						dfs.blockreport.intervalMsec:默认21600000，设定block报告间隔(毫秒)
+						dfs.blockreport.initialDelay：默认0，第一个block报告的延迟(秒)
+                        
+						dfs.blockreport.split.threshold:默认1000000，
+                        
+						dfs.datanode.directoryscan.interval:默认21600，datanode扫描数据目录并协调内存和磁盘中block的差异的间隔(秒)
+						dfs.datanode.directoryscan.threads:默认1，线程池中用于并行编译volumn报告的线程数
+						
+                        dfs.heartbeat.interval:默认3，datanode的心跳间隔(秒)
+                        
+						dfs.namenode.handler.count:默认10，处理namenode的线程数
+                        
+						dfs.namenode.safemode.threshold-pct:默认0.999f，
+						dfs.namenode.safemode.min.datanodes:默认0，指定namenode从安全模式退出时必须被视为atcive datanode的数量。小于或等于0
+                                                            表示在启动期间决定是否保持安全模式不考虑active datanode的数量。大于数据节点的值
+                                                            则使安全模式永久存在
+						dfs.namenode.safemode.extension:默认30000，
+                        
+						dfs.namenode.resource.check.interval:默认5000，
+						dfs.namenode.resource.du.reserved:默认104857600，namenode存储目录保留的空间(byte)
+						dfs.namenode.resource.checked.volumes:默认为空，列出namenode资源检查器需要检查的本地目录(除了local edits目录)
+						dfs.namenode.resource.checked.volumes.minimum:默认为1，需要冗余的namenode volumn的最小值
+						
+                        dfs.datanode.balance.bandwidthPerSec:默认1048576，为平衡目的指定每个datanode的最大带宽(byte/s) 1M
+						
+                        dfs.hosts:默认为空，指定一个包含一系列主机名的文件(绝对路径)，该文件内的主机可以被允许连接namenode，如果值为空，则所有主机都允许
+						dfs.hosts.exclude:默认为空，指定一个包含一系列主机名的文件(绝对路径)，该文件内的主机不被允许连接namenode，如果值为空，则所有主机都允许
+                        
+						dfs.namenode.max.objects:默认为0，dfs支持的最大文件数，目录数，块数。值为0，则表示无限制
+						dfs.namenode.datanode.registration.ip-hostname-check:默认为true，true：namenode需要将连接的datanode的地址解析为主机名。所有不可解析的
+                                                                            地址的连接都被拒绝。
+						dfs.namenode.decommission.interval:默认30，namenode检查是否退役的周期(秒)
+						dfs.namenode.decommission.blocks.per.interval:默认500000，在每个interval中定义的周期中要处理的大致数据块数
+						dfs.namenode.decommission.max.concurrent.tracked.nodes:默认100，
+                        
+						dfs.namenode.replication.interval:默认为3，namenode为datanode计算复制工作的周期(秒)
+						dfs.namenode.accesstime.precision:默认3600000，hdfs文件的访问时间精确到此值(秒)，设置为0将禁用hdfs的访问时间 1h
+						dfs.datanode.plugins:默认为空，
+						dfs.namenode.plugins:默认为空，
+						
+                        dfs.namenode.block-placement-policy.default.prefer-local-node:默认为true，控制默认块放置策略(如何放置块的第一个副本)。true：优先放置于客户端运行的节点上。
+                                                                                    false：优先放置于客户机相同机架的节点上。
+						dfs.stream-buffer-size:默认4096，流文件的缓冲区大小，该值应该是page size的倍数，决定了在读写操作期间缓冲的数据量
+						dfs.bytes-per-checksum:默认512，每个校验和的字节数，不能大于dfs.stream-buffer-size
+						dfs.client-write-packet-size:默认值65536，客户端写入的数据包大小
+						dfs.client.write.exclude.nodes.cache.expiry.interval.millis:默认600000，
+                        
+						dfs.namenode.checkpoint.dir:默认file://${hadoop.tmp.dir}/dfs/namesecondary，设定secondary namenode在本地文件系统上
+                                                    进行存储并合并的临时image。若该值是以,分隔的目录，则会在每个目录中存储以实现冗余
+						dfs.namenode.checkpoint.edits.dir:默认${dfs.namenode.checkpoint.dir}，设定secondary namenode在本地文件系统上进行存
+                                                        储并合并的临时edits。若该值是以,分隔的目录，则会在每个目录中存储以实现冗余
+						dfs.namenode.checkpoint.period:默认3600，两个Checkpoint之间的时间(秒)
+						dfs.namenode.checkpoint.txns:默认1000000，
+						dfs.namenode.checkpoint.check.period:默认60，SecondaryNameNode和CheckpointNode轮询namenode的周期，为了查询未Checkpoint的事务(秒)
+						dfs.namenode.checkpoint.max-retries:默认3，secondary namenode进行失败的Checkpoint的次数。即当加载fsimage或合并edits时发生失败，尝试的次数
+						dfs.namenode.num.checkpoints.retained:默认2，namenode和secondary namenode在各自目录保留的Checkpoint文件的数量(fsimage_*)
+						dfs.namenode.num.extra.edits.retained:默认1000000，
+						dfs.namenode.max.extra.edits.segments.retained默认1000000，
+						
+                        dfs.namenode.delegation.key.update-interval:默认86400000，namenode中委派token的master key的更新时间(毫秒) 24h
+						dfs.namenode.delegation.token.max-lifetime:默认604800000，委派token最长的生命周期(毫秒) 7d
+						dfs.namenode.delegation.token.renew-interval:默认86400000，委派token的续订间隔(毫秒) 24h
+						
+                        dfs.datanode.failed.volumes.tolerated:默认为0，在datanode停止提供服务之前允许失败的volumns数量。默认情况下，任何卷故障都会导致datanode关闭
+						
+                        dfs.image.compress:默认false，是否将fsimage进行压缩
+						dfs.image.compression.codec:默认org.apache.hadoop.io.compress.DefaultCodec，当fsimage被压缩时，选择压缩的方式，该值必须是
+                                                    io.compression.codecs中定义的
+						
+                        dfs.image.transfer.timeout:默认60000，image传输的超时时间(毫秒)，应与dfs.image.transfer.bandwidthPerSec配合配置，以便传输完成 1min
+						dfs.image.transfer.bandwidthPerSec:默认0，用于image传输的最大带宽(byte/s)，设置0表示禁用调节
+						dfs.image.transfer.chunksize:默认65536，上传checkpoint的分流块的字节大小，块分流可以避免大的image
+                                                    文件的内容缓冲 64k
+                        
+						dfs.namenode.support.allow.format:默认true，是否允许namenode被格式化，对于生产集群，建议设为false
+						dfs.datanode.max.transfer.threads:默认4096，datanode用于数据传输的最大线程数
+						dfs.datanode.scan.period.hours:默认504，该值若为正，则块扫描器在值内扫描一次。若为负，则块扫描器被禁用。若为0，则使用默认值504h或3w
+						dfs.block.scanner.volume.bytes.per.second:默认值1048576，若为0，则datanode块扫描器被禁用，若为正，则datanode的块扫描器将每秒从每个卷扫描的字节数
+						
+                        dfs.datanode.readahead.bytes:默认4194304，
+						dfs.datanode.drop.cache.behind.reads:
+						dfs.datanode.drop.cache.behind.writes:
+						dfs.datanode.sync.behind.writes:
+                        
+						dfs.client.failover.max.attempts:默认15，客户端经过 故障切换失败后，被认为失败
+						dfs.client.failover.sleep.base.millis:默认500，
+						dfs.client.failover.sleep.max.millis:
+						dfs.client.failover.connection.retries:
+						dfs.client.failover.connection.retries.on.timeouts:
+						dfs.client.datanode-restart.timeout:
+                        
+						dfs.nameservices:默认为空，以,分隔的nameservice列表
+						dfs.nameservice.id:默认为空，nameservice的id，
+						dfs.internal.nameservices:默认为空，
+						dfs.ha.namenodes.EXAMPLENAMESERVICE:
+						dfs.ha.namenode.id:
+						dfs.ha.log-roll.period:
+						dfs.ha.tail-edits.period:
+						dfs.ha.automatic-failover.enabled:
+						dfs.client.use.datanode.hostname:
+						dfs.datanode.use.datanode.hostname:
+						dfs.client.local.interfaces:
+						dfs.datanode.shared.file.descriptor.paths:
+						dfs.short.circuit.shared.memory.watcher.interrupt.check.ms:
+						dfs.namenode.kerberos.principal:
+						dfs.namenode.keytab.file:
+						dfs.datanode.kerberos.principal:
+						dfs.datanode.keytab.file:
+						dfs.journalnode.kerberos.principal:
+						dfs.journalnode.keytab.file:
+						dfs.namenode.kerberos.internal.spnego.principal:
+						dfs.journalnode.kerberos.internal.spnego.principal:
+						dfs.secondary.namenode.kerberos.internal.spnego.principal:
+						dfs.web.authentication.kerberos.principal:
+						dfs.web.authentication.kerberos.keytab:
+						dfs.namenode.kerberos.principal.pattern:
+						dfs.namenode.avoid.read.stale.datanode:
+						dfs.namenode.avoid.write.stale.datanode:
+						dfs.namenode.stale.datanode.interval:
+						dfs.namenode.write.stale.datanode.ratio:
+						dfs.namenode.invalidate.work.pct.per.iteration:
+						dfs.namenode.replication.work.multiplier.per.iteration:
+						nfs.server.port:
+						nfs.mountd.port:
+						nfs.dump.dir:
+						nfs.rtmax:
+						nfs.wtmax:
+						nfs.keytab.file:
+						nfs.kerberos.principal:
+						nfs.allow.insecure.ports:
+						dfs.webhdfs.enabled:
+						hadoop.fuse.connection.timeout:
+						hadoop.fuse.timer.period:
+						dfs.metrics.percentiles.intervals:
+						hadoop.user.group.metrics.percentiles.intervals:
+						dfs.encrypt.data.transfer:
+						dfs.encrypt.data.transfer.algorithm:
+						dfs.encrypt.data.transfer.cipher.suites:
+						dfs.encrypt.data.transfer.cipher.key.bitlength:
+						dfs.trustedchannel.resolver.class:
+						dfs.data.transfer.protection:
+						dfs.data.transfer.saslproperties.resolver.class:
+						dfs.datanode.hdfs-blocks-metadata.enabled:
+						dfs.client.file-block-storage-locations.num-threads:
+						dfs.client.file-block-storage-locations.timeout.millis:
+						dfs.journalnode.rpc-address:
+						dfs.journalnode.http-address:
+						dfs.journalnode.https-address:
+						dfs.namenode.audit.loggers:
+						dfs.datanode.available-space-volume-choosing-policy.balanced-space-threshold:
+						dfs.datanode.available-space-volume-choosing-policy.balanced-space-preference-fraction:
+						dfs.namenode.edits.noeditlogchannelflush:
+						dfs.client.cache.drop.behind.writes:
+						dfs.client.cache.drop.behind.reads:
+						dfs.client.cache.readahead:
+						dfs.namenode.enable.retrycache:
+						dfs.namenode.retrycache.expirytime.millis:
+						dfs.namenode.retrycache.heap.percent:
+						dfs.client.mmap.enabled:
+						dfs.client.mmap.cache.size:
+						dfs.client.mmap.cache.timeout.ms:
+						dfs.client.mmap.retry.timeout.ms:
+						dfs.client.short.circuit.replica.stale.threshold.ms:
+						dfs.namenode.path.based.cache.block.map.allocation.percent:
+						dfs.datanode.max.locked.memory:
+						dfs.namenode.list.cache.directives.num.responses:
+						dfs.namenode.list.cache.pools.num.responses:
+						dfs.namenode.path.based.cache.refresh.interval.ms:
+						dfs.namenode.path.based.cache.retry.interval.ms:
+						dfs.datanode.fsdatasetcache.max.threads.per.volume:
+						dfs.cachereport.intervalMsec:
+						dfs.namenode.edit.log.autoroll.multiplier.threshold:
+						dfs.namenode.edit.log.autoroll.check.interval.ms:
+						dfs.webhdfs.user.provider.user.pattern:
+						dfs.client.context:
+						dfs.client.read.shortcircuit:
+						dfs.domain.socket.path:
+						dfs.client.read.shortcircuit.skip.checksum:
+						dfs.client.read.shortcircuit.streams.cache.size:
+						dfs.client.read.shortcircuit.streams.cache.expiry.ms:
+						dfs.datanode.shared.file.descriptor.paths:
+						dfs.client.use.legacy.blockreader.local:
+						dfs.block.local-path-access.user:
+						dfs.client.domain.socket.data.traffic:
+						dfs.namenode.reject-unresolved-dn-topology-mapping:
+						dfs.client.slow.io.warning.threshold.ms:
+						dfs.datanode.slow.io.warning.threshold.ms:
+						dfs.namenode.xattrs.enabled:
+						dfs.namenode.fs-limits.max-xattrs-per-inode:
+						dfs.namenode.fs-limits.max-xattr-size:
+						dfs.namenode.startup.delay.block.deletion.sec:
+						dfs.namenode.list.encryption.zones.num.responses:
+						dfs.namenode.inotify.max.events.per.rpc:
+						dfs.user.home.dir.prefix:
+						dfs.datanode.cache.revocation.timeout.ms:
+						dfs.datanode.cache.revocation.polling.ms:
+						dfs.datanode.block.id.layout.upgrade.threads:
+						dfs.encryption.key.provider.uri:
+						dfs.storage.policy.enabled:
+						dfs.namenode.legacy-oiv-image.dir:
+						dfs.namenode.top.enabled:
+						dfs.namenode.top.window.num.buckets:
+						dfs.namenode.top.num.users:
+						dfs.namenode.top.windows.minutes:
+						dfs.namenode.blocks.per.postponedblocks.rescan:
+						dfs.datanode.block-pinning.enabled::
+						dfs.datanode.bp-ready.timeout:
+            HA集群额外配置：
+                dfs.namenode.shared.edits.dir:默认为空， HA集群中多个namenode的共享存储目录，此目录由active节点写入，
+                                               由standby节点读取以保持namespace同步。此目录不需要在dfs.namenode.edits.dir中列出
+                                               在非HA集群中应设为空
+				
+                core-site.xml:
+                     hadoop.proxyuser.$superuser.hosts 
+                     hadoop.proxyuser.$superuser.groups
+                     hadoop.proxyuser.$superuser.users
+                        
+                            指定$superuser可以从hosts指定的主机上模拟groups和users指定的用户组和用户，*代表任意，值为多个，可用,分隔
+                
+                    hadoop.common.configuration.version:默认
+                    hadoop.tmp.dir:默认
+                    io.native.lib.available:默认
+                    hadoop.http.filter.initializers:默认
+                    hadoop.security.authorization:默认
+                    hadoop.security.instrumentation.requires.admin:默认
+                    hadoop.security.authentication:默认
+                    hadoop.security.group.mapping:默认
+                    hadoop.security.group.mapping:默认
+                    hadoop.security.group.mapping.providers:默认
+                    hadoop.security.group.mapping.providers.combined:默认
+                    hadoop.security.group.mapping.provider.shell4services:默认
+                    hadoop.security.group.mapping.provider.ad4usersX:默认
+                    hadoop.security.group.mapping.provider.ad4usersY:默认
+                    hadoop.security.group.mapping.provider.ad4usersX.ldap.url:默认
+                    hadoop.security.group.mapping.provider.ad4usersY.ldap.url:默认
+                    hadoop.security.groups.cache.secs:默认
+                    hadoop.security.groups.negative-cache.secs:默认
+                    hadoop.security.groups.cache.warn.after.ms:默认
+                    hadoop.security.group.mapping.ldap.url:默认
+                    hadoop.security.group.mapping.ldap.ssl:默认
+                    hadoop.security.group.mapping.ldap.ssl.keystore:默认
+                    hadoop.security.group.mapping.ldap.ssl.keystore.password.file:默认
+                    hadoop.security.group.mapping.ldap.bind.user:默认
+                    hadoop.security.group.mapping.ldap.bind.password.file:默认
+                    hadoop.security.group.mapping.ldap.base:默认
+                    hadoop.security.group.mapping.ldap.search.filter.user:默认
+                    hadoop.security.group.mapping.ldap.search.filter.group:默认
+                    hadoop.security.group.mapping.ldap.search.attr.member:默认
+                    hadoop.security.group.mapping.ldap.search.attr.group.name:默认
+                    hadoop.security.group.mapping.ldap.directory.search.timeout:默认
+                    hadoop.security.service.user.name.key:默认
+                    hadoop.security.uid.cache.secs:默认
+                    hadoop.rpc.protection:默认
+                    hadoop.security.saslproperties.resolver.class:默认
+                    hadoop.work.around.non.threadsafe.getpwuid:默认
+                    hadoop.kerberos.kinit.command:默认
+                    hadoop.security.auth_to_local:默认
+                    io.file.buffer.size:默认
+                    io.bytes.per.checksum:默认
+                    io.skip.checksum.errors:默认
+                    io.compression.codecs:默认
+                    io.compression.codec.bzip2.library:默认
+                    io.serializations:默认
+                    io.seqfile.local.dir:默认
+                    io.map.index.skip:默认
+                    io.map.index.interval:默认
+                    fs.defaultFS:默认
+                    fs.default.name:默认
+                    fs.trash.interval:默认
+                    fs.trash.checkpoint.interval:默认
+                    fs.AbstractFileSystem.file.impl:默认
+                    fs.AbstractFileSystem.har.impl:默认
+                    fs.AbstractFileSystem.hdfs.impl:默认
+                    fs.AbstractFileSystem.viewfs.impl:默认
+                    fs.AbstractFileSystem.ftp.impl:默认
+                    fs.ftp.host:默认
+                    fs.ftp.host.port:默认
+                    fs.df.interval:默认
+                    fs.du.interval:默认
+                    fs.s3.block.size:默认
+                    fs.s3.buffer.dir:默认
+                    fs.s3.maxRetries:默认
+                    fs.s3.sleepTimeSeconds:默认
+                    fs.swift.impl:默认
+                    fs.automatic.close:默认
+                    fs.s3n.block.size:默认
+                    fs.s3n.multipart.uploads.enabled:默认
+                    fs.s3n.multipart.uploads.block.size:默认
+                    fs.s3n.multipart.copy.block.size:默认
+                    fs.s3n.server-side-encryption-algorithm:默认
+                    fs.s3a.awsAccessKeyId:默认
+                    fs.s3a.awsSecretAccessKey:默认
+                    fs.s3a.connection.maximum:默认
+                    fs.s3a.connection.ssl.enabled:默认
+                    fs.s3a.endpoint:默认
+                    fs.s3a.proxy.host:默认
+                    fs.s3a.proxy.port:默认
+                    fs.s3a.proxy.username:默认
+                    fs.s3a.proxy.password:默认
+                    fs.s3a.proxy.domain:默认
+                    fs.s3a.proxy.workstation:默认
+                    fs.s3a.attempts.maximum:默认
+                    fs.s3a.connection.establish.timeout:默认
+                    fs.s3a.connection.timeout:默认
+                    fs.s3a.paging.maximum:默认
+                    fs.s3a.threads.max:默认
+                    fs.s3a.threads.core:默认
+                    fs.s3a.threads.keepalivetime:默认
+                    fs.s3a.max.total.tasks:默认
+                    fs.s3a.multipart.size:默认
+                    fs.s3a.multipart.threshold:默认
+                    fs.s3a.acl.default:默认
+                    fs.s3a.multipart.purge:默认
+                    fs.s3a.multipart.purge.age:默认
+                    fs.s3a.buffer.dir:默认
+                    fs.s3a.fast.upload:默认
+                    fs.s3a.fast.buffer.size:默认
+                    fs.s3a.impl:默认
+                    io.seqfile.compress.blocksize:默认
+                    io.seqfile.lazydecompress:默认
+                    io.seqfile.sorter.recordlimit:默认
+                    io.mapfile.bloom.size:默认
+                    io.mapfile.bloom.error.rate:默认
+                    hadoop.util.hash.type:默认
+                    ipc.client.idlethreshold:默认
+                    ipc.client.kill.max:默认
+                    ipc.client.connection.maxidletime:默认
+                    ipc.client.connect.max.retries:默认
+                    ipc.client.connect.retry.interval:默认
+                    ipc.client.connect.timeout:默认
+                    ipc.client.connect.max.retries.on.timeouts:默认
+                    ipc.client.ping:默认
+                    ipc.ping.interval:默认
+                    ipc.client.rpc-timeout.ms:默认
+                    ipc.server.listen.queue.size:默认
+                    ipc.maximum.data.length:默认
+                    hadoop.security.impersonation.provider.class:默认
+                    hadoop.rpc.socket.factory.class.default:默认
+                    hadoop.rpc.socket.factory.class.ClientProtocol:默认
+                    hadoop.socks.server:默认
+                    net.topology.node.switch.mapping.impl:默认
+                    net.topology.impl:默认
+                    net.topology.script.file.name:默认
+                    net.topology.script.number.args:默认
+                    net.topology.table.file.name:默认
+                    file.stream-buffer-size:默认
+                    file.bytes-per-checksum:默认
+                    file.client-write-packet-size:默认
+                    file.blocksize:默认
+                    file.replication:默认
+                    s3.stream-buffer-size:默认
+                    s3.bytes-per-checksum:默认
+                    s3.client-write-packet-size:默认
+                    s3.blocksize:默认
+                    s3.replication:默认
+                    s3native.stream-buffer-size:默认
+                    s3native.bytes-per-checksum:默认
+                    s3native.client-write-packet-size:默认
+                    s3native.blocksize:默认
+                    s3native.replication:默认
+                    ftp.stream-buffer-size:默认
+                    ftp.bytes-per-checksum:默认
+                    ftp.client-write-packet-size:默认
+                    ftp.blocksize:默认
+                    ftp.replication:默认
+                    tfile.io.chunk.size:默认
+                    tfile.fs.output.buffer.size:默认
+                    tfile.fs.input.buffer.size:默认
+                    hadoop.http.authentication.type:默认
+                    hadoop.http.authentication.token.validity:默认
+                    hadoop.http.authentication.signature.secret.file:默认
+                    hadoop.http.authentication.cookie.domain:默认
+                    hadoop.http.authentication.simple.anonymous.allowed:默认
+                    hadoop.http.authentication.kerberos.principal:默认
+                    hadoop.http.authentication.kerberos.keytab:默认
+                    hadoop.http.cross-origin.enabled:默认
+                    hadoop.http.cross-origin.allowed-origins:默认
+                    hadoop.http.cross-origin.allowed-methods:默认
+                    hadoop.http.cross-origin.allowed-headers:默认
+                    hadoop.http.cross-origin.max-age:默认
+                    dfs.ha.fencing.methods:默认
+                    dfs.ha.fencing.ssh.connect-timeout:默认
+                    dfs.ha.fencing.ssh.private-key-files:默认
+                    hadoop.http.staticuser.user:默认
+                    ha.zookeeper.quorum:默认
+                    ha.zookeeper.session-timeout.ms:默认
+                    ha.zookeeper.parent-znode:默认
+                    ha.zookeeper.acl:默认
+                    ha.zookeeper.auth:默认
+                    hadoop.ssl.keystores.factory.class:默认
+                    hadoop.ssl.require.client.cert:默认
+                    hadoop.ssl.hostname.verifier:默认
+                    hadoop.ssl.server.conf:默认
+                    hadoop.ssl.client.conf:默认
+                    hadoop.ssl.enabled:默认
+                    hadoop.ssl.enabled.protocols:默认
+                    hadoop.jetty.logs.serve.aliases:默认
+                    fs.permissions.umask-mode:默认
+                    ha.health-monitor.connect-retry-interval.ms:默认
+                    ha.health-monitor.check-interval.ms:默认
+                    ha.health-monitor.sleep-after-disconnect.ms:默认
+                    ha.health-monitor.rpc-timeout.ms:默认
+                    ha.failover-controller.new-active.rpc-timeout.ms:默认
+                    ha.failover-controller.graceful-fence.rpc-timeout.ms:默认
+                    ha.failover-controller.graceful-fence.connection.retries:默认
+                    ha.failover-controller.cli-check.rpc-timeout.ms:默认
+                    ipc.client.fallback-to-simple-auth-allowed:默认
+                    fs.client.resolve.remote.symlinks:默认
+                    nfs.exports.allowed.hosts:默认
+                    hadoop.user.group.static.mapping.overrides:默认
+                    rpc.metrics.quantile.enable:默认
+                    rpc.metrics.percentiles.intervals:默认
+                    hadoop.security.crypto.codec.classes.EXAMPLECIPHERSUITE:默认
+                    hadoop.security.crypto.codec.classes.aes.ctr.nopadding:默认
+                    hadoop.security.crypto.cipher.suite:默认
+                    hadoop.security.crypto.jce.provider:默认
+                    hadoop.security.crypto.buffer.size:默认
+                    hadoop.security.java.secure.random.algorithm:默认
+                    hadoop.security.secure.random.impl:默认
+                    hadoop.security.random.device.file.path:默认
+                    fs.har.impl.disable.cache:默认
+                    hadoop.security.kms.client.authentication.retry-count:默认
+                    hadoop.security.kms.client.encrypted.key.cache.size:默认
+                    hadoop.security.kms.client.encrypted.key.cache.low-watermark:默认
+                    hadoop.security.kms.client.encrypted.key.cache.num.refill.threads:默认
+                    hadoop.security.kms.client.encrypted.key.cache.expiry:默认
+                    hadoop.htrace.spanreceiver.classes:默认
+                    ipc.server.max.connections:默认
+                    hadoop.registry.rm.enabled:默认
+                    hadoop.registry.zk.root:默认
+                    hadoop.registry.zk.session.timeout.ms:默认
+                    hadoop.registry.zk.connection.timeout.ms:默认
+                    hadoop.registry.zk.retry.times:默认
+                    hadoop.registry.zk.retry.interval.ms:默认
+                    hadoop.registry.zk.retry.ceiling.ms:默认
+                    hadoop.registry.zk.quorum:默认
+                    hadoop.registry.secure:默认
+                    hadoop.registry.system.acls:默认
+                    hadoop.registry.kerberos.realm:默认
+                    hadoop.registry.jaas.context:默认
+                                    
+		进程结构
+			端口
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端：
+			命令行接口：
+				参考网站：
+					http://hadoop.apache.org/common/docs/stable/commands_manual.html
+				常用命令： # hadoop fs 
+					·列出HDFS下的文件		# hadoop dfs -ls
+					·上传文件到HDFS		# hadoop dfs -put path 目录
+					·将HDFS的文件复制到本地		# hadoop dfs -get file path
+					·删除HDFS下的文件		# hadoop dfs -rmr file
+					·查看HDFS的文件内容	# hadoop dfs -cat file
+					·查看HDFS基本统计信息	# hadoop dfsadmin -report
+					·安全模式
+						# hadoop dfsadmin -safemode enter/leave
+						# hadoop dfsadmin -safemode get/wait
+					·负载均衡：节点故障或新增节点，平衡各个datanode的数据块
+						# start-balancr.sh
+			Java API方式：
+				HDFS的API参考网站：	http://hadoop.apache.org/hdfs/docs/r版本/api/
+			Web方式：
+				通过浏览器和HTTP访问NameNode所在结点的50070端口控制集群
+					http://NameNode_ip:50070[/dfshealth.jsp]
+				通过浏览器和HTTP访问JobTracker所在结点的50030端口监控	 	  JobTracker
+					http://JobTracker_ip:50030[/jobtracker.jsp]
+				观看日志
+					http://NameNode_ip:50070/logs/
+				浏览文件系统
+					http://DataNode_ip:50075
+
+	日志
+	优化
+	安全
+	集群
+		说明：HDFS是一个典型的主从架构，包含一个NameNode节点和多个DataNode节点
+			块：
+				磁盘块 -- 文件系统块 -- HDFS块(默认是64M)
+				HDFS上的文件被划分为多个块，当一个大文件存储时，会填满多个64M的块，最后一份不会占用所有的块空间
+			NameNode
+				·维护整个文件系统的目录树及其所有的文件和目录
+					这些信息以两种文件存储在本地文件中
+						1.命名空间镜像(File System Image，FSImage)：即HDFS元数据的完整快照
+						2.命名空间镜像的编辑日志(Edit Log)
+				·记录每个数据文件块在各个DataNode上的位置和副本信息
+				·协调客户端对文件的访问
+				·记录命名空间的改动或空间本身属性的改动
+				·NameNode使用事务日志记录HDFS元数据的变化，使用映像文件存储文件系统的命名空间，包括文件映射，文件属性等
+			DataNode
+				·负责其slave节点的存储管理
+				·一次写入，多次读取(不修改)
+				·文件由数据块组成，典型的块大小是64M
+				·数据块尽量散布到各个节点
+			事务处理
+			映像文件
+			Secondary NameNode
+				用于定期合并命名空间镜像和编辑日志的的辅助守护进程：
+					FSImage是个大型文件，频繁执行写操作会使系统运行极慢。故NameNode只将改动内容预写日志(WAL)。即写入
+					命名空间镜像的编辑日志。但若发生故障，回滚操作将十分耗时，需要定期合并FSImage和Edit log。为提高
+					NameNode性能，SecondaryNameNode应运而生
+				
+				NameNode和SecondaryNameNode交互：
+					1.SecondaryNameNode引导NameNode滚动更新日志，并开始将新的内容写入Edit Log.new
+					2.SecondaryNameNode将NameNode的FSImage和Edit Log文件复制到本地的检查点目录
+					3.SecondaryNameNode载入FSImage文件，并合并Edit Log，将更新后的FSImage文件压缩写入磁盘
+					4.SecondaryNameNode将新的FSImage文件送回NameNode，NameNode在接受新的FSImage后直接加载和应用该文件
+					5.NameNode将Edit Log.new更名为Edit Log
+		
+		
+		高可用：
+			说明：主要是对namenode的高可用
+			方案：
+				1.hadoop的元数据备份方案：
+					说明：利用Hadoop自身的Failover措施(通过配置dfs.name.dir)，NameNode可以将元数据信息保
+						存到多个目录。通常选择一个本地目录，一个远程目录(NFS共享)，当NameNode发生故障时
+						启动备用机器，加载元数据信息，提供服务
+					优点：
+						1.Hadoop自带机制，成熟可靠，使用简单方便，无需开发，配置即可。
+						2.元数据有多个备份，可有效保证元数据的可靠性，并且内容保持最新状态。
+						3.元数据需要同步写入多个备份目录，效率低于单个NameNode
+					缺点：
+						1.该方案主要是解决元数据保存的可靠性问题，但没有做到热备，HDFS 恢复服务时，
+						  需要重新启动NameNode，恢复时间与文件系统规模成正比。
+						2.NFS共享的可靠性问题，如果配置的多个目录中有任何一个目录的保存因为异常而阻
+						  塞，将会导致整个HDFS的操作阻塞，无法对外提供正常服务
+				2.hadoop的Secondary NameNode方案
+					说明：
+						启动一个Secondary NameNode节点，该节点定期从NameNode节点上下载元数据信息(元数
+						据镜像fsimage和元数据库操作日志edits)，然后将fsimage和edits进行合并，生成新的
+						fsimage(该fsimage就是Secondary NameNode下载时刻的元数据的Checkpoint),在本地保
+						存，并将其推送到NameNode上的edits
+					优点
+						1.Hadoop自带机制，成熟可靠，使用简单方便，无需开发，配置即可。
+						2.Secondaryary NameNode定期做Checkpoint，可保证各个Checkpoint阶段的元数据的可
+						  靠性，同时进行fsimage与edits 的合并，可以有效限制edits 的大小，防止其无限制
+						  增长
+					缺点：
+						1.没有做到热备，当NameNode无法提供服务时，需要重启NameNode，服务恢复时间与文件
+						  系统规模大小成正比
+						2.Secondary NameNode保存的只是Checkpoint时刻的元数据，因此，一旦NameNode上的元数
+						  据损坏，通过Checkpoint恢复的元数据并不是HDFS此刻的最新数据，存在一致性问题。
+				3.Hadoop的Checkpoint Node方案
+					说明：
+						该方案与Secondary NameNode方案原理相同，实现方式不同。该方案利用Hadoop的
+						Checkpoint机制进行备份，配置一个Checkpoint Node。该节点会定期从NameNode中
+						下载元数据信息(fsimage)，将edits与fsimage进行合并，在本地形成最新的Checkpoint，
+						并上传至Namenode进行更新。当NameNode发生故障时，可在备用节点启动一个NameNode，
+						读取Checkpoint信息，提供服务
+					优点：
+						1.使用简单方便、无需开发、配置即可
+						2.元数据有多个备份
+					缺点：
+						1.没有做到热备份，备份节点切换时间长
+						2.Checkpoint Node所做的备份，只是最后一次Check时的元数据信息，并不是发生故障
+						  时最新的元数据信息，有可能造成数据的不一致	
+				4.hadoop的Backup Node方案
+					说明：
+						利用自身的Failover措施，配置一个Backup Node，BackupNode在内存和本地磁盘均保
+						存了HDFS系统最新的名字空间元数据。如果NameNode发生故障，可用使用Backup Node
+						中最新的元数据信息。
+					优点：
+						1.简单方便、无需开发、配置即可使用
+						2.Backup Node的内存中对当前最新元数据信息进行了备份(Namespace),避免了通过NFS
+						 挂载进行备份所带来的风险。
+						3.Backup Node可以直接利用内存中的元数据信息进行Checkpoint，保存到本地，与从
+						  NameNode下载元数据进行Checkpoint的方式相比效率更高
+						4.NameNode 会将元数据操作的日志记录同步到Backup Node，BackupNode会将收到的日
+						  志记录在内存中更新元数据状态，同时更新磁盘edits，只有当两者操作成功，整个
+						  操作才成功。这样即便NameNode上的元数据发生损坏，Backup Node的磁盘上也保存
+						  了HDFS最新的元数据，从而保证了一致性。
+					缺点：
+						1.当NameNode发生故障，目前还只能通过重启NameNode的方式来恢复服务。
+						2.Backup Node的内存中未保存Block的位置信息，仍然需要等待下面的DataNode进行上
+						  报，因此即便在后续的版本中实现了热备，仍然需要一定的切换时间。
+						3.当前版本只允许1个Backup Node连接到 NameNode
+				5.DRDB方案
+					说明：
+						利用DRDB机制进行元数据备份。当NameNode发生故障时，可以启动备用机器的NameNode，
+						读取DRDB备份的元数据信息，提供服务
+					优点：
+						1.DRDB 是一种较为成熟的备份机制。
+						2.元数据有多个备份、并且保持最新状态。
+						3.由于备份的工作交由DRDB完成，对于一条新的日志记录，NameNode无需同步写入多个
+						  备份目录，因而NameNode在效率上优于Hadoop的元数据备份方案
+					缺点：
+						1.没有做到热备，备份节点切换时间长
+						2.需要引入新的机制，由此带来一定的可靠性问题
+				6.Facebook的Avatarnode方案
+					说明：
+						利用FaceBook提出的Avatar Node机制。
+						Active Node作为Primary NameNode对外提供服务。Standby Node处于Safe mode模式，在内
+						存中保存Primary NameNode最新的元数据信息。Active Node和Standby Node通过NFS共享存
+						储进行交互。DataNode同时向Active Node和Standby Node发送Block location信息。当管
+						理员确定Primary NameNode发生故障后，将Standby Node切换为Primary NameNode。由于
+						Standby Node内存中保存了所有元数据的最新信息，因此可直接对外提供服务，大大缩短
+						了切换时间。
+					优点：
+						1.提供热备、切换时间大大缩短。
+						2.FaceBook已将其集成到自己维护的Hadoop代码中， 并部署到了自己的集群使用
+					缺点
+						1.修改了部分源码，增加了一定的复杂性，并在软件的维护性上带来一定问题。
+						2.参考资料较少
+						3.只提供一个备份节点			
+			比较：
+					方案名称  		切换时间 元数据一致性 是否做checkpoint	使用复杂度 成熟度  相关资料
+				   元数据备份 			长 		一致 			否 				低 		高 		较多
+				Secondary NameNode		长 		不一致 			是 				中 		高 		较多
+				Checkpoint Node 		长 		不一致 			是 				中 		高 		较少
+				  Backup Node  		中 		一致 			是 				中 		中 		较少
+					DRDB  				长 		一致 			否 				高 		高 		多
+				   AvatarNode  		短 		一致 			是 				高 		高 		少
+				  
+				注：
+					1.元数据备份方案和DRDB方案不能单独使用，因为在系统运行期间，没有相应的Checkpoint机制，
+					  会造成日志的无限制增长，因此需要和Secondary NameNode、Checkpoint Node或Backup Node
+					  配合
+					2.Secondary NameNode和Checkpoint Node机制，只有Checkpoint的功能，而不能保存实时的元数
+					  据，因此需要在Namenode上配置元数据备份路径来保存实时元数据
+					3.Backup Node，虽然它可以实时保存元数据，但为防止Backup Node成为一个单点，也需要在
+					  NameNode上配置元数据备份路径，保存在本地进行备份
+					  
+					元数据备份方案使用简单方便，在功能上可替代 DRDB；
+					Backup Node是 Checkpoint Node 的升级版，效率更高；
+					Secondary NameNode在低版本的Hadoop中就已存在。
+
+					因此用户实际上可选择的 HA 组合方案为：
+						1.元数据备份+ Secondary NameNode
+							这种方案适用于目前Hadoop 的所有版本，属于冷备，切换时间长。由于Secondary NameNode
+							自身并不实时保存元数据，一旦NameNode上的元数据损坏，将无法恢复到最新的元数据，
+							因此采用元数据备份机制，在 NameNode上需要配置多个目录进行备份，常见的做法是再
+							配置一个NFS节点，共享一个目录进行备份。
+						2.元数据备份+ Backup Node
+							这种方案目前的实现只支持冷备，切换时间长，自身实时保存元数据，不需要NFS节点
+						3.元数据备份+ AvatarNode
+							这种方案需要打Patch(补丁包)，而且只支持特定的版本(0.20)或者使用FaceBook自身的
+							Hadoop版本，切换时间短，需要一个NFS节点作为Active节点和Standby节点的数据交互
+							节点
+						总之，如果当前Hadoop的版本较低，同时也不允许升级版本的话，可以选择第1种方案；如果
+						版本较新(在 0.21.0 以上)，则第2种方案优于第1种；如果对HA切换时间有严格要求的话，
+						则需要选择3种方案
+具体服务相关
+	概念
+		HDFS的特性：
+			冗余副本策略
+				·可以在hdfs-site.xml中设置复制因子指定副本数据量
+				·所有数据块都有副本
+				·DataNode启动时，遍历本地文件系统，产生一份HDFS数据块和本地文件的对应关系列表(blockreport)汇报给NameNode
+			机架策略
+				·集群一般放在不同机架上，机架间带宽要比机架内带宽小
+				·HDFS的"机架感知":防止机架失去联系
+				·一般在本机架放一个副本，在其它机架存放别的副本
+			心跳机制
+				·NameNode周期性从DataNode接收心跳信号和块报告
+				·NameNode根据块报告验证元数据
+				·没有按时发送心跳的DataNode会被标记为宕机，不会再给它任何的I/O请求
+				·如果DataNode的失效造成副本数量下降，并且低于预先设置的阈值,NameNode会检测出这些数据块,并在合适的时机进行重新复制
+				·引发重新复制的因素还包括数据副本本身损坏、磁盘错误、复制因子被增大等
+			
+			安全模式
+				·NameNode启动会先经过一个"安全模式"阶段
+				·安全模式阶段不会产生数据写
+				·在此阶段NameNode收集各个DataNode的报告，当数据块达到最小副本数以上是，会被认为是"安全"
+				·在一定比例(可设置)的数据块被确定为"安全"后，再过若干时间，安全模式结束
+				·当检测到副本数不足的数据块时，该块会被复制直到达到最小副本数
+			
+			校验和/数据完整性(保存在data/current/dncp_block_verification.log.curr)
+				·在文件创立时，每个数据块都会产生校验和
+				·校验和回作为单独一个隐藏文件保存在命名空间下
+				·客户端获取数据时可以检查校验和是否相同，从而发现数据块是否损坏
+				·如果正在读取的数据块损坏，则可继续读取其它副本
+			
+			回收站
+				·删除文件时，其实是将文件放入回收站(/user/`user`/.Trash)
+				·回收站的文件可以快速恢复
+				·可以设置一个时间阈值，当回收站里的文件的存放时间超过这个阈值，就会被彻底删除，并且释放占用的数据块
+			
+			元数据保护
+				·映像文件和事务日志是NameNode的核心数据，由SecondaryNameNode定期备份
+				·副本会降低NameNode的处理速度，但增加安全性
+				·NameNode依然是单点，若发生故障须手工切换
+			集群负载：
+				·节点的增加或失效，会导致数据分布不均匀
+				·当某个节点的空闲空间大于一个临界值时，HDFS会自动从其它DataNode迁移数据过来
+			快照机制
+				·支持存储某个时间点的映像，需要时可以使数据重返这个时间点的状态
+				·Hadoop目前还不支持快照，但已经列入开发计划
+		HDFS的数据读写：
+			1.块分布：
+				考虑可靠性，写入速度，读取速度
+				1.集群之外的客户端会随机选择一个节点放第一个副本
+				2.第二个副本放在与第一个不同且随机另外选择的机架的节点上
+				3.第三个副本放在与第二个相同的机架上
+				
+				注：Hadoop默认布局是在HDFS客户端节点上放第一个副本
+			2.数据读取：
+				1.客户端访问NameNode
+				2.验证客户端身份：
+					·通过信任的客户端，由其指定用户名	或
+					·通过如Kerberos等强制验证机制完成
+				3.检测文件的所有者及其访问权限
+				4.NameNode告知客户端这个文件的第一个数据块的标号及保存有该数据块的DataNode列表
+				5.客户端访问最合适的DataNode(其读操作往往被转换成离读节点最近的一个节点读取，若HDFS跨越
+				  多个数据中心，那么本数据中心的复制优先级高于其它远程数据中心)，读取数据块，直至完成
+				
+					注：若HDFS客户端是集群中的DataNode时，将直接从本地DataNode中读取数据
+			3.数据写入：
+				1.HDFS客户端通过HDFS相关API发送请求，打开一个要写入的文件。
+				2.验证客户端身份
+				3.检测文件所有者及其访问权限
+				4.请求被送达至NameNode，并建立该文件的元数据
+				5.当客户端将数据写入时，数据会自动被拆分成数据包并保存在队列中
+				6.客户端有一个独立的线程，从队列中读取数据包，并向NameNode请求一组DataNode列表，
+				  以便写入一个数据块的多个副本
+				7.客户端直接连接到列表中的第一个DataNode，而该DataNode有连接到第二个DataNode，第
+				  二个又连接到第三个，以此建立数据块的复制管道。
+				8.HDFS客户端维护者一个DataNode成功写入数据的确认信息的列表，当第一个数据块完成写
+				  入后，HDFS客户端重新向NameNode申请下一组DataNode。最终客户端完全写入
+			4.数据完整性：
+				1.DataNode在收到客户端数据或复制其他DataNode的数据时：
+					NameNode计算数据的校验和，DataNode负责验证收到数据的校验和，若校验和正确，则保存数据
+				2.HDFS客户端从DataNode读取数据时：
+					将文件的校验和与DataNode中存储的校验和比较。每个DataNode均保存有一个用于验证的校验和
+					日志，知道每个数据块的最有一次的验证时间
+				3.DataNode会在后台定期验证数据块的校验和
+					运行一个DataBlockScanner程序。若有错误，则向NameNode报告已损坏的数据块并由NameNode标
+					记此数据块为已损坏。接着安排这个数据块的一个副本复制到另一个DataNode，确保数据块的副
+					本数
+		HDFS有两种数据：
+			1.文件数据：
+				用户保存在hdfs上的数据，保存在各个DataNode上
+			2.元数据：
+				说明：维护该文件系统所需的信息
+				分类：
+					内存元数据：
+						说明：NameNode在内存中维护整个文件系统的元数据镜像，用于HDFS的管理
+					元数据文件：
+						说明：用于持久化存储
+						
+					文件和目录自身的属性信息：文件名，目录名，文件大小，创建时间，修改时间
+					文件存储相关信息：文件分布情况，副本个数，每个副本所在的DataNode
+					HDFS中所有的DataNode信息，用于datanode管理
+					
+					主要来源于NameNode磁盘上的元数据文件(包括元数据镜像fsimage和元数据日志操作日志edits)及datanode的上报信息
+				
+				
+	内部命令
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

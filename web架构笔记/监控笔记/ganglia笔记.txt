@@ -1,0 +1,374 @@
+
+简介
+	时间，作者，开发语言，定义
+		是UC Berkeley发起的一个开源集群监视项目，主要针对大规模设施，近实时地监控和收集大量系统指标数据
+	官网：http://ganglia.info/
+	版本
+	协议
+适用性(优缺)
+架构
+	模块：
+		Ganglia由gmond、gmetad和gweb三部分组成
+			gmond(Ganglia Monitoring Deamon)：
+				说明：是一种轻量级服务，安装在每台需要收集指标数据的节点上。用来完成实际意义上的指标收集工作，
+					并通过监听/通告协议与集群内其它节点共享数据
+				1.安装在每台小监测的主机上，通过与主机操作系统交互获取数据，并与同一集群内的其它主机共享数据
+				2.集群内每个gmond知道集群内其它主机所收集的数据，并默认向任意连接gmond端口的客户端提供整个集
+				  群状态的xml格式的dump文件
+				3.gmond默认拓扑为多播模式，即集群诶所有节点都收发状态数据。每个节点维护一个内存数据库(以hash表
+				  的形式存储集群内所有节点的指标数据)
+			gmetad(Ganglia Meta Daemon)：依赖于rrdtool
+				说明：是一种从其它gmetad或gmond源收集指标数据，并将其以RRD格式存储至磁盘的服务。gmetad为从主机
+					组收集的特定指标信息提供了简单的查询机制，并支持分级授权，使得创建联合监测域成为可能
+				1.gmetad通过8651/tcp监听远程gmetad连接，并向授权主机提供xml格式的网格状态
+				2.gmetad通过8652/tcp对交互式请求作应答。gweb使用这种方式来表示不合适RRD文件的信息
+			gweb(Ganglia Web)：
+				说明：利用浏览器显示gmetad所存储数据的php前端。在Web界面中以图表方式展现集群的运行状态下收集的
+					多种不同指标数据。gweb是一个独立的发行版，其源代码库也是独立的。
+				1.其依赖以httpd，php
+				
+	安装：
+		# yum install epel-release	ntpd		每台都要安装
+		# 将selinux设为1
+		# 安装gmond
+			# yum install ganglia-gmond 
+			# vim /etc/ganglia/gmond.conf
+				配置cluster
+			# /etc/init.d/gmond start
+		# 安装gmetad
+			# yum install ganglia-gmetad 
+			# vim /etc/ganglia/gmetad.conf
+				配置data_source
+			# /etc/init.d/gmetad start
+		# 安装web端
+			# yum install ganglia-web
+			# vim /etc/httpd/conf.d/ganglia.conf
+				#Deny from all
+				Allow from all
+			# vim /etc/httpd/conf/httpd.conf
+				DocumentRoot /usr/share/ganglia
+			# /etc/init.d/httpd start
+		# 访问
+			# http://ip/
+		
+	结构
+		目录结构
+			安装目录
+				gmond：
+					/etc/ganglia/gmond.conf
+						说明：
+							1.该配置文件由多个section组成。可粗略分文两类：处理主机和集群的配置/处理指标数据收集和调度的问题
+							2.section名和属性不区分大小写，且布尔值可用yes/true/on表示，同样不区分大小写
+							3.该配置文件有第三方API(libconfuse)进行语法分析
+							4.cluster部分的属性和gmond中以xml格式输出的cluster标识符的属性相对应，且只在配置文件中出现一次
+						配置：
+							globals {							# 定义gmond的通用特性
+							  daemonize = yes					# 当值为true时，gmond将在后台运行
+							  setuid = yes						# 当值为true时，gmond将user属性指定的用户uid作为有效uid；当值为false时，不会改变其有效用户
+							  user = ganglia					
+							  debug_level = 0					# 为0时，gmond正常运行，大于1时，gmond将前台运行并输出日志，值越大越详细
+							  max_udp_msg_len = 1472			# gmond发送包所能包含的最大长度，一般不变
+							  mute = no							# 当值为true，不论其它指令，gmond将不能发送数据。变成单收节点，但可以响应gmetad
+							  deaf = no							# 当值为true，不论其它指令，gmond将不能接受数据。
+							  allow_extra_data = yes			# 当值为false，gmond不会发送xml的extra_element和extra_data部分。该值应用于用户使用自己的前端并节省带宽
+							  host_dmax = 86400					# 单位s，当值为0，即使远程主机停止报告，gmond也不会从列表中删除该主机，若为正，则在该值内未接收到数据，gmond将删除该主机
+							  host_tmax = 20 					# 单位s，表示gmond等待一台主机更新的超时时间。若超时，则认为该主机已经崩溃
+							  cleanup_threshold = 300 			# 单位s，gmond清除过期数据的最小时间间隔
+							  gexec = no						# 当值为true，gmond允许主机运行gexec任务。该方式需要运行gexecd并安装合适的验证码
+							  # override_hostname = "mywebserver.domain.com"
+							  send_metadata_interval = 0 		# 单位s，表示gmond两次发送元数据包的时间间隔。元数据包是用来描述所有激活指标的数据包。值为0表示gmond只有在初始启动和收到
+																# 其它gmond节点请求时才发送元数据包。
+							}
+							
+							cluster {							# 定义所属集群信息
+							  name = "unspecified"				# 指定集群名称。当轮询节点的集群状态的xml集合时，把该值插入cluster元素内。轮询该节点的gmetad会使用该值来命名存储集群数据
+																# 的RRD文件。该指令将取代gmetad.conf文件中指定的集群名称
+							  owner = "unspecified"				# 指定集群管理员
+							  latlong = "unspecified"			# 指定该集群在地理上的GPS的经纬度
+							  url = "unspecified"				# 指定携带集群特定信息(如集群用途和使用细节)的URL	
+							}
+							
+							host {								# 提供运行gmond的主机的相关信息
+							  location = "unspecified"			# 用来标识主机位置，描述格式一般与站点位置有关
+							}
+							
+							udp_send_channel {
+							  #bind_hostname = yes 				# gmond使用源地址解析主机名
+							  mcast_join = 239.2.11.71			# 指定该选项时，gmond将创建UDP套接字并加入由IP地址指定的多播组。
+							  port = 8649						# 指定gmond发送数据的端口号，
+							  ttl = 1							# 该值限制了指标数据所允许传播的hop数。
+							}
+							
+							udp_recv_channel {
+							  mcast_join = 239.2.11.71			# 指定该选项时，gmond将监听该ip的多播组发送的多播数据包。若未指定，gmond将在指定端口创建单播UDP服务
+							  port = 8649						# 指定gmond接收数据的端口号
+							  bind = 239.2.11.71				# 当指定该选项时，gmond将绑定到指定的地址
+							  retry_bind = true			
+							  # buffer = 10485760				# UDP缓冲区大小，默认10M
+							}
+							
+							tcp_accept_channel {
+							  port = 8649						# gmond接收gmetad轮询的端口号
+							  gzip_output = no					# 是否将输出的xml进行gzip压缩
+							}
+							
+							modules {							# 加载指标模块的必要参数，可动态加载
+							 
+							}
+							
+							collection_group {					# 定义了gmond包含的指标及gmond收集和广播这些指标的周期，用户可定义多个group，每个group必须包含至少一种metric
+							  collect_once = yes				# 一些指标是永远不变的，例如os类型和CPU数量等，只在初始启动时收集一次。即将该属性设为yes。该属性与collect_every排斥
+							  time_threshold = 20				# gmond发送collection_group所指定的指标数据到已配置的udp_send_channels的最大时间
+							  metric {
+								name = "heartbeat"				# 指标收集模块定义的单个指标标准名称，可通过# gmond -m 查看名称列表
+							  }
+							}
+							collection_group {
+							  collect_every = 60				# 定义收集指标的轮询间隔(s)，
+							  time_threshold = 60
+							  metric {
+								name = "cpu_num"
+								value_threshold = 1.0			# 
+								title = "CPU Count"				# 用户化的用于web前端显示的指标名称
+							  }
+							}			
+							
+							include ("/etc/ganglia/conf.d/*.conf")	# 引入其它配置文件
+					/etc/ganglia/conf.d/multicpu.conf
+						说明：被引入gmond.conf文件中
+				gmetad：
+					/etc/ganglia/gmetad.conf
+						说明：
+							1.由单行属性及相应值组成，属性名不区分大小写，值区分大小写
+							2.
+						配置：
+							data_source "my cluster" [10] ip1:port1 ip2:port2 hostname:port3 
+								# 该属性是gmetad的核心配置。每行data_source描述该gmetad收集gmond集群或另一个gmetad
+								# 的信息。gmetad能够自动区别集群和gmetad。当gmetad检测到data_source引用一个集群时，
+								# gmetad将会为data_source维护一整套RRD数据库(可用于创建图表)。当检测到引用一个gmetad
+								# 时，则只保留概要性的RRDs
+								# 该属性值由3个字段组成，第一个字段作为唯一标识data_source的字符串；第二个字段指定
+								# 轮询间隔(s)，若省略，则默认15秒；第三个字段是以空格分开的要轮询数据的主机列表。
+								# 端口号指明gmond的tcp_accept_channel的端口。若未指明端口，默认连接8649/tcp
+								# gmetad会依次检测指定的主机，并从第一台响应主机开始收集数据，所以无需在data_source中
+								# 列出集群中所有主机，通常指定两三台即可
+							debug_level 1/0					# 默认0，设置为1，则gmetad前台运行并输出error信息。设置超过1的
+															# 整数，则输出debug信息
+							scalable on/off					# 默认为on，若设为off，则gmetad强制为data_source的引用的gmetad保留一份完整的RRD数据库
+							gridname "unspecified"			# 表示有grid标识符指定的所有数据源，为data_source中定义的一个集群集合
+							authority "http://hostname/ganglia/"	# gmetad授权的URL，被其他gmetad用来找到当前gmetad数据源的图表位置
+							trusted_hosts ip1 ip2			# 当前gmetad允许数据共享的主机列表，以空格分隔
+							all_trusted on/off				# 默认off，当该值设为on时，将重写trusted_hosts属性，允许数据和任意主机共享
+							setuid on/off					# 默认on，允许gmetad设置有效uid
+							setuid_username ganglia			# 设置有效用户名，默认为nobody
+							unsummarized_metrics metric1 metric2 	# 
+							unsummarized_sflow_vm_metrics on/off	# 默认off，
+							xml_port 8651					# gmetad监听端口
+							interactive_port 8652			# gmetad交互式监听端口
+							server_threads 10				# 默认为4，允许同时连接到监听端口的连接数
+							case_sensitive_hostnames 0		# 设为1，RRD文件区分主机名大小写
+							
+							#RRDtool属性
+							RRA								# 
+							rrd_rootdir "/var/lib/ganglia/rrds"		# 指定RRD文件的存储目录
+							umask 022						# 创建的RRD文件及其目录的umask
+							
+							# Graphite支持。一种外部开源指标数据存储和可视化工具。gmetad将收集到的指标数据输出到Graphite
+							carbon_server "unspecified"		# 远程carbon进程的主机名或ip
+							carbon_port 2003				# carbon端口号
+							carbon_protocol tcp/udp			# 默认tcp，carbon使用的协议
+							graphite_path "					# 用户定义的graphite路径，用.分隔路径来组织和引用度量，可使用3个变量：
+							datacenter1.gmetad.%s.%h.%m"	# %s(cluster name),%h(host name),%m(metric name)
+							carbon_timeout 500				# gmetad等待Graphite服务器响应的毫秒数
+
+							# memcached
+							memcached_parameters "--SERVER=127.0.0.1 --POOL-MIN=10 --POOL-MAX=32"
+															# 
+							memcached_include_cluster_in_key 0		# metric将被存储在HOST/METRIC_NAME。若要加上集群名称(CLUSTER/HOST/METRIC_NAME)，可设为1
+							
+							# Riemann
+				gweb：
+					/etc/ganglia/conf.php						
+						说明：该文件重写并扩展了/usr/share/ganglia/conf_default.php中的默认配置
+					/etc/httpd/conf.d/ganglia.conf
+						说明：是/etc/httpd/conf/httpd.conf文件的扩展
+						配置：
+							Alias /ganglia /usr/share/ganglia
+
+							<Location /ganglia>
+							  Order deny,allow
+							  Deny from all
+							  Allow from 127.0.0.1
+							  Allow from ::1
+							  # Allow from .example.com
+							</Location>
+
+				
+				/usr/sbin/gmetad
+				/usr/sbin/gmond
+				/var/lib/ganglia
+				/usr/share/ganglia
+				
+		进程结构
+			gmod：
+			gmetad：
+			httpd
+			
+				每个进程都是相互独立的，运行至只需要自己的配置文件来操作即可。可以独立地
+				正常启动和运行。但结构上是相互协作的，需要同时使用才能发挥功效
+			端口
+				gmond：
+					8649/udp：用于gmond与集群内其他gmond节点发送和接收数据(广播或单播地址)
+					8649/tcp：gmond接收gmetad轮询的端口号
+				gmetad：
+					8651/tcp：监听远程gmetad连接并向授权主机提供xml格式的网格状态
+					8652/tcp：对交互式请求作出应答
+		编程接口
+		管理软件
+			Web管理：http://gweb_ip/
+	命令
+		服务器：
+			gmond:
+				说明：ganglia监控守护进程
+				示例：
+					# gmond [options]
+						-h					# 打印帮助信息
+						-V					# 显示版本号
+						-c /path/file		# 指定gmond配置文件，默认/etc/ganglia/gmond.conf
+						-l string			# 指定该主机在集群中的位置，默认(0.0.0)
+						-d N				# 指定日志级别
+						-f					# 前台运行
+						-t					# 打印默认配置(官网提供的默认配置，与当前gmond配置无关)
+						-m					# 打印该gmond支持的metrics
+						-b					# 计算配置文件中的属性需要的最小带宽
+						-p /path/file		# 启动时指定pid文件
+						
+			gmetad：
+				说明：ganglia meta守护进程
+				示例：
+					# gmetad [options]
+						-h					# 打印帮助信息
+						-V					# 打印版本号
+						-c					# 指定配置文件位置，默认/etc/ganglia/gmetad.conf
+						-d N				# 指定日志等级
+						-p /path/file		# 启动时指定pid文件
+		客户端：
+			gmetric：
+				说明：ganglia度量客户端
+				示例：
+					# gmetric [options]
+						-h					# 打印帮助信息
+						-V					# 打印版本号
+						-c					# 指定用于发现send channels的配置文件，默认/etc/ganglia/gmond.conf
+						-n string			# 度量的名称
+						-v string			# 度量的值
+						-t string			# string|int8|uint8|int16|uint16|int32|uint32|float|double
+						-u string			# 该值的计量单位(K,M)
+						-s string			# zero|positive|negative|both|derivative，默认both
+						-x seconds			# gmetric调用的最长时间，默认60s
+						-d seconds			# 该metric的生命周期，默认0
+						
+			gstat：
+				说明：ganglia状态客户端
+				示例：
+					# gstat [options]
+						-h					# 打印帮助信息
+						-V					# 打印版本号
+						-a					# 列出所有主机
+						-d					# 只列出已经dead的主机
+						-m   
+						-1
+						-l
+						-n					# 使用IP代替hostname
+						-i ip				# 指定运行gmond的地址，默认localhost
+						-p port				# 指定端口，默认8649
+						
+	日志
+	优化
+	安全
+	集群：
+		拓扑结构：
+								Apache+php+gweb
+									   |
+				gmetad				gmetad						gmetad
+				   |				   |						   |
+			gmond	gmond		gmond	gmond		  	gmetad			gmetad
+														   |         	   |
+													gmond	gmond	gmond	gmond
+												
+			在I/O限制的大型结构中，rrdcached可以充当gmetad和RRD文件之间的缓存
+				
+					指标数据存储					rrdcached				gmetad	
+			   FS(/var/lib/ganglia/rrs):
+				/cluster1/node1/metric1.rrd			  缓存
+				/cluster1/node2/metric2.rrd	  <---	  缓存		<----	  进程间通信
+				/cluster2/node1/metric1.rrd			  缓存
+				
+		进程启动：
+			1.若使用UDP单播，则首先启动UDP汇聚节点，以确保它在其它节点首次传输元数据时处于监听状态
+			2.启动其它gmond节点
+			3.若使用了rrdcached，则启动所有的rrdcached程序
+			4.启动拓扑结构中最低级别的gmetad
+			5.其层次顺序启动其它gmetad程序
+			6.启动web服务器
+			
+		注：
+			1.ganglia基于系统时钟工作，若集群主机时间不同步，ganglia将无法收集有意义的数据，故需提前时间同步
+			
+		
+具体服务相关
+	概念:
+		gmond
+			多播：
+				gmond内部的发送和接收两部分并不相联。其自身并不交互信息，而只和网络进行交互。
+				即指标模块收集本地数据直接发送到网络，而接收部分只存储从网络中收集的数据
+			单收：
+				指不发送数据的gmond，但汇聚集群内其它gmond的指标数据
+			单发：
+				指不接收数据的gmond，只要不同时是单收节点，就可以为其它gmond发送指标数据
+				
+	
+	
+	
+	
+	
+		RRDtool：Round Robin Database
+			轮询数据库，包含了多个时间块内静态分配的数值。用户存储和显示从其它gmated或gmond源收集的时间序列数据
+		
+	内部命令
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

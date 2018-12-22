@@ -1,0 +1,25 @@
+screen：
+	说明：由GNU计划开发的用于命令行终端切换的自由软件，用户可以通过该软件同时连接多个本地或远程的命令行会话，并在其间自由切换。
+	目的：在SSH远程连接被断开或者关闭的时候，系统里面的程序还能继续运行
+	官网：http://www.gnu.org/software/screen/
+	安装：
+		# yum  install screen
+		
+	使用：
+		# screen -S session_name				建立一个会话
+		# screen -ls							查看所有screen
+		
+		# screen -d session_name				使会话离线
+		# screen -x session_name				将离线的会话恢复
+		# screen -r session_name				回到分离的会话
+		# screen -wipe session_name				删除dead会话(删除无法使用的session)
+		# kill pid								杀掉在线会话
+		
+		# screen -v								显示版本信息
+		
+		
+		# ctrl-a d								退出当前session到终端
+		
+	# 允许设置窗口标题，显示当前在哪个session
+	# vim /etc/screenrc
+		caption always "%{.bW}%-w%{.rW}%n %t%{-}%+w %=%H %Y/%m/%d "

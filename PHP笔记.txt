@@ -1,0 +1,216 @@
+PHP：PHP Hypertext Preprocessor
+	说明：PHP是一种流行的通用脚本语言,尤其适合于web开发并可嵌入到HTML中。主要目标是允许Web开发人员快速编写动态生成的Web页面
+	官网：http://www.php.net/
+	作者：Rasmus Lerdorf
+	1994年开始开发，1997年2.0发布，1997年3.0发布(PHP),1999年4.0发布(Zend 1.0)，2004年5.0发布(Zend 2.0)
+
+说明：	
+	示例：
+		<html>
+			<head>
+				<title>Example</title>
+			</head>
+			<body>
+
+				<?php
+				echo "Hi, I'm a PHP script!";
+				?>
+
+			</body>
+		</html>
+		
+		PHP代码被包含在特殊的起始符和结束符 <?php 和 ?> 中，用以嵌入到html中
+		
+	功能：
+		1.网站和Web应用程序：服务器端脚本，最常用
+		2.命令行脚本：不需要服务器或浏览器来运行，只需要PHP解析器来执行即可
+		3.桌面应用：使用PHP-GTK来编写程序，但较少使用
+	
+	架构：
+		Zend Engine：
+				原理：将PHP代码转换为Zend opcode的二进制格式并存储于内存中，再使用Zend Engine去执行
+				作用：同一个php的进程内，先将php语言编译成Opcode，第二次运行时就不用编译了，加快执行速度
+		Opcode缓存(PHP加速器)：同一个App server的不同进程之间的无法共享其Opcode，故使共享(eg；apache以进程方式启动，每个php都有自己独立的运行空间)
+				eg：
+					Xcache：http://xcache.liqhttpd.net
+	源码目录结构：
+		build：		源码编译相关
+		ext：		官方的扩展目录，包含了大多数PHP函数的定义和实现
+		main：		PHP的核心文件
+		netware：
+		pear：		PHP扩展与应用仓库
+		sapi：		包含各种服务器抽象层的代码，eg：apache的mod_php，cgi，fastcgi及fpm接口
+		scripts：
+		tests：		PHP的测试脚本集合
+		travis：
+		TSRM：		PHP线程管理
+		win32：		Windows平台相关的一些实现
+		Zend：		Zend引擎的实现目录
+	
+	配置文件：
+		php.ini：
+			说明：php运行核心配置文件，分段式配置，以;做注释
+			在php启动时被读取。对于服务器模块的php仅在web服务器启动时读取一次。对于CGI和CLI，每次调用都会读取
+		php-fpm.conf：
+			说明：php-fpm进程服务的配置文件,以;做注释
+			
+		www.conf：	php7
+			php-fpm进程服务器的扩展配置文件
+
+	pecl(PHP Extension Community Library)：
+		PECL 可以看作PEAR 的一个组成部分，提供了与PEAR 类似的功能。不同的是PEAR的所有扩展都是用纯粹的PHP代码编写的，
+		用户在下载到PEAR扩展以后可以直接使用将扩展的代码包含到自己的PHP文件中使用。而PECL是使用C语言开发的，通常用于
+		补充一些用PHP难以完成的底层功能，往往需要重新编译或者在配置文件中设置后才能在用户自己的代码中使用，PECL需要在
+		服务器上配置并被注册到主机中。
+	pear(PHP Extension and Application Repositor)：
+		PEAR 将PHP程序开发过程中常用的功能编写成类库，涵盖了页面呈现、数据库访问、文件操作、数据结构、缓存操作、
+		网络协议、WebService 等许多方面，用户可以通过下载这些类库并适当的作一些定制以实现自己需要的功能。避免重复
+		发明“车轮”。PEAR 的出现大大提高了PHP 程序的开发效率和开发质量
+		
+		PEAR是PHP的上层扩展，PECL是PHP的底层扩展。它们都是为特定的应用提供现成的函数或者类
+		
+	fpm：FastCGI进程管理器
+		功能：
+			1.支持平滑停止/启动
+			2.可以工作于不同的 uid/gid/chroot 环境下，并监听不同的端口和使用不同的php.ini配置文件（可取代 safe_mode 的设置）
+			3.在发生意外情况的时候能够重新启动并缓存被破坏的 opcode
+	fpm管理子进程的三种方式：
+		static：始终保持一个固定的子进程数(pm.max_children)，一般不用
+		dynamic：子进程数量基于参数动态增减，易造成内存占用
+			pm.start_servers：		启动时的子进程数量
+			pm.max_children：		繁忙时最大的子进程数量
+			pm.min_spare_servers：	闲置子进程最低数量
+			pm.max_spare_servers：	闲置子进程最大数量
+		ondemand：子进程数量基于需求动态增减，易造成服务器频繁创建与撤销进程
+			pm.max_children：		繁忙时最大的子进程数量
+			pm.process_idle_time：	当空闲进程存在多少秒后被杀死
+	配置：
+		开启php的fpm状态页面
+			1.修改php-fpm.conf：
+				pm.status_path = /fpm_status
+			2.修改nginx.conf				
+				location = /fpm_status {
+					fastcgi_pass 127.0.0.1:9000;
+					include        fastcgi.conf;
+				}
+			3.重启nginx和fpm
+			4.访问http://ip/fpm_status
+				pool:                 sky									# 进程池名称
+				process manager:      dynamic								# 进程管理方式
+				start time:           31/Dec/2015:10:13:44 +0800			# fpm启动时间
+				start since:          16									# 运行时长(秒)
+				accepted conn:        1										# 当前进程池接受的请求数
+				listen queue:         0										# 请求等待队列，若该值不为0，则须增加fpm的子进程数量
+				max listen queue:     0										# 请求等待队列最高的数量
+				listen queue len:     128									# 等待队列长度
+				idle processes:       1										# 空闲进程数量
+				active processes:     1										# 活跃进程数量
+				total processes:      2										# 总进程数量
+				max active processes: 1										# 最大的活跃进程数量
+				max children reached: 0										# 子进程最大数量限制的次数，若不为0，增大最大子进程数量
+				slow requests:        0										# 启用了slow-log，缓慢请求的数量
+
+
+				
+	全局变量：
+		$GLOBALS：
+			说明： 引用全局作用域中可用的全部变量，变量的名字就是数组的键
+			示例：
+				<?php
+					function test() {
+						$foo = "local variable";
+
+						echo '$foo in global scope: ' . $GLOBALS["foo"] . "\n";
+						echo '$foo in current scope: ' . $foo . "\n";
+					}
+
+					$foo = "Example content";
+					test();
+				?>
+				以上例程的输出：
+					$foo in global scope: Example content
+					$foo in current scope: local variable
+		$_REQUEST：
+			说明：HTTP Request变量，默认情况下包含了 $_GET，$_POST 和 $_COOKIE 的数组
+编译安装：以fastcgi方式，大概10m
+	# rpm -ivh epel-release-latest-7.noarch
+	# yum install libacl-devel libxml2-devel openssl-devel bzip2-devel libcurl-devel libmcrypt-devel
+	# useradd -r fpm
+	# tar php-5.6.16.tar.bz2 -C /usr/local/src/
+	# cd /usr/local/src/
+	# ./configure --prefix=/usr/local/php --with-config-file-path=/usr/local/php/etc \
+	--with-openssl --with-mhash --with-mcrypt \
+	--enable-fpm --with-fpm-user=fpm --with-fpm-group=fpm --with-fpm-acl \
+	--enable-sockets --enable-sysvshm --enable-mbstring --with-freetype-dir --with-jpeg-dir \
+	--with-png-dir --with-zlib-dir --enable-xml --with-bz2 --with-curl \
+	--with-mysql=/usr/local/mysql  --with-mysqli=/usr/local/mysql/bin/mysql_config 
+	# make
+	# make test
+	# make install
+	# cp php.ini-production /usr/local/php/lib/php.ini
+	# cd /usr/local/php/
+	# cp etc/php-fpm.conf.default etc/php-fpm.conf
+	# ./sbin/php-fpm
+	
+	测试：
+		php测试：
+			<?php
+				phpinfo();
+			?>
+		php连接mysql测试：
+			<?php
+			
+			?>
+			
+命令控制：
+	php-fpm控制：
+		显示：
+			# ./php-fpm -h		显示帮助
+			# ./php-fpm	-v		显示版本信息
+			# ./php-fpm -i		显示配置信息
+			# ./php-fpm -m		显示已编译模块
+		检测
+			# ./php-fpm -t		检查配置文件
+			# ./php-fpm -tt		检查配置文件并输出详细信息
+		控制：
+			# ./php-fpm 		启动
+			# kill -int	PID		立即关闭
+			# kill -quit PID 	平滑关闭
+			# kill -usr1 PID	重建日志文件
+			# kill -usr2 PID 	重新平滑加载work和master
+	php控制：
+		说明：php提供了一种新的CLI SPAI(Server Application Programming Interface)
+		作用：主要用于作php的开发外壳应用
+		命令：
+			# ./php -v			显示信息
+			# ./php -f file		执行file中的php代码
+			# ./php -S ip:port 	内置Web服务器，用于本地开发使用。访问目录在当前目录，默认执行目录内的index.php 或者 index.html
+			# ./php -S 0.0.0.0:8000 -t /path	同时指定根目录
+	php-cgi控制：
+		说明：
+		作用：
+		命令：
+			# ./php -v 			显示信息
+	php-config：
+		# ./php-config			获取php编译配置信息
+		
+PHP:						
+	两种含义：
+		开发语言：脚本语言
+		运行环境：解释执行
+			
+	
+		
+在实现大规模的应用程序方面，应将程序开发分为三层
+	数据层：产生数据
+	业务层：数据处理
+	表示层：将业务处理的数据展示给前端用户
+	
+	无法轻易的将业务和表示分开，故有各种框架
+		php：smarty
+		
+		
+		
+安全：
+	绝对安全的系统是不存在的，因此安全业界常用的方法有助于平衡可用性和风险
+	最好的安全机制应该能在不防碍用户，并且不过多地增加开发难度的情况下做到能满足需求

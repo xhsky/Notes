@@ -1,0 +1,168 @@
+php
+
+apache+php
+	CGI：通过CGI机制解析
+	Module：以模块形式解析php
+	FastCGI/fpm：以php服务器形式解析
+	
+MPM：多道处理模块
+	prefork	worker	event
+DBMS :DataBase Management System
+RDBMS：Relational DataBase Management System
+
+DML：Data Manapulate Language：数据操作语言
+	insert update replace delete
+DDL：Data Defination Language：数据定义语言
+	create alter drop
+DCL：Data Control Language：数据控制语言
+	grant revoke
+	
+MySQL：
+	Community Edition
+	Enterprise Edition
+软件包格式
+	软件包管理特有的格式：
+			rpm包	exe
+	通用二进制格式
+			以编译好，直接解压即可用
+	源程序
+	
+关系数据库对象：
+	表
+	索引
+	视图
+	约束
+	存储过程
+	存储函数
+	触发器
+	游标
+	用户
+	权限
+	事务
+
+数据类型
+	字符
+		char(n)			256		默认不区分大小写
+		varchar(n)		65536
+		binary(n)				区分大小写
+		varbinary(n)
+		text(n)
+		blob(n)
+	数值
+		精确数值
+			整型
+				tinyint
+				smallint
+				mediumint
+				int
+				bigint
+					
+					修饰符：unsigned，无符号
+							not null
+			十进制
+		近似数值
+			浮点型
+				float
+				double
+	日期时间
+		date
+		time
+		datetime
+		stamp
+	布尔
+		0	1			MySQL不支持bool
+	内置类型
+		enum	
+		set
+	
+选择：行		投影：列
+	
+LAMP:			httpd  php	 php-mysql  mysql-server
+	单层结构
+	二层结构
+	三层结构
+	
+lamp的手动编译	之前将SELinux关掉
+	开发环境：# yum groupinstall "Development tools"
+	lamp在安装时，httpd-->MySQL-->php-->XCache，因为php在编译时须连接MySQL
+
+	httpd:
+		apr:	Apache Portable Runtime，Apache可移植运行环境。使httpd在不同平台上运行。实质是一个库
+		apr-util：	utility，工具组件，用来调用apr
+			apr和apr-util只为httpd所用，故编译安装时不需再链接其路径
+			apr-util在编译安装时须写入apr的安装路径：./configure --prefix=/path --with-apr=/path
+		在安装httpd之前先 # yum install pcre-devel
+		httpd:	
+			编译时指定安装路径，配置文件路径，apr路径，apr-util路径
+				# ./configure --prefix=/path --sysconfdir=/etc/httpd --with-apr=/path --with-apr-util=/path .....
+			修改httpd.pid文件的路劲
+				在配置文件中加入 PidFile “/var/run/httpd.pid”		原来在./logs/httpd.pid
+			写/etc/init.d/下写httpd脚本，使之能够service运行，并能chkconfig命令
+			
+			httpd-2.4
+				基于ip的访问控制
+					Order allow，deny
+						allow from all
+				改为Require/Require not
+					Require user user_name
+					Require group group_name
+					Require ip	ip_addr
+										ip
+										network/netmask		network/length
+										net
+										
+										172.16.0.0/255.255.0.0 = 172.16.0.0/16 = 172.16
+					Require host Host_name
+								Host_name
+								Domain
+					允许所有主机：Require all granted
+					拒绝所有主机：Require all deny
+	mysql：	
+		配置文件：集中式配置文件，可以为多个程序提供配置
+			mysql寻找配置文件
+				/etc/my.cnf	--> /etc/mysql/my.cnf --> $BASEDIR、my.cnf --> ~/.my.cnf
+				依次寻找，以后面为准
+		MySQL服务器维护了两类变量
+			服务器变量：
+				定义MySQL服务器运行特性		show global variables [like 'str']
+			状态变量：
+				保存了MySQL服务器运行统计数据		show global status [like 'str']
+		MySQL通配符
+			_	:任意单个字符
+			%	:任意长度的任意字符
+	php：
+		编译：
+			./configure --prefix=/path --with-mysql=/path --with-config-file-paht=/etc ......
+		配置文件
+			/etc/php.ini   /etc/php.d/*.ini
+			
+		--with-apxs2=/usr/local/apache/bin/apxs		Apache的模块
+		--enable-fpm      php服务器
+	
+	Apache结合php
+		在/etc/httpd/conf/httpd.conf中加入两行
+			AddType application/x-httpd-php .php			处理php格式的页面
+			AddType application/x-httpd-php-source .phps	处理php源码
+			
+	XCache：通过把编译 PHP 后的数据缓冲到共享内存从而避免重复的编译过程, 能够直接使用缓冲区已编译的代码从而提高速度.
+		准备一个php扩展以备编译
+			# /usr/local/php/bin/phpize
+		# ./configure --enable-xcache --with-php-config=/usr/local/php/bin/php-config
+		将xcache.ini复制到/etc/php.d/目录下，重新加载httpd
+			
+	apr --> apr-util --> pcre-devel --> httpd --> mysqld --> php --> XCache 
+	
+Apache的压力测试：
+	ab：apahce benchmark
+		# ab -c N -n N ip/file
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

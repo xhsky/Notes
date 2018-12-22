@@ -1,0 +1,322 @@
+防火墙 -- 运行在kernel中 无daemon
+            工作在2 3 4 层 OSI
+			
+	规则文件：/etc/sysconfig/iptables
+	iptables -A/I/D/ -F/L      input forward output
+			 -p   tcp  udp icmp 
+				-- dport *
+				-- sport *   /  start:end
+			  -s ip   
+			  -d ip
+					 -j  DROP ACCEPT REJECT LOG
+			/etc/init.d/iptables   *    service iptables save
+			
+	NAT转发：
+		1.iptables -t nat POSTROUTING -s ip -o eth* -j MASQUERADE
+		2./etc/sysctl.conf
+		
+		单用linux作为NAT主机是很不明智的，因为PC的耗电能力比路由器要大得多，但linux NAT可以额外加许多分析软件，可以用来
+		分析客户端连接或用来控制带宽和流量
+		
+		
+TCP Wrapper的使用：以程序名称来控制访问
+	1.判断是否支持tcp wrapper
+		# ldd `which ssd` | grep libwrap.so
+	2.写入文件
+		语法：
+			服务名称：ip/mask：操作
+			特殊参数：
+				allow：允许
+				deny：拒绝
+				ALL：所有
+				LOCAL：本机
+				UNKNOWN：不知道IP/domain
+				KNOWN：可解析的ip/domain
+		以hosts.allow优先：
+			/etc/hosts.allow   
+				eg:		sshd:ip/mask ip/mask
+			/etc/hosts.deny
+				eg:		sshd:ALL
+	
+	
+	TCP wrapper的特殊功能：当有人扫描某个服务的端口时，记录其IP
+		# yum install tcp_wrappers
+		# vim /etc/hosts.deny
+			sshd:ALL:spawn (echo "security notice from host $(/bin/hostname)";echo;/usr/sbin/safe_finger @%h) | \
+							/bin/mail -s "$d-%h security" root & : twist(/bin/echo -e "\n\nWARNING connection not allowed.\n\n")
+	
+	
+		
+SELinux：Security Enhanced Linux
+	由美国国家安全局(NSA)开发，其最初的目的是为了避免资源误用
+	
+		传统的文件权限与账号关系：自主访问控制，DAC
+			依据进程所有者与文件资源的rwx权限来决定有无访问的能力，DAC(Discretionary Access Control)
+			注：用户可以取得进程来更改文件资源的访问权限
+			
+		以策略规则定制特定程序读取特定文件：委托访问控制，MAC
+			针对特定进程与特定文件资源来进行权限控制，针对主体是进程而非用户。MAC(Mandatory Access Control)
+		
+		
+	SELinux的访问
+		主体(进程) ---> SELinux(策略) ---> 安全上下文 ---> 目标(文件资源) ---> rwx
+	
+			策略：	 ---- 更改： /etc/sysconfig/selinux
+				targetd：	针对网络服务限制较多，针对本机较少，默认
+				mls：		完整的selinux限制，严格
+					
+			安全上下文：类似rwx，针对文件和进程(进程属性与文件属性的匹配)
+				Identify:role:type
+					身份识别：
+						root：		表示root
+						system_u：	系统账号，一般为进程
+						user_u：	一般用户
+					角色：
+						object_r:	代表文件或目录
+						system_r：	代表程序
+					类型：
+						type：		在文件资源中称为type
+						domain：	在主体程序中称为domain
+				分类
+					进程上下文  文件上下文   端口上下文？
+				命令：
+					查看安全上下文:
+						文件：# ls -Z
+						进程：# ps aux -Z
+						用户：# id -Z
+					修改
+						# chcon	[-R] [-t type] [-u user] [-r role] file
+						# chcon [-R] --reference=file file
+							-R：	连同子目录
+					还原：
+						# restorecon [-Rv] /dir	
+							其原来信息记录在/etc/selinux/targeted/contexts/中
+							
+						cp：type字段会自动继承父目录
+						mv：type字段保持不变
+				   
+			模式：	-- /etc/sysconfig/selinux
+				1.enforcing：	表示selinux正在运行，且被使用中
+				2.permissive：	表示selinux正在运行，但仅有警告信息不会实际使用，一般作为selinux的调试之用
+				3.disabled：	关闭，未运行
+					
+					# getenforce  
+					# setenforce 0/1    -- P/E
+						直接开机在kernel中写入 selinux=0
+							--- selinux=0/1 or enforcing=0/1
+						从disable转到启用selinux时，系统要花费时间重写selinux安全上下文，开机耗时较长
+		命令
+			显示其整体状态：
+				# sestatus
+			SELinux Booleans：
+				显示：getsebool -a
+				设置：setsebool [-P] * 1/0
+					-P		写入文件
+			
+			semanage命令是用来查询与修改SELinux默认目录的安全上下文
+				
+
+	
+		SELinux的日志：
+			两个服务：
+				1.setroubleshoot：	该服务将错误信息记录到/var/log/messages
+				2.auditd：			该服务将详细信息记录到/var/log/audit/audit.log
+					但该日志庞大，可直接用以下命令查找错误信息
+						# audit2why < /var/log/audit/audit.log
+		
+		
+	
+			
+
+	
+						
+	
+
+Linux日志
+	
+	连接时间日志和进程统计日志由rsyslog日志服务驱动。系统和服务日志由相对应的网络服务驱动和管理，部分也由rsyslog日志服务驱动
+
+	
+	1.连接时间日志
+		由/var/log/wtmp和/var/run/utmp两个文件记录。默认情况下这两个日志文件不能直接通过cat命令来查看。用户可使用 w  who  ac finger last lastlog来读取
+			- # w 	 		主要读取/var/run/utmp文件的信息
+			
+			- # ac		 	显示用户的连接时间信息  
+					-a 			显示所有用户的连接时间
+					-p 			显示每个用户的连接时间
+					-d 			显示用户每天的连接时间 
+					
+			- # finger 		需安装finger软件包，用于查看用户的连接状态信息
+				eg： 	finger root@10.37.44.44  查看远程主机root的信息
+						finger root              查看本地主机root的信息
+						
+			- # last 		查看用户的登录 系统关机和重启的状态
+			
+			- # lastb 	 	主要用于查看登录不成功的信息。默认读取/var/log/btmp日志文件的信息
+			- # lastlog  	查看用户最后登录系统时的信息状态(已成功登陆)
+
+	2.进程统计日志    --- 用于监控用户在服务器上的操作。
+			- /var/account/pacct 或 /var/account/acct
+				- 启动进程统计日志监控
+					#accton /var/account/pacct
+			- 显示进程统计日志情况   #lastcomm
+					#lastcomm –-command ls     #lastcomm –-user root
+			- 关闭进程统计日志监控
+					#accton
+			当进程统计日志的文件增长过大时，用手工转储或cron服务机制运行sa命令。sa命令主要用于报告清理并维护进程统计日志，
+			它将/var/account/pacct文件信息压缩到/var/log/asvacc(基于命令名索引)和/var/log/usracc(基于用户名索引)摘要文件中 ？
+	
+	3.系统和服务日志
+		
+		logs：
+			# /var/log/cron					记录crond计划任务服务执行情况
+			# /var/log/dmesg 				内核引导信息
+			# /var/log/lastlog				记录最后一次用户成功登录的时间、ip等
+			# /var/log/maillog 				邮件系统信息
+			# /var/log/messages 			标准系统错误信息
+			# /var/log/secure				linux系统安全日志，只要涉及账号密码，都会被记录(login,gdm,su,sudo,ssh,telnet...)
+			# /var/log/wtmp					正确登录系统者的账号信息
+			# /var/log/btmp 				记录linux登录失败的用户 时间及远程IP地址
+			# /var/log/audit/audit.log 		selinux信息
+			# /var/log/boot.log				记录linux系统的引导启动时间
+			
+			
+			# /var/log/http/*				http服务器的工作和访问日志
+			# /var/log/samba/*				samba文件服务器的工作和访问日志
+			# /var/log/squid/*				squid代理服务器的工作和访问日志
+			# /var/log/cpus/*				cups打印机服务器的工作和访问日志
+
+
+		远程日志记录：
+			服务器：
+				1.# vim /etc/sysconfig/rsyslog
+					SYSLOGD_OPTIONS="-m 0 -r"		加入-r
+				2.# service rsyslogd restart
+			
+			客户端：
+				1.# vim /etc/rsyslogd.conf
+					*.* 	@ip
+				2.# service rsyslogd restart
+
+					UDP的端口用一个：@     TCP的端口用两个：@@
+		
+		日志监控：  
+			# tailf /var/log/messages
+			# logger ****** 
+				----从命令行发送log信息
+				
+		日志轮替
+			logrotate由cron自动执行，其配置文件/etc/logrotate.conf
+			# logrotate -fv /etc/logrotate.conf
+				-v：显示信息
+				-f：强制进行轮替，不论其是否符合配置的轮替要求
+			
+		日志记录格式
+			一般为：日期时间 主机名 服务/函数名 实际内容
+		配置文件格式
+			服务名称[.=!]信息等级 		信息记录的文件/设备/主机
+			
+			rsyslog本身设置的服务
+				auth：与认证有关的机制
+				cron：cron/at服务
+				kern：内核产生信息的地方
+				lpr：打印相关的记录
+				mail：与邮件收发有关
+				news：与新闻组服务器相关
+				user,uucp,local0-local7：与Unix like机器本身相关
+				
+			.	：表示比后面还要高的等级(含该等级)都被记录下来，常用
+			.=	：只记录该等级
+			.!	：除该等级都记录
+			
+			七个信息等级
+				info：基本信息说明
+				notice：除info外需要注意的一些信息
+				warn：警告信息，可能有问题，但还不至于影响到某个daemon的运行
+				error：一些重大错误信息
+				crit：比error还严重的错误信息
+				alert：警告，比cirt还严重
+				emerg(panic)：系统已到要死机的状态
+				
+				特殊等级：
+					debug和none：做一些错误检测或忽略掉某些服务时用到
+			
+			记录位置
+				文件：/var/log/*
+				设备：/dev/lp0
+				用户：user
+				远程主机：@ip
+				*	：显示给在线所有人
+				
+					文件前加"-"表示其信息是异步写入磁盘
+			
+troubleshooting
+	X Window：
+		在runlevel 3中修复
+			1.startx
+			2.X-probeonly
+			3./home或/tmp 是否已满
+			4.xfs是否启动
+	Networking： 
+		dig
+		ifconfig
+		route -n
+		kernel module for NIC
+		restart
+	boot：  
+		grub
+        kernel
+        panic： /etc/init  /etc/inittab   
+        /etc/rc.d/rc.sysinit
+			/bin/bash
+            /etc/fstab
+		/etc/rc.d/rc
+        /etc/rc.d/rc?.d/
+	filesystem：		磁盘坏道
+		一般文件系统损坏，开机时会出现"press root password or ctrl+D"。此时输入root密码(进入单用户)
+			# umount mount_point
+			# fsck -y  /dev/sd*
+			# mount  mount_point
+		若是根目录损毁，可将硬盘挂载到另一台电脑上进行fsck检查了，亦可用Live CD光盘开机进行fsck检查
+		故一般将读写频率高的目录单独分区挂载(eg：/usr /home /var)
+		
+	Rescue Mode：
+	   当开机管理程序被破坏时
+			1.利用光盘进入系统：linux rescue
+				在装入光盘后，在开机界面末行输入linux rescue进入救援模式
+
+			2.重新安装grub：
+				系统将原分区全部挂载到/mnt/sysimage/中，在其目录下作出更改( #grub-install /dev/sda)，
+				然后用#chroot /mnt/sysimage转化文件系统。退出重启后更改生效。
+			  或
+			  重新引导grub：
+				输入#grub进入grub的引导模式。重新建立引导：
+				grub> root (hd0,0)
+				grub> setup(hd0)
+				grub> quit
+
+			3.退出：
+				#exit  -- 退出change root
+				#exit  -- 退出rescue mode
+      
+
+linux文件系统安全模型是通过系统中的文件赋予两个属性来起作用的。
+（所有者   访问权限）
+没有一个服务是你未经授权而运行起来的
+没有一个进程是你不知道的情况下启动起来的
+
+host安全(passwd ssh_config rpm -V hids SELinux)
+service安全(sshd 12312 tcp_wrap xinetd.conf)
+network安全(iptables arptables nids)
+
+监测机制：
+	logs  audit  nagios cacti mrtg
+	   若被入侵，先拔网线，作镜像(保存证据)，以另一套系统启动，将本地内容挂载再检测
+	   设置super daemon下的服务自启：chkconfig xinetd on ； chkconfig * on
+
+	/etc/services   /etc/protocols	
+
+			
+				
+				
+				

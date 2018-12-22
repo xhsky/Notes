@@ -1,0 +1,1275 @@
+﻿简介：
+	说明：PostgreSQL是一个开源的关系型数据库管理系统，可追溯到1986年，最初源于加州大学伯克利分
+		校的一个研究项目(Postgres)。后该项目终止，被其他人开源发布(加入了sql语言的解释器)。正式
+		更名为PostgreSQL(用于反映最初的POSTGRES和最新的使用SQL的版本之间的关系)。许多人出于习惯
+		或者发音简单的原因，将PostgreSQL称为"Postgres"。该系统最早是基于BSD许可证发布的，但目前
+		已改为使用PostgreSQL许可证(简称TPL)发布
+	官网：https://www.postgresql.org/
+	中文网址：http://www.postgres.cn
+	
+	版本：	
+		RHEL/CentOS/SL/OL 7 		9.2 
+		RHEL/CentOS/SL/OL 6 		8.4(also supplies package postgresql92) 
+		RHEL/CentOS/SL/OL 5 		8.1(also supplies package postgresql84) 
+		Fedora 22 					9.4 
+		Fedora 21 					9.3 
+		Fedora 20					9.3 
+
+		在redhat6上，自带的是8.4版本，可从PostgreSQL Yum存储库（http://yum.postgresql.org/）下载
+		最新版本的 PostgreSQL，包括开发中的版本。此存储库中不仅包含PostgreSQL服务器核心组件，还包
+		含比较常用的扩展包。PostgreSQL的开发团队负责维护这个存储库，并且会在第一时间发布补丁和版本
+		更新
+	
+适用性：
+		说明：postgresql被设计为一个通用的事务性数据库。作为一个独立的数据库系统，PostgreSQL 
+			自身会进行全面的安全管理（比如用户登录机制，这个机制在嵌入式场景下是不需要的），
+			这些都是要耗费性能的，但 PostgreSQL 又无法取消安全机制并将其交由上层应用去管理，
+			因此单用户应用场景下 PostgreSQL 可能不是最好的选择。此种场景下 SQLite或者Firebird
+			是更合适的选择，因为用户权限管理、安全检查和DB操作日志功能都是由上层应用自己完成的。
+			
+架构
+	安装
+		YUM：较新版本会生成版本号作为目录名，且有些命令未被加入至PATH
+			# yum install postgresql-server 
+			# service postgresql initdb					数据库初始化
+			# chkconfig postgresql on
+			# /etc/init.d/postgresql start
+			
+				注：初次安装后，默认生成一个名为postgres的数据库和一个名为postgres的数据库用户。
+			这里需要注意的是，同时还生成了一个名为postgres的Linux系统用户
+			
+		源码：	10min
+			# yum install make gcc zlib zlib-devel readline readline-devel openssl-devel
+			# wget https://ftp.postgresql.org/pub/source/v9.6beta3/postgresql-9.6beta3.tar.gz
+			# tar -xf postgresql-9.6beta3.tar.gz
+			# cd postgresql
+			# ./configure --prefix=/usr/local/pgsql
+			# make		
+				注：
+					# make world					# 编译一切可以编译的东西，包含文档(HTML和手册)以及额外模块(contrib)，则将make替换为此
+					# make check					# 安装步骤测试新编译出的服务器。此命令不能用root用户。回归测试是一个用于验证PostgreSQL在你的系统上是否按照开发人员设想的那样运行的测试套件
+			# make install 
+				注：
+					# make install-world			# 如果上面编译了world，则该方式会安装文档和手册页
+			# vim /etc/profile
+				export PG_DIR=/usr/local/pgsql
+				export LD_LIBRARY_PATH=$PG_DIR/lib
+				export PATH=$PG_DIR/bin:$PATH
+				export MANPATH=$PG_DIR/share/man:$MANPATH
+			# . /etc/profile 
+			
+			# initdb -D /usr/local/pgsql/data		# 初始化数据库和配置文件，该路径没有默认值。初始化后，数据库包含一个默认的数据库postgres，这是一个
+													# 测试数据库，数据库服务器本身不需要postgres数据库的存在。初始化过程中，会创建一个模板数据库template1，
+													# 它不用于实际工作
+				# postgres -D /usr/local/pgsql/data >logfile 2>&1 &
+			# pg_ctl -D ./data -l logfile start
+			# createdb db_name
+			# psql db_name
+	结构：
+		磁盘空间：
+			1.一个空数据库大概需要35M
+			2.在存放相同的数据时，数据库大概需要文本文件5倍的存储空间
+			3.若要进行回归测试，还临时需要额外的150M
+		目录结构：
+			安装目录：
+				bin：pg程序 
+				data：数据目录和配置目录
+					postgresql.conf：pg服务的配置文件
+						说明：该文件包含一些通用设置
+							1.该文件使用 key=value 形式，所有参数名称不区分大小写，参数值取五种类型之一：
+								boolean：值可为on/off、true/false、1/0、yes/no等
+								string：通常由单引号包含，值内部的单引号需要被双写。若为简单数字或标识符，引号可被省略
+								int/float：只允许浮点数使用一个小数点
+								带单位的int/float：一些数字需要单位，可以显示指定('120 ms')。单位名称大小写敏感，并在数字和单位之间可以有空白
+									可用的单位：
+										内存：kB、MB、GB
+										时间：ms、s、min、h、d
+								enumerated：枚举类型的参数以与字符串相同的方式指定，与大小写无关
+							2.使用 # 注释
+							3.注释的设置是默认值
+							4.可指定读入和处理的另一个文件：该方式可嵌套，引入的值会被覆盖
+								1.通过 include 'filename' 方式引入其它配置文件。filename不存在时报错
+								2.通过 include_if_exists 'filename' 方式引入其它配置文件。filename不存在时仅仅记录一个消息
+								3.通过 include_dir 'path_dir' 方式引入配置文件的目录(其下.conf结尾的文件才会被包含)
+						格式：
+							连接设置：
+								listen_addresses='localhost'						# 指定监听地址，监听所有ipv4为'0.0.0.0'
+								port=5432											# 指定监听端口
+								
+								max_connections=100									# 指定数据库最大并发连接数。
+								superuser_reserved_connections=3					# 为pg超级用户保留的连接数。则活跃的并发连接数最多为(max_connections-superuser_reserved_connections),
+								
+								unix_socket_directories='/tmp'						# 指定服务器监听的套接字目录。会在/tmp下生成两个文件(.s.PGSQL.port和.s.PGSQL.port.lock)
+								unix_socket_group=''								# 设置Unix域套接字的所属组，与unix_socket_permissions参数一起对Unix域进行连接访问控制。默认为空，即为
+																					# 服务器用户默认组
+								unix_socket_permissions=0777						# 设置Unix域套接字的访问权限。0777(任何人都可访问)、0770(只有用户和同组可访问)、0700(只有用户可访问)
+								
+								bonjour=off											# 苹果公司的一个工具，自动发现IP网络上的各种设备
+								bonjour_name=''										# 指定bonjour服务名称，空表示使用hostname
+								
+								tcp_keepalives_idle=0								# PG不活动多少秒后通过TCP向客户端发送一个keepalive信息。0表示使用系统默认值
+								tcp_keepalives_interval=0							# 指定多少秒后重发一个还未被客户端已告知收到的tcp keepalive信息。0表示使用系统默认值
+								tcp_keepalives_count=0								# 指定被认为down掉之前允许发送的keepalive信息的数量。0表示使用系统默认值
+					
+							安全和认证：
+								authentication_timeout=1min							# 完成客户端认证的最长时间(秒)，超时则关闭，避免无限制占用
+								db_user_namespace=off								# 允许针对每个数据库的用户名。默认是关闭的。临时 
+								
+								ssl=off												# 是否启用ssl连接
+								ssl_ca_file=''										# 指定CA的文件名。空表示不载入CA文件且不执行客户端验证
+								ssl_cert_file='server.crt'							# 指定包含SSL证书的文件名
+								ssl_crl_file=''										# 指定SSL服务器证书撤销列表。空表示不载入CRL文件。
+								ssl_key_file='server.key'							# 指定包含SSL服务器私钥的文件名
+								ssl_ciphers='HIGH:MEDIUM:+3DES:!aNULL'				# 指定一个SSL密码列表，用于安全连接
+								ssl_prefer_server_ciphers=on						# 是否使用服务器的SSL密码首选项而非客户端的
+								ssl_ecdh_curve='prime256v1' 						# 指定用在ECDH密钥交换中的曲线名称
+								password_encryption 
+								krb_server_keyfile 
+								krb_caseins_users 
+							内存：
+								shared_buffers=128MB								# 设置使用的共享内存缓冲区大小。合理值为系统内存的25%
+								huge_pages=try										# 是否使用huge page。可使更小的页面表以及花费在内存管理上的CPU时间更少，从而提高性能
+																					# try：pg将尝试使用huge page，若失败则使用正常的分配。on：若使用huge page失败则阻止pg启动。off：不使用
+								temp_buffers=8MB									# 每个会话使用的临时缓冲区大小。为本地会话，只用于访问临时表
+								max_prepared_transactions=0							# 设置可以同时处于"prepared"状态的事务的最大数目。0将禁用预备事务特性
+								work_mem=4MB										# 设置在写到临时磁盘文件之前被内部排序操作和哈希表使用的内存量
+								maintenance_work_mem=64MB							# 指定在维护性操作(eg：VACUUM、CREATE INDEX和ALTER TABLE ADD FOREIGN KEY)中使用的最大的内存量
+								autovacuum_work_mem=-1								# 指定每个自动清理工作者进程能使用的最大内存量
+								max_stack_depth=2MB									# 指定服务器的执行堆栈的最大安全深度
+								dynamic_shared_memory_type=posix					# 指定服务器应该使用的动态共享内存实现
+							磁盘：
+								temp_file_limit=-1									# 指定一个会话能用于临时文件的最大磁盘空间。该值以KB计，-1代表没有限制
+							内核资源使用：
+								max_files_per_process=1000							# 设置每个pg子进程允许同时打开的最大文件数目
+					postgresql.auto.conf：次要配置文件
+						说明：9.4版中引入的一个新的配置文件，执行ALTER SYSTEM SQL命令，都会创建或重写该文件。该文件中的设
+							置会替代postgresql.conf文件中的设置。改文件不建议被编辑
+						格式：
+							同postgresql.conf文件格式相同。每当执行# alter system命令时，更改的相应参数会在该文件中添加或删除。当服务执行
+							reload或restart参数时，更改的值才会生效
+					pg_hba.conf：用户客户端验证
+						说明：该文件用于控制访问安全性，管理客户端对PostgreSQL服务器的访问权限，默认放在数据目录
+							内容包括：	
+								1.允许哪些数据库用户连接到哪个数据库
+								2.允许哪些IP或者哪个网段的IP连接到本服务器
+								3.以及指定连接时使用的身份验证模式
+						格式：一套记录，每条一行，认证时按顺序匹配
+							连接类型  连接的数据库 库用户  客户端地址			 认证方式		可选字段
+							local      database 	user  						auth-method  [auth-option]
+							host       database  	user  CIDR-address  		auth-method  [auth-option]
+							hostssl    database  	user  CIDR-address  		auth-method  [auth-option]
+							hostnossl  database  	user  CIDR-address  		auth-method  [auth-option]
+							host       database  	user  IP-address  IP-mask  	auth-method  [auth-option]
+							hostssl    database  	user  IP-address  IP-mask  	auth-method  [auth-option]
+							hostnossl  database  	user  IP-address  IP-mask  	auth-method  [auth-option]
+
+						注：
+							连接类型：	客户端连接服务器的方式
+								local：		使用unix套接字连接
+								host：		通过tcp/ip进行连接
+								hostssl：	通过tcp/ip的ssl连接，必须将ssl配置打开
+								hostnossl：	只匹配在tcp/ip上不使用ssl的请求
+							数据库：	连接的数据库名
+								all：		可连接所有数据库
+								sameuser：	若请求的数据库和用户同名则匹配
+											
+								注：通过 ，分割来声明多个数据库，也可使用@file_name来声明一个独立的包含数据库名的文件
+							用户：		数据库用户名	
+								all：		匹配所有用户
+											
+								注：通过 ，分割来申明多个用户，也可使用@file_name来声明一个独立的包含用户名的文件
+							客户端地址：
+								CIDR-address：使用IP地址/掩码长度，ip地址只能用数值申明，不能用域或主机名。声明一个主机时，可将掩码长度写为32即可
+								IP-address IP-mask：作为 CIDR-address 表示法的替补
+							认证方法：	客户端连接时使用的认证方法
+								trust：		无条件允许连接
+								reject：	无条件拒绝连接
+								md5：		要求客户端提供一个md5加密的口令进行认证
+								password：	要求客户端提供一个未加密的口令进行认证(该口令是以明文方式传输)
+								krb5：		用Kerberos V5认证用户，只有在进行TCP/IP联接的时候才能用
+								ident：		通过获取客户端的操作系统用户名，然后使用一个列出许可的系统
+											用户和对应的数据库用户对应关系的映射文件， 判断对应许可的数
+											据库用户名的方法来认证
+								pam：		使用操作系统提供的PAM来认证
+					pg_ident.conf：
+						说明：pg_hba.conf的权限控制信息中的身份验证模式字段如果指定为ident方式，则用户连接
+									时系统会尝试访问pg_ident.conf文件，如果该文件存在，则系统会基于文件内容将当前
+									执行登录操作的操作系统用户映射为一个PostgreSQL数据库内部用户的身份来登录。有些
+									人会把操作系统的root用户映射为PostgreSQL的postgres超级用户账号。pg_hba.conf中的
+									每条权限控制信息均可以指定一个独立的pg_ident.conf文件作为用户映射信息数据源。
+						格式：
+							map-name ident-username database-username
+									
+						注：
+							map-name：是将用于在pg_hba.conf里引用这个映射的任意名称。
+							ident-user
+							database-user：声明某个操作系统用户被允许以哪个数据库用户的身份进行联接。同一个map-name可以重复用于在一个映射里声
+										明更多的用户映射。对一个操作系统用户可以映射为多少个数据库用户没有限制，反之亦然。
+					postmaster.opts
+					base
+					pg_dynshmem    
+					pg_logical    
+					pg_replslot   
+					pg_stat      
+					pg_tblspc    
+					pg_wal                
+					global            
+					pg_multixact  
+					pg_serial     
+					pg_stat_tmp  
+					pg_twophase  
+					pg_xact               
+					pg_commit_ts    
+					pg_notify     
+					pg_snapshots  
+					pg_subtrans       
+				include：头文件
+				lib：库文件
+				share：文档
+		进程结构
+			端口：5432
+			进程：
+				bin/postgres -D ./data
+					说明：pg主进程，
+						
+				postgres: checkpointer process
+				postgres: writer process              
+				postgres: wal writer process          
+				postgres: autovacuum launcher process   
+				postgres: stats collector process     
+				postgres: bgworker: logical replication launcher
+
+				PostgreSQL为每个连接启动("forks")一个新的进程，来处理客户端请求
+	编程接口：
+		java,C,C++,python  
+	管理软件：常用有4种
+		psql：		是一种用于执行查询的命令行工具，每个PostgreSQL发行版中都自带psql
+		pgAdmin:	是一种广泛使用的开源PostgreSQL图形界面管理工具
+		phpPgAdmin：是一种免费的基于Web页面的管理工具。它是从流行的MySQL管理工具phpMyAdmin移植而来
+		Adminer：	是一款轻量级的开源PHP应用程序，可在同一套图形界面上管理PostgreSQL、MySQL、SQLite、
+					SQL Server以及Oracle等。但为了支持多种数据库，Adminer的功能体系已经被裁剪成了各数
+					据库均支持的最小公共集合，因此无法实现各种数据库所特有的一些操作
+			
+			注：PostgreSQL的核心开发团队维护着前三种，因此它们一般会随着PostgreSQL的版本发布而同步更新
+
+	命令
+		环境变量：
+			PGHOST：				主机
+			PGPORT：				端口
+			PGUSER：				用户
+			PGPASSWORD：			设置登录密码
+			PSQL_HISTORY：			用于设置psql历史日志文件名，该日志中记录了近期通过psql执行过的所有命令行，其默认值为 ~/.psql_history
+			PSQLRC：				用于设置配置文件的路径和文件名
+			
+			注：若未设置相应的环境变量或在命令行中指定相关参数，则使用系统默认值
+		命令：
+			统一参数：
+				-h host_name					# 指定数据库服务器
+				-p port 						# 指定数据库服务器端口
+				-U user_name					# 指定连接名
+				-w								# 无密码提示
+				-W								# 强制密码提示
+			
+			数据库：
+				# initdb option					# 初始化数据库
+					-D data_dir					# 指定数据库目录
+					-U super_name				# 指定数据库超级用户名
+				# createdb option db_name desc	# 创建数据库
+					option：
+						-D tablespace_name		# 指定数据库的表空间
+						-e						# 显示向数据库发送的命令
+						-E ENCODING				# 指定数据库编码
+						-O onwer				# 指定该数据库用户
+						-T template_name		# 指定使用的模板数据库
+						--maintenance-db=DBNAME	# 备用维护数据库
+				# dropdb db_name				# 删除数据库
+			用户：	
+				# createuser option user_name	# 创建用户
+					option:
+						-c N					# 该改角色做连接限制数
+						-g role_name			# 添加到改role中
+						-i						# 用户(默认)
+						-d						# 赋予创建数据库权限
+						-l						# 用户可登陆(默认)
+						-r						# 能够创建新用户
+						-s						# 设置为超级用户
+						
+						-D						# 不能创建数据库(默认)
+						-I						# 用户不能继承其所属角色的权限
+						-L						# 用户不可登陆
+						-P 						# 为新用户设置密码
+						-R						# 不能创建新用户(默认)
+						-S						# 不是超级用户(默认)
+						
+						--replication			# 用户可以发起复制
+						--no-replication		# 用户不可发起复制
+						--interactive			# 交互式创建
+			
+				# dropuser user_name			# 删除用户
+			控制：
+				# postmaster
+				# postgres							# 正统服务器控制程序
+											
+				# pg_ctl options					# 包装后的postgres程序
+					options：
+						init -D data_dir			# 初始化数据库
+						start -D data_dir -l file	# 启动服务
+						stop -D data_dir			# 停止
+						restart -D data_dir			# 重启
+						reload -D data_dir			# 重载
+						promote -D data_dir
+						kill signalname pid	
+					parameter：
+						-D data_dir					# 指定数据库目录
+						-s							# 静默模式，只打印错误
+						-w							# 等待，直到操作完成。默认开启
+						-W							# 不等待，直到操作完成
+						-t	seconds					# 当使用-w时的超时时间
+						-l log_file					# 指定日志文件
+						-m smart|fast|immediate		# 当stop|restart时的模式
+														smart：		在所有客户端连接断开后关闭
+														fast:		直接关闭。默认
+														immediate：	未完全关闭时就退出，在restart时恢复
+						-V							# 显示版本号
+				
+			升级：
+				pg_upgrade
+			备份：
+				pg_dumpall
+				pg_dump
+			恢复：
+			客户端：
+				# psql
+					-c "command"：执行一条查询，然后退出
+					-d db_name：	连接的数据库
+					-f file：		执行sql脚本
+					-h hostname：	指定连接的服务器
+					-L file：		除了正常的输出源外，将所有的查询记录到file
+					
+					退出状态：
+						若正常结束，则psql向shell返回0
+						若自身发生致命错误，则返回1(内存用尽，未找到文件等）
+						若与数据库的连接失效而且会话不再活跃则返回2
+						若脚本中发生错误并且设置了ON_ERROR_STOP则返回3 
+			
+			clusterdb   
+			pg_basebackup   
+			pg_receivewal   
+			pg_rewind       
+			pg_waldump  
+			reindexdb
+			ecpg               
+			pgbench         
+			pg_recvlogical  
+			pg_test_fsync   
+			vacuumdb
+			pg_config         
+			pg_resetwal     
+			pg_test_timing  
+			pg_archivecleanup  
+			pg_controldata  
+			pg_isready  
+			pg_restore      
+			      
+			
+
+			
+			
+			
+			# psql [option] ... [db_name [user_name]]
+				option：
+					-c "sql"				# 执行单一命令然后结束
+					-f file_name			# 从文件中执行指令然后退出
+					-l						# 列出所有可用数据库
+					
+					-V						# 显示版本信息
+					-v var=value			# 设置psql客户端变量
+				
+					
+					
+				输入和输出选项：
+					  -a, --echo-all          显示所有来自于脚本的输入
+					  -b, --echo-errors        回显失败的命令
+					  -e, --echo-queries      显示发送给服务器的命令
+					  -E, --echo-hidden        显示内部命令产生的查询
+					  -L, --log-file=文件名  将会话日志写入文件
+					  -n, --no-readline       禁用增强命令行编辑功能(readline)
+					  -o, --output=FILENAME 将查询结果写入文件(或 |管道)
+					  -q, --quiet             以沉默模式运行(不显示消息，只有查询结果)
+					  -s, --single-step       单步模式 (确认每个查询)
+					  -S, --single-line        单行模式 (一行就是一条 SQL 命令)
+
+				输出格式选项 :
+					  -A, --no-align           使用非对齐表格输出模式
+					  -F, --field-separator=STRING
+								 为字段设置分隔符,用于不整齐的输出(默认："|")
+					  -H, --html             HTML 表格输出模式
+					  -P, --pset=变量[=参数]    设置将变量打印到参数的选项(查阅 \pset 命令)
+					  -R, --record-separator=STRING
+								 为不整齐的输出设置字录的分隔符(默认：换行符号)
+					  -t, --tuples-only      只打印记录i
+					  -T, --table-attr=文本   设定 HTML 表格标记属性（例如,宽度,边界)
+					  -x, --expanded           打开扩展表格输出
+					  -z, --field-separator-zero
+											   为不整齐的输出设置字段分隔符为字节0
+					  -0, --record-separator-zero
+											   为不整齐的输出设置记录分隔符为字节0
+	
+			# pg_config [optins]
+				说明：
+					提供一些安装信息
+				option：
+					--bindir               	显示可执行文件的安装位置
+					--configure           	显示编译参数
+					--version             	显示pg版本号
+					--docdir                显示文档安装位置
+					--htmldir				显示html文档安装位置
+					--includedir          	显示客户端头文件安装位置
+					--pkgincludedir       	显示其它C头文件安装位置
+					--includedir-server   	显示服务器端头文件安装位置
+					--libdir             	显示库文件安装位置
+					--pkglibdir           	显示动态加载的库文件位置
+					--localedir           	显示支持文件的安装位置
+					--mandir              	显示man文档安装位置
+					--sharedir            	显示共享文件安装位置
+					--sysconfdir          	显示系统配置文件安装位置
+					--pgxs                	显示扩展makefile文件位置
+					
+					--cc                  show CC value used when PostgreSQL was built
+					--cppflags            show CPPFLAGS value used when PostgreSQL was built
+					--cflags              show CFLAGS value used when PostgreSQL was built
+					--cflags_sl           show CFLAGS_SL value used when PostgreSQL was built
+					--ldflags             show LDFLAGS value used when PostgreSQL was built
+					--ldflags_ex          show LDFLAGS_EX value used when PostgreSQL was built
+					--ldflags_sl          show LDFLAGS_SL value used when PostgreSQL was built
+					--libs                show LIBS value used when PostgreSQL was built
+			
+	日志
+	优化
+	安全
+	集群
+		pg_pathman：
+			说明：是PG的一个模块，可提供更优化的分区机制和功能来管理分区，支持range , hash分区
+			比较：
+				PG传统分区:
+					是使用约束来区分不同分区存放的数据(配置constraint_exclusion=partition)，执行select/delete/update时执行计划根据约束和查询
+					条件排除不需要查询的分区表。调用COPY或插入数据时使用触发器或规则，将数据插入对应的分区表。传统的做法，无论是查询还是插入，
+					对性能的影响都较大
+				pg_pathman：
+					将分区的定义存放在一张元数据表中，表的信息会cache在内存中，同时使用HOOK来实现RELATION的替换，所以效率非常高
+			原理：
+				表：
+					pathman_config：主要配置存储
+					pathman_config_params：可选参数
+				视图：
+					pathman_cache_stats：
+					pathman_concurrent_part_tasks：当前正在运行的分区工作
+					pathman_partition_list：所有已存在的分区
+			项目地址：https://github.com/postgrespro/pg_pathman
+			安装：
+				# wget https://github.com/postgrespro/pg_pathman/archive/1.4.1.tar.gz
+				# tar -xf 1.4.1.tar.gz ; cd pg_pathman-1.4.1/
+				# make USE_PGXS=1
+				# make USE_PGXS=1 install 
+				# vim /path/postgresql.conf
+					shared_preload_libraries = 'pg_pathman'
+				# pg_ctl -D ./data restart						
+				# psql											# 测试
+					# create extension pg_pathman;
+					# \dx
+			
+				
+			注：
+				1.pg_pathman只支持postgresql9.5+版本
+				2.pathman编译安装需要pg的环境变量
+				2.安装后会在由pg环境变量指定的路径中产生lib/pg_pathman.so的库文件和share/extension/{pg_pathman*.sql,pg_pathman.control}的文件 
+		fdw：
+			说明：是foreign-data wrapper的一个简称，可以叫外部封装数据。已经支持几乎所有的外部数据源读写操作
+			项目地址：https://wiki.postgresql.org/wiki/Fdw
+			安装：以postgres_fdw为例，其它编译命令相似
+				# cd postgresql-10beta1/contrib/postgres_fdw/
+				# make USE_PGXS=1
+				# make USE_PGXS=1 install
+				# psql									# 测试
+					# create extension postgres_fdw;
+					# \dx
+			注：
+				1.其它的fdw插件都从项目地址中寻找
+				2.安装后会生成 lib/postgres_fdw.so文件和share/extension/{postgres_fdw*.sql,postgres_fdw.control}的文件
+				3.编译时需要pg的环境变量，若是其它外部数据的fdw，可能需要相应的环境变量
+
+	
+		
+具体服务相关：
+	数据类型：
+		int
+		smallint
+		real
+		double precision
+		
+		char(N)
+		varchar(N)
+		
+		date：
+			'1994-11-27'
+		time
+		timestamp
+		interval
+		
+		注：非数字类型插入时需用单引号，双引号报错 
+	内部命令：
+		常用命令
+			\cd dir：							改变当前的工作目录
+			\! command：						执行一个shell命令
+			
+			\c db_name - user - host - port		连接到一个新的数据库
+			
+			\encoding [编码]					显示或设定客户端编码
+			\set [name [value]]					设定内部变量
+			\unset name							取消变量
+			\password user_name					更改用户密码
+			\timing								切换命令计时器开关(默认关闭)
+			\q									退出
+	
+		缓存区：
+			\e [文件名]：					使用外部编辑器编辑查询缓存区
+			\p：							显示查询缓存区的内容
+			\r：							清除查询缓存区
+			\w file_name：					将查询缓存写入文件
+		输入/输出：
+			\echo str：						将字符串写至标准输出
+			\i file：						从文件中执行命令
+			\o [file]：						将接下来的所有查询结果写入文件
+		查询：
+			\d object：						查询表、索引、序列、视图等
+			\d[t|i|s|v|S][+]：				列出表|索引|序列|视图|系统表等信息(有+获取更多信息)
+			\conninfo：						列出当前数据库和连接的信息
+			\da：							显示聚集函数
+			\db：							显示表空间
+			\dc：							显示资源编码转换
+			\dC：							显示类型转换列表
+			\dd：							显示对象描述
+			\dD：							列出共同值域
+			\df：							显示函数列表
+			\dF：							显示文本搜索组态
+			\dFt：							显示文本搜索样式
+			\dFp：							显示文本剖析器
+			\dg：							显示群组
+			\du：							显示用户
+			\dn：							显示架构模式
+			\do：							显示运算子
+			\dl：							显示大型对象
+			\dp：							显示表，视图，序列的存取权限
+			\dT：							显示数据类型列表
+			\l：							显示数据库
+		格式化：
+			\a：							切换对齐模式和非对齐模式
+			\C [str]：						设定表标题或取消
+			\f [str]：						设定或显示非对齐模式的分隔符
+			\H：							切换HTML输出模式(默认关闭)
+			\pset name [value]：			设定表输出选项(name：{format|border|expanded|fieldsep|footer|null|recordsep|tuples_only|title|tableattr|pager})
+			\t：							开启或关闭只显示元组
+			\T [str]：						设定html表格标签属性
+			\x								切换扩展输出模式
+		复制：
+			\copy ...						执行sql copy，数据流指向客户端主机
+			\lo_export LOBOID file
+			\lo_import file [commit]
+			\lo_list
+			\lo_unlink LOBOID		
+		通过SQL更改参数：系统视图pg_settings(# show all;)可以被用来查看和改变会话本地的值
+			永久：
+				1.# alter system			# 更改全局默认值
+				2.# alter database			# 针对某个数据库覆盖全局设置
+				3.# alter role				# 针对某个role覆盖全局设置
+			临时：
+				# show 						# 查看当前参数值
+				# set key to values			# 更改当前会话的值，等效于 # update pg_settings set setting=value where name='key'
+	概念：
+		完整的层次结构：
+			server，database，schema，table
+		role：
+			说明：postgresql使用role来表示用户和用户组的概念，role可以充当用户、用户组或两者。
+			超级用户：
+				为引导数据库，新初始化的系统始终有一个预定义的超级用户，默认情况下，该超级用户和初始化数据库的系统用户名相同。其除了登录权限之外可绕过所有
+				的权限检查
+			默认角色：
+				说明：pg提供了一组默认角色，以获得特定的访问权限
+				分类：
+					pg_read_all_settings：	读取所有配置变量，通常仅对超级用户可见。
+					pg_read_all_stats：		读取所有pg_stat_*视图，并使用各种统计信息相关的扩展，通常只对超级用户可见
+					pg_stat_scan_tables：	执行可能需要AccessShareLocks在表上的监视功能
+					pg_monitor：			读取/执行各种监视视图和功能。这个角色是pg_read_all_settings, pg_read_all_stats和pg_stat_scan_tables的成员
+					pg_signal_backend：		发送信号到其他后端（例如：取消查询，终止）
+				注：
+					前4种角色的目的是让角色读取通常仅限于超级用户的各种有用的配置色设置，统计信息和其它系统信息
+				
+			user与role：
+				# create user 与 # create role 等同，除了 create user默认被赋予登录权限，而create role没有
+			命令：
+				创建角色
+					# create role user_name login password 'sky' createdb valid until 'infinity';
+						valid：可选，为此角色的权限设定有效期，过期后所有权限都将失效，默认时限是infinity，即永不过期。
+						createdb：修饰符表明为此角色赋予了创建新数据库的权限
+					# CREATE ROLE sky LOGIN PASSWORD 'queen' SUPERUSER VALID UNTIL '2020-1-1 00:00';
+						组角色 royalty 的任何一个成员角色都将自动继承其除“超级用户权限”外的所有权限
+				创建组角色
+					# CREATE ROLE sky INHERIT;
+				删除：
+					# drop role user_name;			# 该角色不能有依赖的数据库存在
+				查看所有角色：
+					# select rolname from pg_roles;		
+					# \du;
+				角色属性：
+					login：			登录权限
+					superuser：		超级用户权限
+					createrole：	操作role权限
+					createdb：		创建数据库权限
+					replication：	启动复制权限
+					password：		指定密码权限
+				角色组授权角色：	
+					说明：通过授权，使role获得role_group的权限。该role有两种方式获得role_group的权限：
+						1.明确执行 # set role role_group，在该会话期间称为role_group，所有操作均为role_group所做
+						2.具有INHERIT属性可自动获取role_group权限，所有操作为role所做
+					# grant role_group to role1,role2...;
+					# revoke role_group from role1,role2...;
+					# set role role_gropu; 
+					# reset role;									# 恢复原角色
+					
+					注：login，superuser，createdb，createrole被认为是特殊的角色，无法像普通权限那样集成，必须通过set role命令获取
+		tablespace：
+			说明：表空间对数据库而言是个逻辑概念,用于存放数据库对象，由一个目录下多个数据文件组成。可存放多个数据库，但一般一个表空间
+				存储一个数据库。数据库对象(表，视图，索引等)可单独指定表空间。表空间指定的位置将会在pg的数据目录中产生一个链接文件(在
+				$PGDATA/pg_tblspc/目录中)。创建一个数据库而不为其指定表空间，则它将使用与其复制的模板数据库相同的表空间
+				
+				数据初始化后会自动创建两个表空间：
+					1.pg_default：	是template1和template0数据库的默认表空间，也将是其他数据库的默认表空间
+					2.pg_global：	用于共享系统目录
+				temp_tablespaces参数：
+					用于确定临时表和索引的位置，以及用于排序大型数据集的临时文件。这可以是表空间名称的列表。因此与临时对象相关联的加载
+					可以分布在多个表空间上。每次创建临时对象时，将选择列表的随机成员。
+			作用：
+				1.控制数据库的磁盘布局
+				2.优化性能，将经常使用的表存放在快速、高可用的磁盘上(例如SSD等)，提高查询速度。而不具有关键性能的归档数据可以放在一般磁盘上
+			命令：
+				创建：
+					# create tablespace tablespace_name [owner user_name] location '/path/dir';
+				删除：
+					# drop tablespace tablespace_name;			# 非空则报错
+				设置默认表空间：
+					# set default_tablespace = ts_name;
+					
+				指定表空间
+					# create table tb_name(id int) tablespace ts_name;
+				查看：
+					# select spcname from pg_tablespace;		# \db
+		数据库：
+			说明：
+				模板数据库：
+					创建新database时，PostgreSQL会基于模板数据库制作一份副本，其中会包含所有的数据
+					库设置和数据文件。安装好以后默认附带两个模板数据库：template0和template1。如果
+					创建新库时未指定使用哪个模板，那么系统默认会使用template1库作为新库的模板
+					
+					相同：
+						1.两个模板数据库的内容初始是相同的
+						2.两个模板数据库一般都不可被删除
+					不同：
+						1.template1可以被连接并创建对象，template0则不可被连接
+						2.基于template0模板建库时可以指定编码和locale设置，template1则不可以
+				默认数据库：
+					说明：当执行数据库初始化操作后，会默认生成一个名为postgres的普通数据库，该数据库为样例数据库
+					
+			创建数据库：
+				# create database db_name owner user_name template db_tempalte_name tablespace tablespace_name;
+				# createdb -T db_tempalate_name db_name
+			设置模板数据库:
+				# update pg_database set datistemplate=true/false where datname='db_name'
+					注：当datistemplate为true时，可将此数据库标记为模板数据库。同时，postgres
+						禁止对该数据库编辑或删除。值为false时，取消标识，同时可以编辑
+			更改：
+				# alter database db_name set key_name to value;
+				# alter database db_name reset key_name;
+			查看：
+				# select * from pg_database;		# \l		# psql -l
+			删除：
+				# drop database db_name;					删除数据库中包含的所有对象
+		schema：
+			说明：模式是一个命名表的逻辑集合，也包含多个视图，索引等对象。同一个对象名可在不同的schema中使用而不会产生冲突。
+				一个数据库包含多个schema，一个schema又包含多个对象。schema不能嵌套
+			public模式：
+				每创建一个新的数据库时，pg都会为该数据库创建一个public模式。若无特殊操作，则接下来的操作都会在public模式中。
+				数据库中的对象需要通过模式路径来搜索定位，一般搜索路径为 "$user"(用户名同名模式),public
+			命令：
+				创建：
+					# create schema schema_name;
+				删除：
+					# drop schema schema_name [cascade];				# 模式非空时须加cascade才能级联删除
+				显示模式搜索路径：
+					# show search_path;
+				查看当前模式
+					# select current_schema;
+				查看所有schema：
+					# select * from information_schema.schemata;
+				设置模式搜索路径：
+					# set search_path schema_name1,schema_name2,...;	# 只对当前连接有效，通过更改搜索路径来更换当前模式
+			优势：
+				1.允许多个用户使用一个数据库而不会干扰其它用户
+				2.把数据库对象组织成逻辑组方便管理
+				3.第三方的应用可以放在不同的模式中，不会和其它对象名产生冲突
+		table：
+			创建：
+				# creat table tb_name(
+					col		type_name,		-- comment
+					col		type_name		
+				);
+				注：双划线("--") 引入注释，任何跟在它后面的东西直到该行的结尾都被忽略
+					
+					默认值/缺省值：
+						col type_name default val;			# val可以为具体值，也可以是表达式(eg：current_timestamp)
+					
+			删除：
+				# drop table tb_name;
+				# drop table if exists tb_name;
+			插入：
+				# insert into tb_name values(,,,);
+			更新：
+				# update tb_name set col=value,col=value where ...
+			删除：
+				# delete from tb_name where col=value
+				# delete from tb_name											# 删除表中所有行
+			更改：
+				字段：
+					增加字段：
+						# alter table tb_name add column col type_name;
+					删除字段：
+						# alter table tb_name drop column col (cascade);
+				约束：	
+					增加约束：
+						# alter table tb_name add *;								# 要增加一个约束，必须使用表约束语法
+						# alter table tb_name alter column col set not null;		# 增加一个不能写成表约束的非空约束
+					删除约束：
+						# alter table tb_name drop constraint con_name (cascade);
+						# alter table tb_name alter column col drop not null;		# 删除非空约束
+				缺省值：
+					增加缺省值：
+						# alter table tb_name alter column col set default values;
+					删除缺省值：
+						# alter table tb_name alter column col drop default;
+						
+						注：设置缺省值后不会影响任何表中现有的数据行，它只是为将来的INSERT命令改
+							变缺省值。删除缺省值实际上相当于把缺省设置为空
+				数据类型：
+					# alter table tb_name alter column col type type_name;
+				字段名：
+					# alter table tb_name rename column col_old to col_new;
+				表名：
+					# alter table tb_name rename to tb_name_new;
+			查询：
+				# select 
+				
+					from only tb_name
+					
+					
+					- only指示系统只对tb_name表进行查询，而不包括继承级别中低于tb_name的表
+		view：
+			创建：
+				# creat view v_name as select ...
+		权限：
+			类型：select，insert，update，delete，alter，references，trigger，connect，temporary，usage，execute、truncate，with grant
+			授权：
+				# grant some_privilege/all to uesr_name [with grant option];
+			撤销：
+				# revoke all on tb_name from user_name;
+				
+				注：
+					1.drop和alter只有对象的所有者才能拥有，任何情况下都不能授予别人
+					2.对象的所有者天然拥有此对象的所有权限，不需要再次授予
+					3.授权时可以加上 WITH GRANT 子句，这意味着被授权者可以将得到的权限再次授予别人
+		约束：
+			说明：SQL允许在字段和表上定义约束。约束允许对数据施加任意控制。如果用户企图在字段里存储违反约束
+				的数据，那么就会抛出一个错误
+				  一个字段可以有多个约束，顺序并不影响约束检查的顺序
+			分类：
+				命名约束：
+					说明：要声明一个命名约束，使用关键字constraint面跟一个标识符(作为名字)，然后再跟约束定义。如果不用这个方法声明约束，那么系统会自动为改约束选择一个名字
+					示例：
+						col type_name constraint con_name *,
+				检查约束：
+					说明：它允许你声明在某个字段里的数值必须使一个布尔表达式为真
+					示例：
+						字段约束：
+							col type_name check (表达式),
+						表约束：
+							col type_name,
+							col type_name,
+							check (表达式)
+						
+				非空约束：
+					说明：非空约束只是简单地声明一个字段必须不能是NULL
+					示例：
+						col type_name not null,
+				唯一约束：
+					说明：保证在一个字段或者一组字段里的数据与表中其它行的数据相比是唯一的
+					示例：
+						字段约束：
+							col type_name unique,
+						表约束：	
+							col type_name,
+							unique(col)			unique(col1,col2)
+						注：添加一个唯一约束通常会自动在约束中使用的列或一组列上创建一个唯一btree索引。 可以通过创建一个部分索引 强制仅在某些行上创建唯一约束。
+						
+				排除约束：
+					说明；排他约束保证如果任何两行被在声明的字段里比较或者用声明的操作表达， 至少有一个操作比较会返回错误或空值
+					示例：
+						CREATE TABLE circles (
+							c circle,
+							EXCLUDE USING gist (c WITH &&)
+						);
+						
+						注：添加一个排除约束会在约束声明里自动创建一个声明类型的索引
+				主键约束：
+					说明：从技术上讲，主键约束只是唯一约束和非空约束的组合
+					示例：
+						字段约束：
+							col type_name primary key,
+						表约束：
+							col type_name,
+							col type_name,
+							primary key(col,col)
+						注：
+							1.添加一个主键将会在主键使用的列或一组列中自动创建一个唯一btree索引
+							2.一个表最多可以有一个主键(但是它可以有多个唯一和非空约束)
+				外键约束：
+					说明：外键约束声明一个字段(或者一组字段)的数值必须匹配另外一个表中出现的数值。我们把这个行为称为两个相关表之间的参照完整性
+					示例：
+						create table tb1(
+							col type_name primary key,
+						);
+						create table tb2(
+							col type_name primary key,
+							col type_name references tb1(col)			# references tb1 会引用tb1中的主键
+						)
+							
+						 FOREIGN KEY (b, c) REFERENCES other_table (c1, c2)
+		键：
+			主键：
+				说明：
+				示例：
+					create  table tb_name(
+						id int  primary key
+					)
+			外键：
+				说明：
+				示例：
+					create table tb_name1(
+						id int  primary key
+					)
+					
+					create table tb_name2(
+						id int references tb_name1(id)
+					)
+					则无法在tb_name2中插入一条tb_name1中没有匹配 id的记录 行
+				
+		函数：
+			聚合函数：
+				sum()：
+				avg()：
+				max()：
+				min()：
+		
+		函数和操作符：
+		触发器和重写规则：
+		
+		事务：
+			说明；
+			示例：
+				begin;
+					sql;
+					sql;
+				commit;    /    rollback;
+				
+				begin;
+					sql;
+					savepoint point_name;
+					sql2;
+					rollback to point_name;			--回滚到第一个sql
+					sql;
+					commit;
+		继承：
+			说明：一个表可以从零个或多个其它表中继承属性，而一个查询既可以引用一个表中的所有行，也可以引用一个表及其所有后代表的行(后面这个是缺省行为)
+			示例：
+				creat table t1(
+					name text,
+					id int
+				);
+				create table t2(
+					age char(2)
+				) inherits(t1);
+			
+			注：
+				1.当查询时(select * from t1)，会默认将子表数据一起查询(可通过在父表名前加only只查询父表)
+				2.select，update，delete都支持only关键字
+				3.对于insert或copy，继承并不自动影响其后代表
+				4.所有父表的检查约束和非空约束都会自动被所有子表继承。不过其它类型的约束(唯一、主键、外键约束)不会被继承
+		分区：
+			说明：将逻辑上的一个大表分割成物理上的几块。分区不仅能带来访问速度的提升且带来管理和维护上的方便
+				在PG中，表分区是通过表继承来实现的，一般都是建立一个主表，里面为空，然后每个分区表都去继承它。
+				无论何时，都应保证主表里面是空的。并且每一个子表中都要建立check约束
+				
+				每个分区必须创建为具有CHECK CONSTRAINT的子表，定义触发器或RULE来重定向数据插入主表到适当的分区，由于查询和更新
+				涉及约束的检查、插入则涉及触发器或规则重写，导致分区功能性能较差
+			好处：
+				1.某些类型的查询性能可以得到极大提升。
+				2.更新的性能也可以得到提升，因为表的每块的索引要比在整个数据集上的索引要小。如果索引不能
+				  全部放在内存里，那么在索引上的读和写都会产生更多的磁盘访问。
+				3.批量删除可以用简单的删除某个分区来实现。
+				4.可以将很少用的数据移动到便宜的、转速慢的存储介质上。
+			分类：
+				范围分区：
+					说明：表被一个或者多个关键字段分区成"范围"，这些范围在不同的分区里没有重叠
+					示例：
+						1.配置postgresql.conf			# 约束排除是一种查询优化技巧，可直接扫描对应的分区而不必全表扫描。约束排除只由check驱动，而非索引驱动
+							constraint_exclusion=partiton				
+						2.建立主表
+							# create table test(id int not null,logdate date);				
+						3.子表继承
+							# create table test_y2017m01() inherits(test);
+							# create table test_y2017m02() inherits(test);
+							# create table test_y2017m03() inherits(test);
+							# create table test_y2017m04() inherits(test);
+							# create table test_y2017m05() inherits(test);
+						4.分区表增加约束
+							# alter table test_y2017m01 add check(logdate >= date '2017-01-01' and logdate < date '2017-02-01');
+							# alter table test_y2017m02 add check(logdate >= date '2017-02-01' and logdate < date '2017-03-01');
+							# alter table test_y2017m03 add check(logdate >= date '2017-03-01' and logdate < date '2017-04-01');
+							# alter table test_y2017m04 add check(logdate >= date '2017-04-01' and logdate < date '2017-05-01');
+							# alter table test_y2017m05 add check(logdate >= date '2017-05-01' and logdate < date '2017-06-01');
+						5.为关键字建立索引(非必要)
+							# create index test_y2017m01_logdate on test_y2017m01(logdate);
+							# create index test_y2017m02_logdate on test_y2017m02(logdate);
+							# create index test_y2017m03_logdate on test_y2017m03(logdate);
+							# create index test_y2017m04_logdate on test_y2017m04(logdate);
+							# create index test_y2017m05_logdate on test_y2017m05(logdate);
+						6.定义规则和触发器来重定向数据插入适当的分区表
+							# create or replace function test_insert_trigger()
+								returns trigger as $$
+								begin
+									if (new.logdate >= date '2017-01-01' and new.logdate < date '2017-02-01') then 
+										insert into test_y2017m01 values(new.*);
+									elsif (new.logdate >= date '2017-02-01' and new.logdate < date '2017-03-01') then 
+									insert into test_y2017m02 values(new.*);
+									elsif (new.logdate >= date '2017-03-01' and new.logdate < date '2017-04-01') then 
+									insert into test_y2017m03 values(new.*);
+									elsif (new.logdate >= date '2017-04-01' and new.logdate < date '2017-05-01') then 
+									insert into test_y2017m04 values(new.*);
+									elsif (new.logdate >= date '2017-05-01' and new.logdate < date '2017-06-01') then 
+									insert into test_y2017m05 values(new.*);
+									else raise exception 'Date out of range,fix the test_insert_trigger() function!';
+									end if;
+									return null;
+								end;
+								$$
+								language plpgsql;
+							# create trigger insert_test_trigger
+								before insert on test
+								for each row execute procedure test_insert_trigger();
+								
+					
+				列表分区：表通过明确地列出每个分区里应该出现哪些关键字值实现
+				
+			约束排除：
+				若无约束排序，查询父表时会扫描所有分区。打开约束排除后，规划器将检查每个分区约束，然后将其在
+				查询计划中排除。约束排除只由check约束驱动，和分区无关
+				
+				# set constraint_exclusion = on
+				
+			示例：
+				删除旧数据：
+					# 删除某个子表即可(drop table tb_name)或是删除继承关系(alter table )
+				
+				
+			建议分区：表的大小超过了数据库服务器的物理内存大小
+
+		本地化：
+			说明：PG支持两个本地化设施：
+				1.使用操作系统的语言环境功能
+				2.提供多种字符集，支持各种语言存储文本，并在客户端和服务器之间提供字符集转换
+			
+				
+		连接控制
+			使用以下三个SQL语句来取消正在运行的查询并终止连接
+			1. 查出活动连接列表及其进程 ID。
+				# SELECT * FROM pg_stat_activity;
+			2.取消连接上的活动查询
+				# SELECT pg_cancel_backend(pid);
+					注：该操作不会终止连接本身。
+			3.终止该连接
+				# SELECT pg_terminate_backend(pid);
+		备份和恢复：三种方式，恢复完成后运行analyze;
+			1.SQL转储
+				说明：创建一个由sql命令组成的文件，当把这个文件回馈给服务器时将重建与转储状态相同的数据库。该方式可实现远程备份，恢复时兼容新旧版本。
+					pg_dump时不会阻塞对数据库的操作(需要排它锁的操作除外，eg：alter table)
+				备份：
+					# pg_dump db_name > db.sql							# 备份单个库
+					# pg_dump db_name | gzip > db.sql.gz				
+					# pg_dumpall > all.sql								# 备份整个PG服务器内容
+				恢复：
+					# createdb db_name									# 恢复时不会创建数据库，需要提前创建
+					# psql db_name < db.sql								# 默认遇到错误后继续执行
+					# gunzip -c db.sql.gz  | psql db_name	
+					# psql --set ON_ERROR_STOP=on db_name < db.sql		# 遇到错误后停止执行
+					# psql -1 db_name < db.sql							# 将整个恢复当做一个单独的事务运行。数据太大可能会导致数小时的回滚操作
+					
+					# psql -f all.sql postgres							# 恢复整个PG服务器内容，postgres只是一个象征，可以指定任何数据库
+				
+				通过管道直接完成备份恢复:
+					# pg_dump -h host1 db_name | psql -h host2 db_name
+				
+			2.文件级别备份
+				说明：直接复制PG的数据文件(即data目录)，不常用
+					1.备份和恢复前都需要关闭数据库
+					2.备份和恢复的数据库版本须相同 
+					3.只能全局备份
+				注：
+					拷贝PG的data目录至另一个数据库的data目录启动即可
+			3.连续归档
+				说明：在$PGDATA/pg_xact/下都有一个预写式日志(WAL)，可以将文件系统级别的备份和WAL文件的备份结合起来，当需要恢复时，先恢复文件系统备份，
+					然后从备份的WAL文件中重放，将系统还原至任一状态
+					1.备份和恢复的数据库版本须相同
+					2.只能全局备份
+				备份：
+					1.vim data/postgresql.conf
+						wal_level=replica											# 或更高
+						archive_mode=on
+						archive_command=''test ! -f /mnt/%f && cp %p /mnt/%f'		# %p会被将要归档的文件路径所替代，而%f只会被文件名所替代
+				恢复：
+		sql：
+			select version();										# 查看版本号
+			select current_date;									# 显示当前时间
+			
+			SELECT name, setting FROM pg_settings WHERE category = 'File Locations';	查看文件位置：
+	
+		导入：
+			# copy tb_name from '/path/file.csv' [DELIMITER ',' CSV];
+		
+		导出：
+			# COPY (select * from tanktab) to '/u02/tank/tank.csv' with csv header;
+			# COPY products TO '/path/to/output.csv' WITH csv;
+		
+		
+		
+		
+PGXL
+	说明：
+		Postgres-XL全称为 Postgres eXtensible Lattice。是一个水平可扩展的开源SQL数据库集群，足够灵活，可以处理不同的数据库工作负载：
+			OLTP写入密集型工作负载
+			商业智能需要MPP并行
+			操作数据存储
+			键值存储
+			GIS地理空间
+			混合工作负载环境
+			多租户提供商托管环境
+		注：
+			目前官网只提供源码包下载，自9.2版本后不再提供rpm包下载
+	编译：
+		# yum install make gcc zlib zlib-devel readline readline-devel openssl-devel
+		# wget http://files.postgres-xl.org/postgres-xl-9.5r1.5.tar.gz
+		# tar -xf postgres-xl-9.5r1.5.tar.gz；cd postgres-xl-9.5r1.5
+		# ./configure --prefix=/path/pgxl
+		# make -j32								# 可根据系统中的CPU内核数量来调整-j参数
+		# make install
+		# cd contrib
+		# make -j32
+		# make install
+	安装：	
+		# tar -xf pgxl-9.5-bin.tar.gz; cd pgxl						# 解压
+		# vim .bash_profile											# 设置环境变量(全)
+			export PG_DIR=/path/pgxl
+			export LD_LIBRARY_PATH=$PG_DIR/lib
+			export PATH=$PG_DIR/bin:$PATH
+		# . .bash_profile
+		# pgxc_ctl --home /path/pgxl
+			# init all
+			# start all
+			# stop all
+		
+		
+		
+		# GTM/STANDBY
+		# initgtm -Z gtm -D ./data/gtm								# 初始化gtm
+		# gtm_ctl -Z gtm -D ./data/gtm  start						gtm -D ./data/gtm
+		
+		# GTM_PROXY
+		# initgtm -Z gtm_proxy -D ./data/gtm_proxy1	
+		# gtm_ctl -Z gtm_proxy -D ./data/gtm_proxy1  start		gtm_proxy -D ./data/gtm_proxy1
+		
+		# DataNode		更改访问控制
+		# initdb -D ./data/dn/dn1 --nodename dn1
+		# pg_ctl -D ./data/dn/dn1 -Z datanode -l logfile start				postgres --datanode -D ./data/dn/dn1
+		
+		# Coordinator	更改访问控制
+		# initdb -D ./data/coord1 --nodename coord1
+		# pg_ctl -D ./data/coord1 -Z coordinator -l logfile start			postgres --coordinator -D ./data/coord1
+		
+		# 启动顺序是	GTM		GTM-Standby		GTM-Proxy	 Datanodes		Coordinators	关闭则反之
+		
+		# 注册：
+		# psql postgres(所有的Coordinator和datanode)
+			# select * from pgxc_node;												# 查看
+			# create node coord2 with(type='coordinator',host='db2',port=5432);		# 注册coord
+			# create node dn1 with(type='datanode',host='db1',port=10001);			# 注册datanode
+			# select pgxc_pool_reload();											# 重新加载
+
+	结构：	
+		目录结构：
+			bin：
+			include：
+			lib：
+			share：
+		进程结构：
+			gtm -D ./data/gtm						# gtm 进程
+			gtm -D ./data/gtm_standby				# gtm_standby 进程
+			gtm_proxy -D ./data/gtm_proxy			# gtm_proxy 进程
+		端口结构：
+			gtm：			6666
+			gtm_standby：	6666
+			gtm_proxy：		6666
+			datanode：		5432、6667
+			coordinator：	5432、6667
+		配置文件：
+			说明：所有文件
+				1.配置格式为 name = value，"="是可选的
+				2."#"开头为注释，该文档中为默认值
+			GTM：
+				说明：gtm.conf
+				配置：
+					nodename = 'gtm'							# 指定node name
+					listen_addresses = '*'						# 指定gtm的监听地址
+					port = 6666									# 指定gtm的监听端口
+					startup = ACT								# 启动模式 ACT：主节点	STANDBY：备节点
+					active_host = ''							# 当startup选择STANDBY模式时指定的主节点ip
+					active_port =								# 当startup选择STANDBY模式时指定的主节点端口
+					keepalives_idle = 0							# 不活动多少秒后通过TCP向客户端发送一个keepalive信息。0表示使用系统默认值
+					keepalives_interval = 0						# 指定多少秒后重发一个还未被客户端已告知收到的tcp keepalive信息。0表示使用系统默认值
+					keepalives_count = 0						# 指定被认为down掉之前允许发送的keepalive信息的数量。0表示使用系统默认值
+					log_file = 'gtm.log'						# 日志文件名
+					log_min_messages = WARNING					# DEBUG\DEBUG5\DEBUG4\DEBUG3\DEBUG2\DEBUG1\INFO\NOTICE\WARNING\ERROR\LOG\FATAL\PANIC
+
+					synchronous_backup = off					# 
+			GTM_PROXY：
+				说明：gtm_proxy.conf
+				配置：
+					nodename = 'gtm_proxy1'						# 指定node name
+					listen_addresses = '*'						# 指定proxy的监听地址
+					port = 6666									# 指定proxy的监听端口
+					worker_threads = 1							# proxy工作线程的数量
+					gtm_host = 'localhost'						# 指定Active GTM的地址
+					gtm_port = 6668								# 指定Active GTM的端口
+					gtm_connect_retry_interval = 0				# 当与GTM通信错误后，等待多少秒再次连接GTM
+					
+					keepalives_idle = 0
+					keepalives_interval = 0
+					keepalives_count = 0
+					log_file = 'gtm_proxy.log'
+					log_min_messages = WARNING
+			Coordinator/DataNode：
+				说明：postgresql.conf
+				配置：
+					其它配置与postgresql的配置文件相同
+					listen_addresses = 'localhost'
+					port = 5432
+					pooler_port = 6667							# 管理池的tcp端口
+					max_pool_size = 100							# 端口数量
+					pool_conn_keepalive = 600					# 当在该时间内空闲则关闭连接，-1表示自动关闭
+					pool_maintenance_timeout = 30				# 若当在该时间内pooler为空闲，则启动维护工作。-1则禁用
+					persistent_datanode_connections = off		# 若设为on，则为永久连接，该连接的session不会放入pool中
+					max_coordinators = 16						# 在集群中能被定义的最大的coordinator的数量
+					max_datanodes = 16							# 在集群中能被定义的最大的datanode的数量
+					
+					gtm_host = 'localhost'						# 指定连接的GTM的ip。若有gtm_proxy，则写其ip；若无，则写active gtm
+					gtm_port = 6666								# 指定连接的GTM的端口。若有gtm_proxy，则写其端口；若无，则写active gtm
+					pgxc_node_name = 'coord1'					# Coordinator或Datanode的名称
+					gtm_backup_barrier = off					# 
+	概念：
+		数据分布：
+			数据分布有两种模式： 复制表（Replicated Table）与分布表（Distributed Table）
+			复制表（Replicated Table）：每行记录复制到集群中所有的数据节点，每节点一份。
+			分布表（DistributedTable）：记录分片存在不同节点，可用的分片策略方式Hash、Round Robin、Modulo
+	集群：	
+		组件：
+			GTM(Global Transaction Monitor)：全局事务监控器
+				1.确保群集范围内的事务一致性。作为其多版本并发控制的一部分，GTM负责发放事务ID和快照。、
+				2.集群还可配置备用GTM，以改进高可用性。
+				3.在Coordinator上配置代理GTM，以提高可扩展性，减少与GTM性能瓶颈。
+				
+					GTM Standby：
+						GTM的备节点，GTM控制所有的全局事务分配，如果出现问题，就会导致整个集群不可用，为了增加可用性，增加该备用节点。当GTM
+						出现问题时，GTM Standby可以升级为GTM，保证集群正常工作。
+					GTM Proxy：
+						1.与Coordinator和DataNode一起运行，但不是集群必需的组件
+						2.Coordinator和DataNode直接gtm_proxy交互替代gtm。它作为后端和gtm的中间人
+						3.对gtm的请求进行分组，而后端多个请求一次性提交给gtm。从而降低网络带宽，降低GTM的压力
+						4.获取transaction ids(XIDs)范围和数据快照
+						
+			Coordinator：协调器
+				1.处理客户端连接，是应用程序的数据库接口。pgxl允许多个Coordinator从应用程序中单独接受语句而非以集中的方式。任何Coordinator
+				  都可从其它Coordinator处获取信息
+				2.与GTM交互，根据需要获取全局事务ID和全局快照，解析和规划查询语句，并将一个序列化的全局计划发送到声明中涉及的每个组件然后对
+				  数据节点返回的查询中间结果集进行最后处理，并写回应用程序
+				3.管理事务两阶段提交(2PC)
+				4.只存储Catalog数据
+				5.为节省机器，通常Coordinator和Data Node部署在一起
+				
+			Data Node：数据节点
+				1.实际存储表和索引数据，数据自动分布/复制到集群中各个节点。数据的分布可手动配置。
+				2.数据节点为只读模式，只要通过Coordinator连接到数据节点才能操作
+				3.执行协调器下传的sql，可在所有节点上并发执行
+				4.为了提高可用性，可以配置数据节点的热备以便进行故障转移准备。
+		
+			注：
+				gtm负责ACID，保证分布式数据库全局事务一致性。Coordinator负责调度的，将操作指令发送到各个数据节点。DataNodes是数据节点，分布式存储数据
+		架构：
+			
+															   gtm		---		gtm_standby
+											
+										gtm_proxy1			gtm_proxy2			gtm_proxy3
+						
+									coord1	-- coord2 -- coord3
+								dn1 dn2			dn3 dn4		dn5 dn6
+	命令：
+		
+		gtm：
+		gtm_ctl mode option:
+			mode：
+				start/stop/promote/restart/status/reconnect
+			options：
+				-D	/path/dir				# 指定数据目录
+				-i	nodename
+				-t	seconds					# 当使用-w时等待的秒数
+				-w							# 等待直到操作完成
+				-W							# 不等待
+				
+				-Z startup-mode				# 指定模式 gtm/gtm_standby/gtm_proxy
+				
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		

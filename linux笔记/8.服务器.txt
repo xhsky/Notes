@@ -1,0 +1,908 @@
+远程连接服务器		
+	图形：XDMCP、VNC、XRDP
+		传输数据量大，速度有待提高，建议开放在内网中
+		XDMCP(X Display Manager Control Protocol)
+		VNC(Virtual Network Computing)
+		XRDP(Remote Desktop Protocol)
+		
+		
+		所有图形应用程序都是X的客户端
+			- 可以通过TCP/IP协议连接到远程X服务器
+			- 数据未被加密，但可以通过一个ssh隧道连接保证安全
+			
+			未加密：XDMCP，VNC
+			加密：  XRDP
+		
+		XDMCP：X Window System在网络上的方式
+			XDMCP协议由DM程序所提供，Centos默认的DM为Gnome的gdm
+				但若想启动XDMCP，可以任选DM程序进行配置(gdm,kdm,xdm)
+			
+			
+			Port：		UDP/17s
+			
+			安装图形接口
+				yum groupinstall 'X Window System' 'Desktop' 'Desktop Platform'
+			配置
+				/etc/gdm/custom.conf
+					[security]
+					AllowRemoteRoot=yes					# XDMCP默认不允许root登录
+					DisallowTCP=false					# 允许客户端使用TCP方式连接
+					
+					[xdmcp]
+					Enable=true							# 启动XDMCP
+			启动
+				# gdm
+				
+			客户端
+				linux
+					# xhost + ip
+					# X -query ip :1
+				window
+			
+		VNC(Virtual Network Computing)
+			
+			服务器端会启动一个监听的端口(5901-5910)
+			
+			tigervnc-server	须有图形工具(eg: kde)
+			
+		
+			启动
+				# vncserver [:N]	[-geometry 分辨率] [options]
+					:N				开启的端口	:1 -- 5901
+					-geometry		eg：1024*768 或 800*600
+		
+			重置密码
+				# vncpasswd			~/.vnc/passwd
+			关闭
+				# vncserver -kill :N
+			查看
+				# vncserver -list
+				
+				
+			客户端
+				linux：	# yum install tigervnc
+						# vncviewer ip:N			在图形界面下执行
+				windows：RealVNC
+				
+		XRDP(X Remote Desktop Server)
+			
+			rdp会自动启动VNC，故要用rdp，须先安装vnc。
+			port：3389,3350，5910-1920
+				会在本机启动端口3389，连接到3350去启动VNC的连接(当有连接时)
+				
+			# yum install freerdp
+			# systemctl 
+			# 在windows上直接远程连接即可，不用任何配置
+		
+	文字：SSH、Telnet
+		Telnet
+			 Telnet在内部局域网有其用武之地
+			 
+			 
+		OpenSSH  --- Secure Shell Protocol 默认每个主机都会安装
+			- openssh是ssh的替代品，本身有两个服务功能，都在TCP/22端口上
+				- SSH			
+				- SFTP		加密的FTP
+			
+			ssh version2加入了连接检测机制，可以避免连接期间被插入恶意的攻击码
+			# ssh -V	--显示版本号
+			
+			ssh server与client连接步骤：
+				1.服务器第一次启动sshd时，自动产生公私钥(/etc/ssh/ssh_host_*)						- 若删除，重启sshd，会自动生成
+				2.客户端请求连接
+				3.服务器发送公钥(明文)
+				4.客户端将公钥记录于~/.ssh/know_hosts，开始计算自己的公私钥(产生于本次连接中，下次连接会重新计算)，并将公钥发送给服务器(明文)
+				5.开始加密传输
+			
+			服务使用
+				Packages： 	openssh,openssh-client,openssh-server
+				Daemon:    	sshd
+				Ports: 		22/tcp
+				Configs: 	/etc/ssh/*     ~/.ssh/*
+							客户端所记录服务器的公钥的文件：~/.ssh/known_hosts
+				Logs:		/var/log/secure
+						
+				认证方式：
+					1.passwd
+					2.RSA and DSA keys(密钥)
+					3.kerberos（第三方认证）
+					4.s/key and SecureID(OTP)
+				加密方式：
+					1.对称加密：加密和解密使用同一密码
+					2.非对称加密(公钥加密)；私钥，公钥。一般用于秘钥交换
+						公钥加密其密文比对称加密长，更安全。但对称加密速度比公钥加密快3个数量级
+						在SSH使用上，主要利用RSA/DSA/Diffie-Hellman
+					3.单向加密(散列加密,指纹加密)：由数据取得密文，不可逆。用于提取数据特征码，做数据数据完整性校验
+						·雪崩效应：防暴力破解
+						·定长输出：定长
+
+						·MD5：Message Digest，128位定长输出
+							 # openssl passwd -1 -salt ‘12345678’
+							 # cat /etc/passwd | openssl md5   ==============   # md5sum /etc/passwd
+						·SHA1：Secure Hash Algorithm，160位定长输出
+
+									
+				对方id发生变化，删除~/.ssh/known_hosts中的内容，重新连接
+				
+				服务器端：
+					 配置：直接启动   /etc/init.d/sshd start
+						
+					 更改其它端口：
+						# vim /etc/ssh/sshd_config
+							Port N
+	
+						Centos 7
+						# yum install policycoreutils-python(base)
+						# semanage port -l | grep ssh					查看当前SElinux 允许的ssh端口
+						# semanage port -a -t ssh_port_t -p tcp 300		添加300端口到SELinux
+						
+						# systemctl restart sshd
+				客户端：
+					软件：	
+					
+				  
+				  
+						连接： 		# ssh  [option] user@ip    [command]
+										-f			若最后有命令，则不登录远程主机，直接发送其命令后退回，若无-f，则须等待其命令结束后才退回主机
+													该命令所维护的是本地的环境变量，若要使用远程的环境变量在Command中使用. /etc/profile && 
+										-p port		其它端口
+										-o
+											ConnectTimeout=秒数						联机等待的秒数(减少等待时间)
+											StrictHostKeyChecking=[yes|no|ask]		预设是ask，若要让 public key主动加入 known_hosts ，则
+																					可以设定为no即可。若为yes，则要对比know_hosts文件有才放行
+										-v			追踪调试建立的SSH连接情况
+										-b ip		这个ip将会被使用做建立连接的源地址(有多个ip时，此ip可以使网卡ip，亦可是ip alias)
+	
+	
+	
+									# ssh -X user@ip xterm &
+										将会在本地主机上显示xterm
+										传输的数据会通过ssh连接而加密
+		
+						异地直接拷贝： 		
+									# scp file   user@ip:/path
+									# scp user@ip:/path   file
+										-p		保留原文件的属性
+										-r		复制目录
+										-l N	带宽宝贵，可以限制传输速率，单位为kb/s, -l 800即为100KB/s
+									
+						差异备份： 	# rsync -a 
+										-a		相当于-rlptgoD，常用
+										-r 		复制目录
+										-u		仅更新，若目标文件较新，则不会覆盖
+										-v		查看模式，列出更多信息
+										-q		与-v相反，安静模式，仅显示错误信息
+										-p		保留原属性
+										-e		使用的协议
+									第一次备份时时间较长，再次建立仅备份有差异的文件
+									
+									本地备份
+										# rsync -av /path/dir /path/dir
+									网络备份
+										通过ssh的信道
+											# rsync -av -e ssh user@ip:/etc	/tmp
+										通过rsync服务
+											1.在服务端启动rsync	（/etc/xinetd.d/rsync）	,873
+											2.编辑/etc/rsyncd.conf
+											3.设定客户端连接密码
+											4.# rsync -av user@ip::/path/dir /local/disr
+						
+						连接后传递：# sftp user@ip
+									# put 本机	远程
+									# get 远程  本地
+									# exit		# bye		# quit
+									
+								
+									
+							put/get都在sftp连接后才能进行
+							针对远程主机的命令 --- 和一般命令相同
+							针对本地主机的命令 --- 在一般命令前加个l
+							就整体而言，若不考虑图形接口，SFTP在linux中已经可以取代FTP了，故在不考虑到图形接口的FTP软件是，可以直接关闭ftp使用sftp
+									
+				
+				SSH登陆响应慢的问题 
+					有可能是两种情况：
+					1.在SSH登陆时服务器端会对客户端的IP进行反解析造成登陆响应慢的问题，
+					  通常改服务器端sshd_config的“UseDNS no”即可以。
+
+					2.服务器端启用了GSSAPI。登陆的时候客户端需要对服务器端的IP地址进行反解析，
+					如果服务器的IP地址没有配置PTR记录，那么就容易在这里卡住了。
+
+					对于这种情况，就有必要禁用GSSAPI认证以加速SSH登陆，具体有下面几种方式：
+						1.解法一：使用ssh命令时使用附加的参数：ssh -o GSSAPIAuthentication=no server_address
+						2.解法二：修改客户端ssh_config（/etc/ssh/ssh_config或~/.ssh/config）：GSSAPIAuthentication no
+						3.解法三：修改服务器端的sshd_config(/etc/ssh/ssd_config)：GSSAPIAuthentication no
+
+
+				
+				通过SSH通道加密原本无加密的服务
+					1.在远程主机上开启服务(远程端口)
+					2.用ssh将本地端口和远程端口之间加密
+						# ssh -L 本地端口:127.0.0.1:远程端口 [-N] 远程主机		
+					3.用客户端软件打开本地端口服务	
+				关闭
+					1.关闭服务
+					2.ctrl+c中断ssh -L
+					
+						该操作可用于任何服务
+					
+				密钥认证：
+				   客户端：  
+            # ssh-keygen
+            # ssh-copy-id user@ip  -- 可用ssh-copy-id --help查看
+            # ssh user@ip   -- 直接登录即可
+            注:
+              若是非22端口, 则ssh-copy-id "-p port user@ip"
+				sshd的防护：
+					1./etc/ssh/sshd_config
+					2./etc/hosts.allow	/etc/hosts.deny
+					3.iptables
+
+			
+	
+	
+文件服务器
+
+		ftp：	跨平台，download费时
+		samba：	跨平台，mount
+		nfs：	linux/unix，mount
+		
+		ftp无法直接修改主机上的文件
+		让文件在两部主机之间直接修改：NFS与CIFS
+		在Unix Like上可共享的文件系统是NFS
+		在Windows上使用的网上邻居所使用的文件系统是CIFS
+		
+	NFS   Network File System--- 局域网
+		不需用户验证，除非是和NIS服务器联合。但以何种身份进行登录进而取得权限却是需要考虑
+		存储空间亦是随意分享出挂载
+		nfs需要内核支持
+		nfs可与setfacl相结合进而授权
+		nfs开启后客户端须同服务器断开连接后才可关机，或将rpcbind和nfs服务关闭也可关机
+
+		Packages：	nfs-utils
+		Ports：		2049/{tcp,udp}(nfsd)   random ports(rpcbind 111)
+		Config：	/etc/exports    	
+					/var/lib/nfs/*    	--- 数据记录文件
+		Related：	rpcbind
+		Log: 		/var/log/message
+		commands：	exportfs -v   exportfs -r / service nfs reload  
+					
+		
+		原理
+			1.客户端的rpc向服务器端的rpc发送nfs文件访问功能的查询
+			2.服务器端rpc将已注册的nfs端口发送给客户端
+			3.客户端了解正确的端口后直接与nfs连接
+			
+		服务器端：
+			配置：
+				1.启动rpcbind服务	
+					# /etc/init.d/rpcbind restart	--- 客户端也要启动
+				2.启动nfs服务(和nfslock服务)  
+					# /etc/init.d/nfs restart
+					# /etc/init.d/nfslock restart	--- 客户端也要启动
+				3.在/etc/exportfs中设置分享目录   
+					/path/dir 192.168.1.0/24(rw,all_squash,anonuid=55,anongid=55)
+				4.重新加载   		
+					# exportfs -rv
+				
+		客户端：
+			配置：
+				1.# showmount -e ip    /   rpcinfo -p ip
+				2.# mount [-t nfs] ip:/path  /path    [-o soft,intr]
+				
+				自动挂载：
+					网络的启动是在本机挂载之后，当利用/etc/fstab尝试挂载nfs时，系统尚未启动网络
+						1.写入/etc/rc.local
+							# mount -t nfs -o rw,soft ip:/path/dir /path/dir
+						2.写入/etc/fstab文件 -- /etc/init.d/netfs(开机后重新挂载该文件)
+								
+						2. autofs   ---- /etc/auto.master
+					
+					客户端挂载参数，第一个是默认值
+						suid/nosuid：	当挂载的文件系统上有任何suid的binary程序时，只需使用nosuid即可取消suid的功能
+						rw/ro:			服务器可提供可读写的文件系统，但客户端也可设置成只读
+						dev/nodev：		保留设备文件的特殊功能，一般只有/dev目录才会有特殊设备，可选nodev
+						exec/noexec：	是否具有执行binary文件的权限，若仅仅是数据，可选noexec
+						nouser/user:	是否允许普通用户对文件系统进行挂载和卸载
+						auto/noauto：	当mount -a时auto会自动挂载
+						
+						fg/bg:			当执行挂载时，挂载行为在前台(fg),mount会持续尝试挂载，直到成功或time out。若为bg，
+										则mount会在后台持续进行mount，不会影响前台的程序运行
+						hard/soft:		若为hard，则当两者之间有脱机，则rpc会持续呼叫，直到恢复连接。若为soft，则rpc会在
+										time out后重复呼叫，系统延迟不会特别明显
+						intr：			与hard连用，可以中断挂载
+						rsize/wsize:	读出和写入的区块大小(block size)，该值可影响客户端和服务器传输数据的缓冲记忆容量，
+										若在lan内，可使用32768(默认rsize=1024,wsize=1024)
+						
+		命令
+			# showmount -e ip			--- 显示ip所共享的目录数据
+			# showmount -a localhost    --- 查阅本机和客户端连接的情况
+			# exportfs -arv/-auv
+				-a			全部挂载/卸载/etc/exports
+				-r			重新挂载并同步更新/var/lib/nfs/xtab内容
+				-u			卸载
+				-v			显示到屏幕
+			
+		服务器端进程
+			rpc.nfsd：	nfs主程序，管理客户端使用服务器文件系统    
+			rpc.mountd：管理nfs文件系统     
+			rpc.lockd： 管理文件锁定
+			rpc.statd：	检查文件一致性，恢复受损文件
+			rpc.rquotad:应用磁盘配额
+		文件
+			/var/lib/nfs/etab：记录nfs所共享目录的完整权限设置值
+			/var/lib/nfs/xtab：记录连接到nfs的客户端的数据
+			/etc/sysconfig/nfs：nfs服务端口配置文件
+			/etc/exports语法
+				/path/dir 	ip/mask(rw,no_root_squash) *(ro)
+				/path/dir   *(rw,all_squash,anonuid=55,anongid=55)
+				
+					主机名支持通配符(*,?),但ip不支持
+					
+					rw：			可读写
+					ro：			只读
+					sync：			数据同步写入到内存和磁盘
+					async：			异步
+					no_root_squash：开放root账号
+					root_squash：	默认，若客户端为root，则会被压缩成匿名用户，通常为nfsnobody
+					all_squash：	不论客户端用户为何，均被压缩成匿名用户，通常为nfsnobody
+					anonuid：		自行设置压缩的匿名用户的uid
+					anongid：		自行设置压缩的匿名用户的gid
+		rpcbind
+			# rpcinfo -p [ip/hostname]			
+				--- 显示port与program的信息
+			# rpcinfo -t/-u ip/hostname 程序名称
+				--- 针对某主机的程序检查其tpc/udp数据包所在的版本信息
+		
+		安全性
+			1.防火墙
+				固定nfs端口：
+					在/etc/sysconfig/nfs中修改
+						RQUOTAD_PORT=3001
+						LOCKD_TCPPORT=3002
+						LOCKD_UDPPORT=3002
+						MOUNTD_PORT=3003
+						STATD_PORT=3004
+						STATD_OUTGOING_PORT=3005
+					# rpcinfo -p
+			2./etc/exports的权限设置
+				利用root_squash，all_squash和anonuid规范用户身份
+			3.使用分区设置nfs，并在/etc/fstab中设置严格的权限参数
+			
+		NFS服务的账号对应机制是十分糟糕的，需要一个账号管理的服务(NIS)来使其一一对应。
+		
+		
+		
+	Samba/SMB/CIFS ---- Server Message Block(SMB)  --- 局域网 
+		用户：必须有本地用户存在，密码可不同 --- 数据库
+			  亦可用用户转换变为本地用户 --- /etc/samba/smbusers
+		存储：随意指定目录即可
+		  
+		Samba常见的应用
+			1.共享文件和打印机服务
+			2.提供用户登录Samba时的身份认证，以提供不同身份用户的个别数据
+			3.可以进行Windows网络上的主机名解析(NetBIOS Name)
+			4.可以进行设备的共享(eg：Zip，CD-ROM)
+		
+		SAMBA是架构在NetBIOS通信协议上开发出来的
+			  NetBIOS over TCP/IP  -- 可跨越路由
+		
+		原理：
+			1.取得对方主机的NetBIOS Name定位该主机
+			2.利用对方给予的权限访问可用资源
+			
+				nmbd：管理工作组，NetBIOS Name等的解析，主要利用UDP协议开启端口137,138负责名称解析
+				smbd：管理samba主机共享的目录，文件与打印机，利用TCP来传输数据。开放端口为445(不一定存在),139
+			 
+		连接模式：
+			1.Peer/Peer 
+			2.Domain model
+		安装时可用yum groupinstall ‘CIFS file server ’
+		
+		Server :
+			Packages: 	samba   samba-common
+			Daemons:  	/usr/sbin/smbd  /usr/sbin/nmbd
+			Ports：		137/udp(netbios-ns) 138/udp(netbios-dgm)
+						139/tcp(netbios-ssn) 445/tcp(microsoft-ds)
+			Configs: 	/etc/samba/smb.conf
+						/etc/samba       /etc/samba/smbusers
+						/var/lib/samba/private/{passdb.tdb ,secrets.tdb}
+						/usr/share/doc/samba-*/
+			Commands: testparm
+			
+			Configure tools
+				1.system-config-samba
+				2.samba-swat(http://localhost:901)
+				3./etc/samba/smb.conf
+				   配置：
+					1.设置分享的目录
+						 
+					2..设置配置文件   /etc/samba/smb.conf   #testparm检查
+							
+			若要设置组访问  eg： write list = +group
+			则设置分享目录：  # mkdir -m 3770 /share
+							  # chgrp group /share
+						 3.在数据库中添加用户  -- /var/lib/samba/private/
+								  # pdbedit -a|-r|-x|  -u user 
+								  # pdbedit -L   smbpasswd user  -- 修改密码
+						 4 .启动服务       /etc/init.d/smb  /etc/init.d/nmb
+			Client: 
+				Packages: samba-client  samba-common
+				Command：smbclient  mount
+			linux：
+				配置： 1. smbclient -L //ip  [-U user]
+							  ---- smbclietn -L //ip/name -U user
+					2. mount //ip/path  /path  -o username=user,password=passwd
+			   自动挂载： /etc/fstab     ---- cifs   defaults,username=zhangjx,password=zhangjx  
+
+		 windows：
+				1.需在系统属性上设置相同的工作组
+				2.\\ip
+				
+				
+				
+	FTP			--- 因特网  -- 明文协议
+		登录用户分类：
+			1.anonymous  	仅提供下载资源的能力，chroot及注意
+			2.local user	系统权限较完整，可进行较多的操作
+			#3.virtual user:只适用于ftp  -- db4-util-*.rpm  --  ?
+		数据目录：
+			匿名用户家目录在/var/ftp/
+            其本地用户家目录在/home/*
+			
+		ftp的工作流程：
+			1.ftp在建立前进行三次握手
+			2.使用命令通道(21)和数据流通道(20或随机端口)进行工作
+			
+			注：
+				依据数据流传输数据方式的不同，ftp分为两种工作模式
+					主动连接(active)：
+						1.客户端随机选取端口(大于1024)与服务器21端口连接，可通过此连接执行命令
+						2.当进行数据传输时，客户端启用新一个端口，并告知服务器(21)端口信息
+						3.服务器启用20号端口主动连接客户端的新端口进行数据传输
+						
+						当客户端前有防火墙进行NAT时，服务器的20号端口连接的是NAT的IP，而非客户端的IP。但NAT并未
+						启用新端口监听服务器的连接
+							解决方法：
+								1.NAT可以通过modprobe这个命令加载ip_conntrack_ftp和ip_nat_ftp等模块，这几个模块会
+								 主动分析目标是21端口的信息(若是非21端口则无效)，可以得到客户端新端口的信息。此时
+								 若接收到ftp的主动连接，就能将该数据包导向正确的后端客户端
+								2.使用被动连接模式
+					被动连接(Passive)：
+						1.客户端随机选取端口(大于1024)与服务器21端口连接，可通过此连接执行命令
+						2.当进行数据传输时，客户端通过命令通道发出PASV的被动连接要求，并等待服务器回应
+						3.服务器启动随机端口并通过命令通道告知客户端
+						4.客户端开启新端口连接服务器的随机端口，然后开始进行数据传输
+							可在配置文件中限定启用的被动端口
+							pasv_min_port=3636
+							pasv_max_port=3636
+					
+				数据流通道只在数据传输时才开启，传输完毕即关闭
+		
+		packages：vsftpd
+		daemon：/usr/sbin/vsftpd
+		ports：21/tcp(ftp) 20/tcp(ftp-data) random TCP ports
+		configs：
+			/etc/vsftpd/vsftpd.conf 
+			/etc/vsftpd/user_list		限制用户登录文件
+			/etc/vsftpd/ftpusers		限制用户登录文件
+			/etc/pam.d/vsftpd
+			日志：
+				/var/log/message		记录启动关闭信息
+				/var/log/xferlog		记录上传下载信息
+		限制用户登录文件：
+			/etc/vsftpd/ftpuser
+			/etc/vsftpd/user_list
+		可显示进入该目录信息：
+			.messages  
+			
+		
+		配置：
+			1.配置主配文件 *   
+				/etc/vsftpd/vsftpd.conf			默认被动模式
+			2.启动服务         
+				/etc/init.d/vsftpd restart
+			3.在/etc/sysconfig/iptables-config中修改
+				IPTABLES_MODULES="nf_nat_ftp nf_conntrack_ftp" 
+				用 # modprobe -l | grep ftp找到,重启iptables
+			4.SELinux中默认普通用户不能登录
+				# setsebool -P ftp_home_dir=1
+			
+		client：
+			windows：
+				ftp://ip
+			linux：
+				# yum install ftp
+				# ftp ip
+				
+				# yum install lftp 
+				# lftp ip   匿名登录  
+				# lftp user@ip 
+			
+	ISCSI
+	
+代理服务器
+	Proxy
+		当客户端有因特网的数据要求时，Proxy会帮助去向目的地获取用户所需要的数据，并在本地保留一份。但现在一般搭建在局域网的单点对
+		外的防火墙，针对应用层过滤
+		
+		功能：
+			1.防火墙					---- 若proxy放在内部局域网的gateway上，可作为内部网络的防火墙
+			2.缓存提速					---- web代理，不常用
+				没有了去因特网寻找数据，但要在硬盘上搜索花费时间
+			3.反向web代理
+			   上层代理服务器 			---- 可实现数据分流  3130(udp)
+			   
+		代理服务器与NAT
+			NAT通过数据包过滤，进行IP伪装，使客户端自行前往Internet。主要运作在OSI的2,3,4层
+			Proxy通过其服务程序提供网络代理。主要工作行为在OSI的应用层
+		
+		文件
+			/etc/squid/squid.conf	主配文件
+			/etc/squid/mime.conf	设置suqid所支持的Internet上的文件格式
+			/var/spool/squid/		缓存存储的目录
+			/var/lib64/suqid/		提供squid额外的控制模块
+			
+		
+		packages：	squid
+		daemon：	/usr/sbin/squid
+		ports：		3128（tcp）--- linux
+					8080（tcp）--- windows
+		configs：	/etc/squid/squid.conf
+		
+		服务器：
+			配置：
+				1.安装squid 
+					# yum install squid
+				2.设置配置文件 
+					# /etc/squid/squid.conf *
+				3.启动服务
+					＃ /etc/init.d/squid restart
+		客户端：
+			配置：
+				1.在浏览器中设置代理服务器
+				2.若无法显示中文，安装yum groupinstall *Chine*
+	
+	
+账号管理
+	NIS(Network Information Service)
+		早先称为sun yellow page（yp）
+		
+		Packages: 	ypserv  rpcbind
+		Port：		rpcbind
+		Configs：	/etc/ypserv.conf    /var/yp/	/etc/hosts     /etc/sysconfig/network
+		Daemons: 	ypserv    rpc.yppasswdd
+		Conmmand:
+		Log：  		/var/log/messages
+		
+		服务器：
+			1.启动rpcbind服务   
+				# /etc/init.d/rpcbind  start
+			2.设置域名与端口
+				# vim /etc/sysconfig/network  
+					NISDOMAIN=***					---	客户端须与之相同	
+					YPSERV_ARGS="-p 1011"			--- 指定NIS启动的端口
+				# domainname
+				# vim /etc/sysconfig/yppasswdd
+					YPPASSWDD_ARGS="--port 1012"	--- 设置yppasswdd端口
+			3.设置访问权限
+				# vim /etc/ypserv.conf     
+					主机名:NIS域名:可用数据库名称:安全限制
+					 ip/netmask:*:*:none
+					 *:*:*:deny						--- 开放内部网络，拒绝其它来源的nis请求
+			4.设置主机名与ip对应  
+				# /etc/hosts       
+			5.启动服务并查看  
+				# /etc/init.d/ypserv start
+				# /etc/init.d/yppasswdd start		--- 提供客户端修改密码功能
+				# rpcinfo -p
+				# rpcinfo -u localhost ypserv
+			6.建立数据库   
+				# /var/yp/Makefile  -在其中设置需写入的最小账号    
+				# /usr/lib64/yp/ypinit -m			--- 数据库文件在/var/yp/nis_hostname/中
+				
+		客户端：
+			# yum install ypbind  yp-tools
+		 	为使本地用户不与服务器用户冲突，可使本地用户的账号中只有系统账号(1-500)
+			
+			配置：
+				1.设置主机名与ip对应    
+					# /etc/hosts
+				2.加入NIS Domain
+					# setup      
+						选择Authentication configuration并选Use NIS，输入服务器的nis域名和ip
+						被更改的客户端文件
+							/etc/sysconfig/network			# 加入 NISDOMAIN=****							
+							/etc/sysconfig/authconfig
+							/etc/pam.d/system-auth
+							/etc/yp.conf					# 加入	domain nis_hostname server ip
+							/etc/nsswitch.conf				# 更改 	passwd: files nis
+																	shadow: files nis
+																	group:	files nis
+																	hosts:	files nis dns
+							
+						退出nis域：setup -- 取消掉
+				3.验证
+					# id user(服务器上的用户)
+				4.登录
+				5.客户端测试
+					# yptest									--- 验证数据库
+					# ypwhich -x 								--- 检查数据库
+					# ypcat [-h nis_server]	数据库名称			--- 读取数据库内容
+				
+				用户参数修改
+					# yppasswd   
+					# ypchsh    
+					# ypchfn		
+		
+		原理：
+			1.客户端若有登录需求时，会先查询本机的/etc/passwd等文件
+			2.当本机无相关数据时才会向局域网广播查询
+			3.每台服务器Master或Slave都可以响应，先响应者优先
+		
+		
+		NIS+NFS
+			由NIS管理的用户在客户端登录后，没有用户信息及目录，用NFS将其挂载到/home下
+			1.在服务器上建立用户账号，并将其放入/rhome内
+				# usradd -u 1000 -d /rhome/nis1 nis1
+				# passwd
+			2.更改nisdomain 		
+				# /etc/sysconfig/network
+			3.重启NIS并将新建立的账号放入NIS服务器的数据库中
+				#/etc/init.d/ypserv restart
+				#/etc/init.d/yppasswdd restart
+				#/usr/lib/yp/ypinit -m
+			4.将/rhome在NFS中开放
+				/rhome ip/mask(rw,no_root_squash)
+			5.在客户端用setup配置NIS，并将开放的/rhome自动挂载
+			
+		
+		主从架构：
+				Master Server   ---push---->     Slave Server
+				 客户端更新：/usr/lib/yp/ypinit -s master-ip
+
+				
+			 主从原理：
+				1.Master现将本身的账号等相关文件制作成数据库
+				2.Master可主动告知Slave进行更新
+				3.Slave也可主动前往Master取得更新后的数据
+				4.若账号出现变动，须重新制作database并同步Master/Slave
+				
+				 
+			
+			
+				  
+		
+		
+			
+
+
+
+
+
+
+
+
+DNS
+	
+DHCP(Dynamic Host Configuration)-动态主机配置协议   局域网
+	
+	Packages:	dhcp dhcp-common dhclient
+	Daemon: 	dhcpd
+	Ports:  	67(bootps)  		--- server
+				68(bootpc)			--- client
+	Configs: 	/etc/dhcp/dhcpd.conf	/var/lib/dhcp/dhcpd.leases
+	Log：		/var/lib/message
+	
+	工作原理
+		1.客户端利用广播包(255.255.255.255)发送给dhcp
+		2.dhcp分配ip，发送给mac
+			1.查询dhcpd.leases是否有该mac的记录，若有相应ip且未被使用，则提供
+			2.若配置文件有static ip，则提供
+			3.均不符合，选取未被使用过的ip提供
+		3.客户端选择某个dhcp的网络参数，发送广播包(没有被接受的dhcp收回租约)
+		4.记录该次租约行为并向客户端发送确认信息
+		
+	配置：	
+		1.设置配置文件		/etc/dhcpd.conf
+		2.启动服务			/etc/init.d/dhcpd restart
+
+	Client：		-- linux  /var/lib/dhcclient/
+		Windows:		设置自动获取ip
+						> ipconfig  /all		--- 查看详细信息
+						> ipconfig  /renew		--- 刷新dhcp
+		Linux:			在网络设置文件内设为dhcp	
+						暂时获取：
+							# dhclient	 /	# dhclient -r
+		
+			linux客户端的数据会被修改
+				- /etc/reslov.conf
+				- route -n
+				- netstat -tlunp | grep dhclient
+				- /var/lib/dhclient/dhclient*		--- 请求过的dhcp信息
+						每次得到相同的ip即由该文件内的记录而求得。若要得到不同的ip，更改记录即可。
+	
+	给予客户端固定ip
+		1.查看该客户端mac
+			# ping ip
+			# arp -n
+		2.修改/etc/dhcp/dhcpd.conf
+	
+	多网络接口时选择监听接口（5.x的版本后已不需要，会自动识别）
+		- 修改/etc/sysconfig/dhcpd文件
+			DHCPDARGS=”eth0”
+	
+	远程自动开机
+		1.在BIOS里设置wake-on
+		2.linux允许wake-on  --- ethtool     --- windows不需这一步
+			- 查看
+				#ethtool eth*
+			- 使支持
+				# ethtool -s eth* wol g
+			- 每次开机后会还原，须重新设置
+		3.唤醒   --- net-tools
+		  # ether-wake -i eth* MAC
+	
+	若要使用自定义的DNS,可在eth0中增加一行 PEERDNS=no ，然后重启网络即可
+
+
+
+
+WWW服务器
+
+
+时间服务器
+	NTP(Network Time Protocol):
+		软件时间：date  
+		硬件时间：hwclock 
+		
+		UTC：Coordinated Universal Time(协和标准时间)，利用原子钟定义的标准时间
+		CST：Chinese Standard Time(即为北京时间)
+		NTP采用类似分级架构(stratum)来处理时间的同步化，stratum最多可达15个阶层
+		
+		NTP通信协议原理：
+			1.首先主机启动NTP。
+			2.客户端会向NTP服务器发送调整时间的message。
+			3.然后NTP server会送出当前的标准时间给client
+			4.client接受来自server的时间后，会根据这个信息来调整自己的时间。这样就实现了网络对时。
+		
+			 
+			Packages：	ntp    tzdata(提供各时区相关的数据文件)
+			Port：		udp/123
+			Daemon：	ntpd
+			Configs：	/etc/ntp.conf
+			Commands: 	system-config-date/time ---- 图形
+			Log：		/var/log/message
+		
+		服务器： 
+			配置：
+				1.设置配置文件(可略)
+					# vim /etc/ntp.conf
+					
+				2.启动ntpd服务      
+					# /etc/init.d/ntpd start
+				3.检查    
+					# ntpstat  		--- 列出同步状态
+					# ntpq -p		--- 列出当前的上层服务器
+						remote：本地服务器连接的远程服务器名
+						refid：	给远程服务器提供时间的服务器
+						st：	远程服务器的级别
+						t：		与远程服务器通信的方式
+								l为本地，u为单播，b为广播
+						when：	几秒钟之前进行过同步的操作
+						poll：	同步的频率
+						reach：	八进制，对同步进行计数
+						delay：	网络延迟，10^-6秒
+						offset：时间补偿，10^-3秒
+						jitter：本地软件时间和硬件时间的差异，10^-6秒
+						
+						* 系统的时间将由该服务器所提供
+						+ 辅助的NTP Server和带有*号的服务器一起为我们提供同步服务. 当*号服务器不可用时它就可以接管
+						- 远程服务器被clustering algorithm认为是不合格的NTP Server
+						x 远程服务器不可用
+				4.同步硬件时间
+					# vi /etc/sysconfig/ntpd
+						SYNC_HWCLOCK=yes
+						
+		客户端：
+			packages： ntpdate
+			
+			校时：
+				1.手动    
+					# date MMDDhhmmYYYY
+					# hwclock -w
+				2.网络		
+					# ntpdate ip
+					# hwclock -w
+					
+						检查
+							# ntpdate -d ip			排错模式
+							# ntpdate -v ip			显示更详细的信息
+				可将ntpdate命令写入crontab
+					10 5 * * * root (/usr/sbin/ntpdate ip && /sbin/hwclock -w) &> /dev/null
+		文件
+			/etc/ntp.conf：				ntp的唯一配置文件
+				1.restrict管理权限控制
+					restrict IP	mask NETMASK [parameter]
+						IP：若为default，则代表所有ip
+						parameter：若无parameter，则表示该ip不受任何限制
+							kod：		使用此参数，则开启防止DoS攻击的功能
+							nomodify：	客户端不能使用ntpc和ntpq来修改服务器的时间参数，只可进行网络校时
+							noquery：	不提供客户端对服务器状态的查询
+							notrap：	不提供trap远程事件登录功能
+							notrust：	拒绝无认证的客户端
+							nopeer：	不与同层的ntp进行时间校正，但提供ntp服务
+				2.server设置上层服务器
+					server ip/hostname [prefer]				prefer优先使
+						其默认的ntp服务器一般格式
+							number.country.pool.npt.org
+				3.driftfile记录时间差异
+					ntp服务器本身的时间计算是根据BIOS的芯片震荡周期频率，但可能与上层的Time Server不一致，故会记录下两者时间的误差(单位为百万分之一秒ppm)
+				4.keys key_file
+					通过秘钥系统对客户端认证
+					
+			/usr/share/zoneinfo/：		tzdata提供，各时区的时间格式对应文件
+				其下文件可用 # zdump *** 查看内容
+			/etc/sysconfig/clock：   	设置时区与是否使用UTC时钟的配置文件
+			/etc/localtime：			本地端的时间配置文件(将此文件链接到clock中规定的时区文件)
+		命令
+			# date			-- 用于修改软件时钟
+			# hwclok		-- 用于修改硬件时钟
+			# ntpd			-- 提供ntp服务的程序
+			# ntpdate		-- 客户端手动校正软件时间
+	
+		注：
+			1.当ntpd服务重启时，客户端需要等待大概15分钟才能与NTP服务器顺利连接上，耐心等待。
+			2.当用ntpdate -d 来查询时会发现导致 no server suitable for synchronization found 的错误的信息有以下2个：  
+				错误1：Server dropped: Strata too high
+					在ntp客户端运行ntpdate serverIP，出现no server suitable for synchronization found的错误。在ntp客户端用
+					ntpdate –d serverIP查看，发现有“Server dropped: strata too high”的错误，并且显示“stratum 16”。而正常
+					情况下stratum这个值得范围是“0~15”。这是因为NTP server还没有和其自身或者它的server同步上。等待即可
+				错误2：Server dropped: no data
+					1.可能为防火墙未放行	
+					2.可能服务器使用了notrust，须认证。去掉该参数即可
+			3.以下的定义是让NTP Server和其自身保持同步，如果在/ntp.conf中定义的server都不可用时，将使用local时间作为ntp服务提供给ntp客户端。(最好将server字段注释)
+				server 127.127.1.0
+				fudge 127.127.1.0 stratum 8 		
+			4.将同步好的时间写到CMOS里
+				vi /etc/sysconfig/ntpd
+				SYNC_HWCLOCK=yes	
+			5.ntp同步时，若时间差距较大，则会慢慢同步，不会一步到位，故在同步前最好手动设置一下
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+邮件服务器
+	Postfix
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+		

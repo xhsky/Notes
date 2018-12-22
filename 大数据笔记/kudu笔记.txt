@@ -1,0 +1,503 @@
+ 简介
+	时间，作者，开发语言，定义
+		kudu是专为hadoop平台开发的柱状存储管理软件。能够运行在普通的硬件系统，支持横向扩展，支持高可用
+		kudu是一个列式数据存储，用于存储结构化数据。
+	官网：
+		http://kudu.apache.org/
+	版本
+	协议
+适用性(优缺)
+	特性：
+		1.快速处理OLAP负载
+		2.能够整合MapReduce，Spark和其它的hadoop组件
+		3.与impala整合，可使它成为一个在hdfs上使用parquet的一个替代方案
+		4.一致性模型，允许在每个请求的基础上选择一致性要求，包括可  选项
+		5.可同时顺序运行与随机工作负载
+		6.高可用性。Tablet和Master使用Raft协商一致性算法，确保总副本数量的一半以上可用则tablet为可用
+		7.支持结构化数据模型
+		
+	已知限制：
+		表：
+			1.kudu主要为分析用例设计。若单行包括多个千字节的数据，可能会遇到问题
+			2.主键：
+				主键的列必须在模式中第一个被定义
+				主键列无法重命名(只能重新创建表定义新的主键)，值不能通过update更改(只能删除该行并使用修改的键重新插入，但该操作是非原子的)
+				主键列类型不能为double，float，bool，且主键列默认必须是not null
+			3.不能通过alter来更改现有列的类型和可空性
+			4.删除列不会立刻回收空间，但删除表会
+			5.压缩是首先进行的操作，但不能做到手动压缩
+		分区：
+			1.表必须手动根据主键进行预分割为tablets，无法做到自动分割。范围分割可以在创建表之后添加或删除
+			2.现有表中的数据无法自动重新分区。只能重建分区表
+		备份：
+			kudu不包含任何内置功能进行备份和恢复，使用impala或spark根据需要进行导入导出
+		与impala限制：
+			1.通过impala的跟新、插入和删除是非事务性的。若一部分操作失败，其它生效操作不会回滚
+			2.不支持时间戳和十进制类型
+			3.单个查询的最大并行度限制为表中的tablets数量
+		安全：
+			1.未实现安全和授权功能
+			2.数据加密不是内置的
+			
+		
+架构
+	安装：
+		yum安装：
+			# wget http://archive.cloudera.com/beta/kudu/redhat/6/x86_64/kudu/cloudera-kudu.repo
+			# yum install kudu							  	# kudu的基本文件
+			# yum install kudu-master					  	# master的控制脚本和默认配置
+			# yum install kudu-tserver					  	# tserver的控制脚本和默认配置
+			# yum install kudu-client0					  	# kudu的C++客户端共享库
+			# yum install kudu-client-devel				 	# kudu的C++客户端软件开发工具包
+			# yum install ntp rpcbind
+			# /etc/init.d/ntpd start
+			# /etc/init.d/rpcbind start
+			# chkconfig ntpd on
+			# chkconfig rpcbind on
+			# /etc/init.d/kudu-master start
+			# /etc/init.d/kudu-tserver start
+			
+			
+			# /etc/ini.d/kudu-master stop
+			# /etc/ini.d/kudu-tserver stop
+		编译安装：
+			# 按照官网编译
+			# yum install ntp rpcbind cyrus-sasl-plain
+			# /etc/init.d/ntpd start ; chkconfig ntpd on
+			# /etc/init.d/rpcbind start ; chkconfig rpcbind on
+			# master节点
+				# vim ./conf/master.gflag
+					--fs_data_dirs=
+					--fs_wal_dir=
+					--log_dir=
+					#--rpc_bind_addresses=
+					#--master_addresses=
+					#--webserver_port=
+				# 安装配置文件建立相应目录
+				# ./bin/master --flagfile=./conf/master.gflag
+			# tserver节点
+				# vim ./conf/tserver.gflag
+					
+	结构
+		目录结构
+			安装目录
+				# 可执行文件
+					/usr/sbin/kudu-master
+					/usr/sbin/kudu-tserver
+					/usr/bin/kudu
+				# 配置文件
+					/etc/default/kudu-master
+					/etc/default/kudu-tserver
+					
+					/etc/kudu/conf.dist/master.gflagfile			/etc/kudu/conf/master.gflagfile
+					/etc/kudu/conf.dist/tserver.gflagfile		   /etc/kudu/conf/tserver.gflagfile
+					
+					注：
+						配置通过命令行的--flagfile=<file>生效，程序读取文件中的选项。选项标准以"--"起始
+						kudu-master：
+							# 帮助
+							--help									# 显示帮助信息
+							--version								# 显示版本号
+							--helpmatch=str							# 显示包含指定substr的模块的帮助
+							--helpon str							# 显示由此标志值命名的模块的帮助
+							--helppackage=str						# 显示主包中所有模块的帮助
+							--helpshort								# 仅显示此程序的主模块的帮助
+							--helpxml								# 产生一个xml版本的帮助
+							
+							--fs_data_dirs							# 数据块存储目录，以,分隔。若没有指定，则使用fs_wal_dir的值
+							--fs_wal_dir							# 预写日志的目录
+							--master_addresses						# 以,分隔的所有RPC地址列表。若未指定，则配置成非复制
+							--rpc_bind_addresses					# 绑定ip地址，默认0.0.0.0:7051
+							--webserver_port						# Web服务器的端口，默认8051
+							
+							--master_ts_rpc_timeout_ms=300000
+							--tablet_creation_timeout_ms=300000
+							
+							# 日志
+							--log_dir								# 指定日志文件目录,默认/tmp
+							--log_filename							# 日志文件名的前缀。完整的日志文文件名<log_dir>/<log_filename>.[INFO|WARN|ERROR|FATAL]
+							--log_force_fsync_all					# 在每次写入后，日志/WAL是否应显式调用fsync()，默认false
+							--colorlogtostderr						# 输出颜色信息到stderr
+							--logtostderr							# 将日志输出到stderr而非日志文件
+							--max_log_size							# 最大日志文件大小(MB)，默认1800
+							--log_link=str							# 将其他链接放在此目录中的日志文件中
+							--log_prefix							# 将日志前缀预置到每个日志行的开头，默认开启
+							--minloglevel							# 默认为0，比这个低的消息级别不被记录
+							--stderrthreshold						# 默认2，除了日志文件之外，日志消息等于或高于此级别也被复制到stderr
+						
+							--block_cache_capacity_mb				# block高速缓存，默认512
+							--maintenance_manager_num_threads		# 维护管理器线程池的大小，默认1
+							--memory_limit_hard_bytes				# 该程序使用的最大内存量。0：根据系统总内存自动调整；1：将禁用所有内存限制
+							
+							--flagfile								# 从文件加载标志
+
+							--enable_process_lifetime_heap_profiling# 在进程的生命周期内启用堆概要分析。配置文件输出将存储在由-heap_profile_path指定的目录中。启用此选项将禁用按需/远程服务器配置文件处理程序。
+							--heap_profile_path						# 存储堆配置文件的目录。若未指定，则存储在/tmp/<process-name>.<pid>.<n>.heap中
+							--fromenv								# 在环境变量中设置flag，eg：export FLAGS_flag1=value
+							--tryfromenv							# 若存在，则环境中设置标志
+						
+						
+						kudu-tserver：
+							--help									# 显示帮助信息
+							--version								# 显示版本号
+							--helpmatch=str							# 显示包含指定substr的模块的帮助
+							--helpon str							# 显示由此标志值命名的模块的帮助
+							--helppackage=str						# 显示主包中所有模块的帮助
+							--helpshort								# 仅显示此程序的主模块的帮助
+							--helpxml								# 产生一个xml版本的帮助
+							
+							--fs_data_dirs							# 数据块存储目录，以,分隔。若没有指定，则使用fs_wal_dir的值
+							--fs_wal_dir							# 预写日志的目录
+							--rpc_bind_addresses					# 绑定的ip地址，默认0.0.0.0
+							--webserver_port						# web服务器端口
+							--tserver_master_addrs					# 以,分隔的master主机ip列表，用于tablet server连接，默认127.0.0.1:7051
+							
+
+							# 日志
+							--log_dir								# 指定日志文件目录，默认/tmp
+							--log_filename							# 日志文件名的前缀。完整路径<log_dir>/<log_filename>.[INFO|WARN|ERROR|FATAL]
+							--colorlogtostderr						# 输出颜色信息到stderr
+							--logtostderr							# 将日志输出到stderr而非日志文件
+							--max_log_size							# 最大日志文件大小(MB)，默认1800
+							--log_link=str							# 将其他链接放在此目录中的日志文件中
+							--log_prefix							# 将日志前缀预置到每个日志行的开头，默认开启
+							--minloglevel							# 默认为0，比这个低的消息级别不被记录
+							--stderrthreshold						# 默认2，除了日志文件之外，日志消息等于或高于此级别也被复制到stderr
+						
+							--block_cache_capacity_mb				# 默认512，block高速缓存容量
+							--log_force_fsync_all					# 在每次写入后，日志/ WAL是否应显式调用fsync()
+							--maintenance_manager_num_threads		# 维护管理器线程池的大小。默认为1
+							--memory_limit_hard_bytes				# 该程序使用的最大内存量。0：根据系统总内存自动调整；1：将禁用所有内存限制
+							--flagfile								# 从文件中加载标识
+
+							
+							--enable_process_lifetime_heap_profiling# 在进程的生命周期内启用堆概要分析。配置文件输出将存储在由-heap_profile_path指定的目录中。启用此选项将禁用按需/远程服务器配置文件处理程序。
+							--heap_profile_path						# 存储堆配置文件的目录。若未指定，则存储在/tmp/<process-name>.<pid>.<n>.heap中
+							--fromenv								# 在环境变量中设置flag，eg：export FLAGS_flag1=value
+							--tryfromenv							# 若存在，则环境中设置标志
+						
+				# web目录
+					/usr/lib/kudu/www		  
+				# 库文件
+					/usr/lib/kudu/
+				# 日志
+					/var/log/kudu
+				# pid目录
+					/var/run/kudu/
+				# 文档
+					/usr/share/doc/kudu-1.1.0+cdh5.4.0+0
+				# 
+					/var/lib/kudu/
+			二进制目录
+				bin：
+					kudu  
+					kudu-master  
+					kudu-tserver
+				include：包含头文件 
+				lib64：包含kudu的库文件
+				share：包含kudu文档
+				
+				data：数据目录和wal目录
+				logs：日志目录
+		进程结构
+			端口：
+				tserver：
+					7050：
+					8050：Tablet Server web UI
+				master：
+					7051：
+					8051：Master web UI
+			进程： 
+				kudu-master：
+				kudu-tserver：
+		编程接口:
+			C++ API、JAVA API
+		管理软件
+	命令：
+		服务器
+		客户端：
+			./bin/kudu <command> 
+				cluster ksck master_ip:port					# 检查集群健康状况
+				fs:
+				local_replica
+				master：
+					set_flag master_ip:port flag_name value	# 更改master的一个gflag值
+					status master_ip:port					# 显示master的信息
+					timestamp master_ip:port				# 显示master当前的时间戳
+				tserver
+					set_flag tserver_ip:port flag_name value# 更改tserver的一个gflag值
+					status tserver_ip:port					# 显示tserver的信息
+					timestamp tserver_ip:port				# 显示tserver当前的时间戳
+					
+					
+				pbc
+				remote_replica
+				table：
+					list master_ip:port 					# 列出所有的表
+					delete master_ip:port tb_name			# 删除一张表
+				tablet
+				test
+				wal
+	日志：
+		可在配置文件中定义日志目录
+	优化：
+		SQL：根据条件优化sql
+			1.若查询的where子句包含=，<=，<，>，>=，between，in，则该语句直接由kudu查询，只向impala返回相关结果
+			2.对于条件 null、not null、!=、like或impala支持的其它比较符，则kudu并不参与这些条件选择，返回1中的所有结果给impala，
+			  剩下的条件由impala进行相应筛选，这会导致性能差异，具体要评估前后的结果集
+			
+	安全：
+		1.未实现安全和授权功能
+		2.数据加密不是内置的
+	集群：
+		--tserver_master_addrs指明了集群中master的地址，指向同一个master的tserver形成了一个kudu集群
+		
+		与impala一起使用：在impala中加入配置 --kudu_master_hosts=<master1>[:port],<master2>[:port],<master3>[:port]
+		
+		拓扑：
+									impalad
+					  ________________|__________________
+					  |			  	  |			   	    |
+					master1	<---->  master2	 <---->	master3
+				______|_______________|_________________|________
+				|			|			|			|			|
+			tserver1	tserver2	tserver3	tserver4	tserver5
+		
+具体服务相关
+	概念:
+		原理:
+			柱状数据存储系统：
+				存储在强类型列中。适当设计，即可实现优越的数据分析和数据仓库工作
+			高效read：
+				对于分析查询，可以忽略其它列只查询单独一列或一列的部分数据。这意味着当在磁盘
+				上读取少量磁盘块时可以充分实现查询语句。而当使用行存储时，取出几个列的返回值
+				需要读取整个列
+			数据压缩：
+				因为给定的列只包含一种数据类型，基于模式的压缩可以比基于行的压缩更高效。结合
+				列式压缩，查询将从磁盘读取更少的块。kudu允许为每列指定压缩
+			高可用性：
+				master和tserver采用raft一致性算法，只要确保总副本的一半以上可用，tserver即可
+				读取与写入
+			读取和写入在tserver上均匀分布，但受分区影响
+		
+		table：
+			kudu存储数据的地方。一个表有一个schema和一个完全有序的主键
+		tablet：
+			表的每条记录被称为段，一个tablet是表中连续段。一个给定的tablet被复制到多个tablet server，其
+			中一个被认为是leader tablet。一个tserver能提供提供多个tablet，一个tablet能被多个tserver操作
+		tablet server：
+			tablet server用来存储和提供tablets给客户端。读请求所有tserver都能提供，但只有leader能提供写请求	
+		master：
+			1.监控所有的tablets,tserver,catalog table和其它与集群相关的metedata。在给定的时间点上，只有一台
+			  机器能扮演master，若当前的master宕机，则通过raft共识算法选举新master
+			2.协调元数据操作。client将请求发往master，master会将其元数据写入catalog table，并协调在tserver上
+			  创建tablet
+			3.master的所有数据都被存储在一个tablet上，且能够被复制到任意的候选master
+			4.tserver与master的心跳信息，默认为每秒一次
+			
+		Raft共识算法：
+		catalog table：
+			1.是kudu的metadata的中心，它存储关于表和tablets的信息。只能通过客户端API来访问catalog table
+			2.它存储两类信息：
+				tables：
+					表模式，位置和状态
+				tablets：
+					已存在的tablets的列表、每个tablet的状态、开始和结束的keys
+		逻辑复制：
+			kudu的复制操作并非磁盘上的数据，属于逻辑复制而非物理复制。
+				1.insert和update是通过网络传输数据，而delete操作不必移动任何数据，只被发往每台tablet
+				  服务器在本地删除即可
+				2.物理操作，例如压缩，不需要通过网络传输数据
+				3.tablet不需要在相同时间执行压缩或同步，这就减少了由于压缩或高写入产生的高延迟
+		与impala交互：
+			
+	内部命令：
+		列类型：可为每个列指定编码
+			布尔型：boolean
+			整型：
+				8位有符号整型
+				16位有符号整型
+				32位有符号整型
+				64位有符号整型
+			浮点型：
+				单精度(32位)：float
+				双精度(64位)：double
+				
+			二进制：高达64k
+			字符串：UTF-8编码，高达64k	string
+			时间戳：
+	
+		编码：
+			plain：数据以其自然格式存储
+			bitshuffle：
+			run length 
+			prefix
+			dictionary
+	
+		列压缩：
+			说明：kudu可以为每列指定压缩(lz4,snappy,zlib)，默认情况下，列是未压缩的
+				lz4性能最高，zlib压缩最高。bitshuffle编码列自动使用lz4压缩
+	
+		主键：
+			1.主键列不可为空，且不能为布尔型或浮点型
+			2.表建立后，主键列不可更改，且强制执行唯一性约束。默认索引为聚集索引
+			3.kudu不提供自动递增功能
+			4.在一个tablet上的所有行按主键顺序来保存，在主键上指定约束，则kudu将自动跳过
+			  不满足条件的行
+	
+		分区：
+			说明：更好地提供可扩展性。但可以确定分区能够被查询的条件过滤时，kudu扫描将自动跳过该分区
+			类型：
+				范围分区：
+					说明：
+						# create table tb_name(
+							id int primary key,
+							name string
+							)
+							partition by range(id)
+							(
+								partition values < 1,
+								partition 1 <= values < 3,
+								partition value = 3,
+								partition 3 < values
+							)
+							stored as kudu;
+							
+						注：
+							1.若有多个主键列，可使用元组法指定分区边界：('va',1),('ab',2)
+							2.只要包含范围分区，则该范围分区部分可以添加或删除
+							
+					
+				hash分区：
+					说明：通过对value的hash将相应的行分配到某个bucket中。在创建表时设置bucket的数量。
+						  通常将主键作为hash的对象，也可以使用主键列的任意子集
+					
+					注：
+						1.当不需要对表的有序访问时，建议使用hash分区
+						2.hash分区在tablets之间随机写入是有效的。可以减轻热点和不均匀的tablet的大小
+				高级分区：
+					说明：将hash和range组合以创建更复杂的分区方式，可极大地提升读性能
+					示例：
+						# create table tb_name(
+							id1 int,
+							id2 int,
+							name string,
+							primary key(id1,id2)
+							)
+							partition by hash(id1) partitions 4,
+							range(id2)
+							(
+								partition values < 1,
+								partition 1 <= values < 3,
+								partition 3 <= values
+							)
+							stored as kudu;
+							
+						# 两种方式，第一种针对对某个主键的频繁查询，可能只读取4个bucket即可
+							PARTITION BY HASH (id) PARTITIONS 4,HASH (sku) PARTITIONS 4
+							PARTITION BY HASH (id, sku) PARTITIONS 16
+							
+		SQL：
+			1.重命名表：
+				# alter table old_name rename to new_name;
+			2.重命名/添加/删除非主键列
+				# alter table tb_name change column col_old col_new col_old_type;
+				# alter table tb_name add columns(col_name col_type);
+				# alter table tb_name drop column col_name;
+			3.添加/删除范围分区
+				# alter table tb_name add range partition 3 < values < = 5;
+				# alter table tb_name drop range partition value = 1;
+			4.更改表属性：
+				# alter table tb_name set tblproperties('kudu.table_name'='new_value')
+				# alter table tb_name set tblproperties('kudu.master_addresses'='new_host:port')
+				# alter table tb_name set tblproperties('EXTERNAL' = 'true')						# 将内部表改为外部表
+
+
+			
+			注：
+				1.默认Kudu不允许创建超过300列的表
+				2.主键不可变且键值不可更改
+				3.表分区不可更改，但添加或删除范围分区除外
+				4.kudu不能更改列类型
+				5.表创建后，无法分割或合并分区
+				6.在kudu表中使用关键字时，可用``
+				
+			通过impala操作kudu：更改kudu的配置不需要重启impala
+				表：
+					说明：使用impala创建kudu表时，其存储在kudu的本地数据目录中
+					操作：
+						建立：
+							内部表：由impala管理
+								# create table tb_name(
+									col1 col_type1,
+									col2 col_type2,
+									col3 col_type3,
+									primary key(col1,col2)
+									) partition by hash partitions 8
+									stored as kudu
+									tblproperties('kudu.num_tablet_replicas'='1')
+									
+								
+								注：
+									1.create语句中，必须首先列出主键，且主键列被隐式标记为not null
+									2.新建立的kudu表必须指定分区方案，hasd未指定列时，默认以主键列分区。且hash列只能是主键列或者其子集
+								
+							外部表：不由impala管理，删除表时只删除impala和kudu之间的映射。这是kudu提供的用于将现有表映射到
+									impala中的语法模式(通过kudu API或其它集成(例如spark)创建的表不会再impala中自动显示)
+								
+								# create external table my_mapping_table
+									stored as kudu
+									tblproperties('kudu.table_name'='my_kudu_table');
+						插入：
+							1.insert 语句
+							2.通过create table ... as select
+								# create table new_table
+									primary key(col1,col2)
+									paritition by hash(col1,col2) parititions 8
+									stored as kudu
+									as select col1,col2,col3 from old_table;
+								注 ：
+									1.new_table将从select语句的结果集中的确定列的名称和类型
+									2.必须指定另外的主键和分区
+									3.若数据尚不在impala，可先导入外部表，并建立相同结构的kudu表，然后通过
+										insert into kudu_tb select * from external_tb; 导入
+							3.upsert语句：
+								说明：用法同insert，但upsert可在记录不存在时插入，存在时更新，可避免主键冲突问题
+									  且支持 upsert into tb_name select * from tb1_name 语句
+						更新：
+							# update tb_name set col=value where ...
+							
+						删除：内部表直接被删除表及其数据，外部表只删除映射，kudu保留表及其数据
+							# drop table tb_name;
+							# delete from tb_name where ...
+		
+				
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

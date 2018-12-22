@@ -1,0 +1,1737 @@
+简介
+	时间，作者，定义
+		诞生1989
+			1.CNRI时期：CNRI是资助Python发展初期的重要单位，Python1.5版之前的成果大部分都在此时期内完成
+			2.BeOpen时期：Guido van Rossum与BeOpen公司合作，并在此期间将Python 2.0推出，甚至Python1.6也同时期问世，但原则上已分别维护
+			3.DC时期：Guido已离开BeOpen公司，将开发团队带到Digital Creation(DC)公司
+		
+		一种解释型的、面向对象的、带有动态语义的高级程序设计语言，是一种使你在编程时能够保持自己风格的程序设计语言，不用费什么劲就可以
+	实现你想要的功能，并且编写的程序清晰易懂
+	协议：
+		GPL
+	官网：
+		https://www.python.org/
+		https://pypi.python.org/pypi/setuptools
+	版本：
+		
+适用性
+	1.简单易学
+		-- Python是一种代表简单主义思想的语言。Python的这种伪代码本质是它最大的优点之一。
+		  它使你能够专注于解决问题而不是去搞明白语言本身。
+	2.解释性&编译性
+		-- Python语言写的程序不需要编译成二进制代码。可以直接从源代码运行程序，但是需要解释器。
+		-- Python中亦有编译执行的特性
+	3.面向对象
+		-- Python既支持面向过程编程也支持面向对象编程
+	4.高级语言
+		-- 使用Python语言编写程序，无需考虑诸如管理内存一类的底层
+	5.可扩展性及可嵌入性(胶水语言)
+		-- 可以将部分程序用C/C++编写，然后再Python程序中使用它们。亦可把Python嵌入C/C++程序，提供脚本功能
+	6.可移植性
+		-- 由于其开源本质，Python可被移植在许多平台上。若能避免使用依赖于系统的特性，则所有Python程序无需修改即可在任意平台上运行
+	7.免费、开源
+	8.丰富的库
+		-- 丰富的库似乎已经成为判断一门编程语言是否强大的重要标准
+		
+	Python在编程语言中的定位：
+		脚本语言
+		高阶动态编程语言
+	python的三种用途
+		1.作为shell脚本		性能略低，大材小用。易用性比不上bash shell，但在文本处理方面要强的多
+		2.控制语言			胶水语言，调用其它语言编译的库
+		3.框架				结合某些外部框架，开发特定应用程序
+	python的特性：
+		1.字节码
+		2.动态语义(在赋值时确定数据类型)
+		3.缩进
+			
+			开发效率高
+			通用性强
+			内置方便的数据容器
+			易于扩展和嵌入
+			自动化的内存管理
+		1.性能较差(较C和C++差30%左右)
+			
+	
+开发
+	环境
+		linux：系统已自带python环境(# yum install python)
+			源码编译：	10分钟
+				python
+					# yum install readline-devel zlib-devel bz2-devel openssl-devel libffi-devel sqlite3-devel	  # 可以正常使用命令行
+					# wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
+					# tar -xf Python-3.7.11.tar.xz
+					# cd Python-3.7.1
+					# ./configure --prefix=/usr/local/python --enable-optimizations
+					# make
+					# make install 
+					# cd /usr/local/python
+		
+				python-setuptools
+					# wget https://pypi.python.org/packages/source/s/setuptools/setuptools-20.3.tar.gz#md5=1b6ec3c0cc7e15ed67fe8f0fd1d899d0
+					# tar -xf setuptools-20.3.tar.gz
+					# cd setuptools-20.3/
+					# /usr/local/python/bin/python setup.py build
+					# /usr/local/python/bin/python setup.py install 
+		windows
+			IDLE	- 标准python环境提供
+			Eclipse和PyDev
+			PythonWin
+			Komodo
+			Wingware
+			PyCharm
+			
+			注：
+				安装好后，开始程序-->Python 2.7
+					LDLE(Python GUI)			--- 一个简单的python图形化界面
+					Module Docs					--- 模块查找  http://localhost:7464
+					Python （command line）		--- 命令行工具
+					Python Manuals				--- man手册
+					Uninstall Python			--- 卸载
+	结构：
+		bin：
+		include：包含所有.h头文件
+		lib：包含大量的已优化的py文件
+		share：man文档 
+	命令：
+		# pydoc					# python的文档工具
+			[name]			  	# 显示name的相关信息，
+			-p [port]		   	# 在指定端口开启一个http server的python文档
+			-w [name]		   	# 将name模块写入当前目录的name.html文件
+			-k <keyword>		# 在所有可用模块中搜索该关键字
+		# python				# 交互式命令
+		  python [option] ... [-c cmd | -m mod | file | -] [arg]
+			-B				  # 
+			-c cmd			  #
+			-d				  # 调试输出，等同于PYTHONDEBUG=x
+			-E				  # 忽略PYTHON*环境变量
+			-i				  # 在运行脚本后交互检查，集成了脚本的环境变量，等同于PYTHONINSPECT=x
+			-m mod			  # 
+			-O 
+			-OO				  # 在-O优化之外，移除doc-strings
+			-R				  #
+			-Q arg
+			-s
+			-S
+			-t
+			-u
+			-v				  # 
+			-V				  # 显示python版本
+			-W arg			  # 警告控制，arg：action/message/category/module/lineno
+			-x
+			-3
+			file				# 从脚本文件读取程序
+			-				   # 从标准输入读取程序
+		# python-config
+		# python的环境变量：
+			PYTHONSTARTUP：
+			PYTHONPATH：
+			PYTHONHOME：
+			PYTHONCASEOK：
+			PYTHONIOENCODING：
+			PYTHONHASHSEED：
+			
+			
+			
+			
+	文件类型：
+		源代码
+			说明：以py为扩展名，由python程序解释，不需要编译
+		字节代码
+			说明：python源文件经编译后生成的扩展名为pyc的文件
+			编译： 
+				在.py文件中写入
+					import py_compile
+					py_compile.compile("file.py")
+		优化代码
+			说明：经过优化的源文件，扩展名为.pyo
+			优化：# python -O -m py_compile file.py
+		
+		注：python程序的执行
+								Complier（PVM）				   Interpreter(PVM)
+			.py(source code) ----------------> .pyc(bytecode) -----------------> processor 
+	模式：
+		交互模式：
+			# python
+			
+			注：交互模式下，变量名"_"用于保存最后表达式的结果	
+		文本模式：
+			# vim file.py		编写
+			# python file.py	运行
+			
+				注:
+					启动解释器
+						python [options] [-c cmd] filename
+							-h：	打印所有可用命令选项的列表
+							-i：	在程序执行后进入交互模式
+							-O：	优化模式
+							-OO：	优化模式，在创建.pyo文件时删除文档字符串
+							-v：	详细模式，跟踪导入语句
+							-c cmd：以字符串形式执行cmd
+				
+					解释器环境变量
+						PYTHONPATH		- 以冒号分隔的模块搜索路径
+						PYTHONHOME		- python安装的位置
+						PYTHONOPTIMIZE	- 相当于-O选项
+						PYTHONVERBOSE	- 相当于-V选项
+						....
+
+	python性能优化工具
+		1.Psyco
+			Python语言的扩展模块，可以即时对程序代码进行专业的算法优化，在一定程度上提高程序的执行速度，
+			尤其是在程序中有大量循环操作时，目前开发工作已经停止，有pypy所接替
+		2.PyPy
+			由Python实现的Python解释器
+			Python语言的动态编译器，是Psyco的后继项目
+		3.Shed Skin
+			Python编译器，能将Python代码转换成优化的C++代码	
+	python的编程风格
+		- 注释
+		- 文档
+			通过__doc__动态获得文档字串
+		- 缩进
+			统一缩进4个字串
+		- 标识符名称
+			见名知义
+		- python风格指南
+			https://code.google.com/p/soc/wiki/PythonStyleGuide
+			译文：http://www.elias.cn/Python/PythonStyleGuide
+	Python的包管理工具：
+		分类：
+			distutils：
+				说明：
+					1.distutils是Python标准库的一部分，2000年发布。能够进行Python模块的安装和发布
+					2.setup.py是利用distutils的功能写成，要安装一个模块到当前的 python 环境中，可以使用这个
+					  模块提供的setup.py文件(# python setup.py install)
+			setuptools：
+				说明：
+					1.是一个为了增强distutils而开发的集合，2004年发布。它包含了easy_install这个工具
+					2.setuptools一个项目的名称，是基础组件。而easy_install是这个项目中提供的工具，它依赖基础
+					  组件工作
+					3.使用setuptools可以自动下载，构建，安装和管理Python模块
+					
+				eggs：
+					说明：
+						1.eggs格式是setuptools引入的一种文件格式，使用.egg为扩展名，用于Python模块的安装
+						2.setuptools 可以识别这种格式。并解析它，安装它
+						3.eggs之于Python，正如jars之于Java
+				distribute：
+					说明：是setuptools的一个分支版本，现在已经合并回setuptools中，已等同与setuptools
+					
+			
+				easy_install：
+					说明：easy_install是基于setuptools/distribute的一个工具，方便了包的安装和省级
+					
+					easy_install有很多不足：安装事务是非原子操作，只支持 svn，没有提供卸载命令，安装一系列包时需要写脚本
+			pip：
+				说明：
+					1.pip是目前python包管理的事实标准，2008年发布。它被用作easy_install的替代品，但是它仍
+					 有大量的功能建立在setuptools组件之上
+					2.是一个安装python包的工具，提供了安装包，列出已经安装的包，升级包以及卸载包的功能
+					3.pip希望不再使用Eggs格式(虽然它支持Eggs)，
+						而更希望采用”源码发行版"(使用# python setup.py sdist创建)
+						
+						pip可以利用requirments.txt来实现在依赖的安装。在setup.py中，也存在一个install_requires
+						表来指定依赖的安装
+						
+						pip支持git/svn/hg 等流行的VCS系统，可以直接从gz或者zip压缩包安装，支持搜索包，以及指定
+						服务器安装等等功能
+						
+				whell
+					说明：wheel本质上是一个zip包格式，它使用.whl扩展名，用于python模块的安装，它的出现是为了替代Eggs
+					
+					wheel 还提供了一个 bdist_wheel 作为 setuptools 的扩展命令，这个命令可以用来生成 wheel 包。
+					pip 提供了一个 wheel 子命令来安装 wheel 包。当然，需要先安装 wheel 模块。
+					setup.cfg 可以用来定义 wheel 打包时候的相关信息
+			安装：
+				easy_install：
+					# yum install python-setuptools
+				pip:
+					第一种方式：yum安装
+						#  yum install python-pip python-wheel python-setuptools
+					第二种方式：使用get-pip.py安装
+						# wget https://bootstrap.pypa.io/get-pip.py 
+			原理：
+				pip可以从pypi、版本控制、本地项目和二进制文件
+			配置文件：
+				优先级：
+					1./etc/pip.conf
+					2.$HOME/.config/pip/pip.conf	#  $HOME/.pip/pip.conf	遗留的配置文件
+					3.$VIRTUAL_ENV/pip.conf
+				配置：	设置的名称来自于pip命令行长选项
+					[global] 
+						timeout  =  60 										# 设置http超时，默认15s
+						index-url  =  http://download.zope.org/ppix			# 包索引路径
+			命令：
+				# pip <command> [options]
+					command：
+						install：							# 安装包
+							install pkg						# 最新版本
+							install pkg==1.0.4				# 指定版本
+							install 'pkg>=1.0.4'			# 最小版本 
+							install -r requement.txt		# 安装文件内容列表安装
+							install -U pkg					# 升级
+						uninstall：							# 卸载包
+							uninstall pkg -y				# 直接删除，不用确认
+							uninstall -r file				# 按照file的内容卸载包
+						freeze:								# 以要求格式输出安装的包
+							-r file							# 在生成输出时，按照指定文件要求的顺序和注释
+							-f url							# 用于查找包，将被添加到输出的url中
+							-l 								# 在具有全局访问权限的virtualenv中，不要输出全局安装的软件包
+							--user							# 只输出用户安装的包
+							--all							# 不要在输出中跳过这些包：pip，setuptools，distribute，wheel
+						list：								# 列出已经安装的包
+							list --outdate					# 列出已安装的过时的版本
+						show pkg							# 显示安装包信息
+							-f pkg						# 显示安装包安装路径和文件
+						search								# 搜索包
+						download							# 下载包
+							download pkg
+								-c file						# 指定约束文件限制版本
+								-e path/url					# 从本地项目或VCS网址中以可编辑模式安装项目
+								-r file						# 从指定的要求文件安装
+								-b dir						# 将解压包解压入构建的目录
+								--no-deps					# 不下载依赖项
+								-d dir						# 指定下载目录
+								
+						check
+						completion
+						wheel
+						hash：
+							hash pgk						# 计算本地包的hash值
+							-a <algorithm>					# 采用 sha256, sha384, sha512 之一进行计算，默认sha256
+						help
+				
+						
+	Python解释器：
+		说明：由于整个Python语言从规范到解释器都是开源的，所以理论上，只要水平够高，任何人都可以编写Python解
+			释器来执行Python代码（当然难度很大）
+		分类:
+			CPython：	Python的官方解释器，是用C语言开发的。CPython是使用最广的Python解释器
+			IPython：	IPython是基于CPython之上的一个交互式解释器，也就是说，IPython只是在交互方式上有所增强，
+						但是执行Python代码的功能和CPython是完全一样的
+			PyPy：		它的目标是执行速度。PyPy采用JIT技术，对Python代码进行动态编译(注意不是解释)，所以可以显著
+						提高Python代码的执行速度。但是PyPy和CPython有一些是不同的，这就导致相同的Python代码在两种
+						解释器下执行可能会有不同的结果
+			Jython：	Jython是运行在Java平台上的Python解释器，可以直接把Python代码编译成Java字节码执行
+			IronPython：IronPython是运行在微软.Net平台上的Python解释器，可以直接把Python代码编译成.Net的字节码
+			
+语法：
+	数据类型：
+		数据：
+			组成：
+				身份：	id(var_name)，唯一标识
+				类型：	type(var_name)
+				值：	数据项
+		常量：软件运行周期中，一个不变的量
+		变量
+			说明： python不是以变量名为主，而是以数据为主，一个数据可以对应多个同地址的变量。变量在python中叫作引用
+			命名规则：
+				由字母、数字、下划线组成
+				数字不可开头
+				不可使用关键字
+				大小写敏感
+				
+				以下划线开头的标识符是有特殊意义的：
+					以单下划线开头 _foo 的代表不能直接访问的类属性，需通过类提供的接口进行访问，不能用 from xxx import * 而导入；
+					以双下划线开头的 __foo 代表类的私有成员；以双下划线开头和结尾的 __foo__ 代表 Python 里特殊方法专用的标识，如 __init__() 代表类的构造函数
+			赋值：
+				说明：是变量声明和定义的过程
+				eg：
+					# a=123	
+					# a,b,c="str1","str2",3	; a=b=c=1	# 多重赋值：
+					# id(a)								# 查看变量地址
+			删除变量
+				# del var1,var2,......
+			类型：用type(数据/变量名)可查看其数据类型
+				数字
+					说明：整型int 长整形long 浮点型float 复数型complex			
+				布尔型：	bool
+					True False			# 首字母须大写，无引号
+				字典:		dict{}
+					说明：字典是python中唯一的映射类型(哈希表)，且字典内是无序的。在其它编程语言中又称为关联数组或散列表
+					特点：
+						1.字典是无序的，不能通过偏移来存取，只能通过键来存取。
+						2.字典中键是唯一的，若有多个相同的键，则取最后一个对应的值
+						3.可嵌套，能组织多种数据结构并原地修改里面的内容，属可变类型
+						4.组成字典的键必须是不可变类型(eg：数字，字符串，元组)
+					定义：
+						a={'key':value,....}
+						a=dict('key'=value,'key'=value,...)
+						
+						1.{}
+						2.使用工厂方法dict()	
+							eg: d=dict=(['x',1],['y',2])
+						3.内建方法
+							eg：d={}.fromkeys(('x','y'),-1)
+							
+						内置dict()
+							a=[(1,2),(3,4),...._]
+							dict(a)
+							
+					操作：
+						更新/添加：
+							1.dict_name['key']='value'
+							2.dict_name.update({key:value,key:value,...})		若无相同key则添加，若有，则修改其value
+						删除： 
+							del dict_name.['key']		删除
+							dict_name.pop('key')		删除且返回其值
+							dict_name.clear()			删除字典中所有元素，成为空字典
+							del dict_name				删除整个字典
+						
+						成员关系
+							in/not in	# key in/not int dict   只能用key查找
+							has_key()	# dict.has_key('key')   只能用key查找
+						
+						方法
+							keys() 		# dict.keys() 返回的值列表，包含所有key
+							values()	# dict.values() 返回的值键列表，包含所有value
+							items()		# dict.items() 生成一个字典的容器：[{}]
+							get()		# dict.get('key') 返回对应的value
+										# dict.get('key','value') 当dict中没有该key时，返回其对应的value
+			
+							注：
+								keys()或values()返回键列表或者值列表
+								items()返回包含键值对的元组
+						
+							d.clear()		- 清除所有元素
+							d.copy()		- 深复制
+							d.get(key)		- 返回value
+							d.has_key(key)	- 返回bool
+							d.items()		- 返回元组列表
+							d.keys()		- 返回keys列表
+							d.values()		- 返回value列表
+							d.poptitem()	- 随机弹出键值映射
+							d.update(d1)	- 更新(合并)字典 
+							d2=d1.iteritems（）	- 返回迭代器(键值)
+								d2.next()			
+							d2=d1.iterkeys()	- 返回迭代器(key)
+								d2.next()
+							d.viewitems()		- 返回键值
+							d.viewkeys()
+							d.viewvalues()
+							dict(zip(list1,list2))	- 构建字典
+						
+				序列：		包含字符串、列表、元组
+					说明：
+						六种内建序列：列表、元组、字符串、Unicode字符串、buffer对象、xrange对象
+					序列的三个主要特点
+						1.索引操作符：从序列中抓取一个特定项目
+						2.切片操作符：获取序列的一个切片，即一部分序列、
+						3.均支持迭代
+					序列的通用操作：
+						索引：
+							说明：所有元素从0开始编号，通过编号进行访问。倒数元素从-1开始编号
+							示例：s[i]
+						分片：
+							说明：与索引类似，通过冒号分隔的两个索引来实现提取序列。
+								1.第一个索引的元素在分片内，第二个则不在
+								2.可通过s[1:]来获取最后一个元素，获取第一个亦然
+								3.可设置步长[::N]，若步长为负，则从右向左提取元素，且开始点大于结束点
+							示例：s[M:N:n]
+						算术：
+							求和：
+								说明：sum(a)，返回序列a中所有值的和，只适用于数字序列
+							长度：
+								说明：len(a)返回序列a中元素的数量
+							最值：
+								说明：max()/min()返回序列(能对元素排序)中的最值
+							比较：
+								说明：cmp(a1,a2)，比较a1和a2两个序列值是否相同
+						成员：
+							说明：用in/not in检查一个值是否在序列中，为真则返回True，为假则返回False
+							示例："value" in list1
+								
+						字符串：
+							相加：
+								说明：使用+，则两种相同类型的序列可以连接，生成一个新序列，不会改变原序列
+							相乘：
+								说明：s*5，则生成一个被重复5次s的新序列
+						迭代：
+							说明：依次对序列中的每个元素执行某些操作
+							示例：for x in s:
+					
+						all(s)			- 检查s中的所有项是否为True
+						any(s)			- 检查s中的任意项是否为True
+						
+						
+						v1,v2..... vn=s	- 变量解包
+					
+									
+					内建序列分类：
+						字符串	string	unicode
+							说明：
+								1.使用引号定义(单引号、双引号、三重引号)，''和""在功能上和性能上无区别
+								2.三重引号(docstring)通常用来制作字符串，也可作注释
+								3.可以是三重单引号，也可是三重双引号
+							操作：
+								字符串拼接
+									1. "aaa"+"bbb"		会创建一个新对象，创建和销毁机制会浪费性能，一般不用
+									2. print "This is a %s test %s" % ("too big",",ok?")
+											%s	字符串的占位符 
+											%d	数字的占位符
+									3.",".join([a,b,c])
+								字符串替换
+									a="this is a word"
+									b=a.replace("this","that")
+								字符串查找
+									a.find("string")	返回首字母的下标
+								引用：	
+									a="abcde"
+										a[n]	a[-n]	a[len(a-1)]		a[n:m]
+										
+								
+								s.captitalize()	- 首字母变大写
+								s.index(str [,start,end])	- 找到指定字符str首次出现的位置，否则报错
+								s.join(str)					- 使用s作为分隔符连接str中的字符串
+								s.lower()					- 转换成小写形式
+								s.upper()					- 转换成大写形式
+								s.strip()
+								s.replace(old,new)			- 替换一个字符串
+								s.split(str)				- 使用str来分隔字符串s
+								
+						列表：		list[]
+							说明：list是处理一组有序项目的数据结构，列表是可变类型的数据，用[]表示列表，以逗号分隔
+							特点：
+								1.有序的集合
+								2.通过偏移来索引，从而读取数据 
+									正向索引：list[1:6:2]
+									反向索引：list[-1:-4:-1]
+									默认索引：list[1:]
+								3.支持嵌套
+									a=[[1,3,4],[2,3,5]]
+								4.可变的类型
+							定义：
+								1.定义空列表：		l3=[]，l3=[None]*10
+								2.定义单一列表：	l3=['abc']		无逗号
+								3.定义一般列表：	l3=['aa','bb']
+							操作:
+								取值：list_name[]
+								追加：list_name.append()
+								删除：list.remove(value)	/ list_name.remove(list_name[])
+										del(list_name[])
+								修改：list_name[]=x
+								查找：value in list_name
+								添加操作
+									+			# list1+list2 生成一个新的列表对象
+									extend		# list1.extend(list2) 将list2的所有元素添加到list1中
+									append		# list.append(obj_name) 将对象添加到列表末端
+									insert		# list.insert(N,obj_name)将对象插入到第N个位置后
+								修改操作
+									按索引直接赋值即可
+								删除操作
+									del			# del list[N] 直接删除列表的元素
+												  del list 删除列表对象的引用
+												  del list[:] 清空列表对象里的元素
+									remove		# list.remove(元素) 删除列表中指定的第一个元素，若无，则抛出异常
+									pop			# list.pop() 返回最后一个元素，并删除
+												# list.pop(N) 返回N对应的元素，并删除
+								 
+								 
+									s[i]= v			- 索引赋值
+									s[i:j]=t		- 切片赋值
+									del s[i]		- 删除
+									del	s[i:j]		- 切片删除
+									
+									s.append(x)		- 追加
+									s.extend(t)		- 追加
+									s.count(x)		- 统计x的数量
+									
+									列表赋值方式：
+										浅复制
+											list1=list2
+										深复制
+											- list1=copy.deepcopy(list2)
+											- list1=list2[:]
+								 
+								成员关系
+									in / not in # 元素 in / not in  list 判断元素是否在列表中，返回bool值
+								列表推导式
+									[expr for iter_var in iterable]
+										首先迭代iterable里所有内容，每一次迭代，都把iterable里相应内容放到iter_var中，
+										再在表达式中应用该iter_var的内容，最后用表达式的计算值生成一个列表。
+									
+									[expr for iter_var in iterable if cond_expr]
+										加入了判断语句，只有满足条件的内容才把iterable里相应内容放到iter_var中，再在
+										表达式中应用该iter_var的内容，最后用表达式的计算值生成一个列表。
+
+								排序翻转
+									排序：直接修改原列表，返回值为none
+										list2=list1.sort()		list1为排序后的内容，list2的值为none
+									翻转：直接修改原列表，返回值为none
+										list2=list1.reverse()	list1为翻转后的内容，list2的值为none
+									
+								内置list方法
+									var= "string"
+									list(var)
+									返回一个列表，参数是可迭代对象。里面输出的内容还是保持了传入的可迭代对象的元素和顺序。
+									如果参数为空，则返回一个空的列表
+								rang与xrang的区别
+									range: 直接生成一个列表对象。
+									xrange: 它是生成一个xrange对象.
+										xrange的用法：
+											1.当需要操作一个非常大的数据，而且内存比较吃紧的时候，可用xrange来操作省内存。
+											2.xrange一般用在循环里面，若只需要操作部分数据，而不是返回全部元素来完成操作，推荐用xrange,效率更高。
+								
+						元组：		tuple()
+							说明：元组通过括号，用逗号分隔项目定义
+							特点：
+								1.有序的集合，相当于只读列表
+								2.通过偏移来取值：tuple[N]
+								3.属于不可变对象，不能原地修改内容，没有排序、修改等操作
+									元组不可变的好处：保证数据的安全，当要传给一个不熟悉的方法或者数据接口，
+													确保方法或者接口不会改变数据从而导致程序问题
+									虽然元组本身不可变，但若元组内嵌套了可变类型的元素，则此类元素的修改不会返回新元组
+								
+							定义：
+								1.定义空元组: 	t=()		
+								2.定义单一元组：t=(1,)				要有逗号,否则相当于定义其它变量(去掉括号的)
+								3.定义一般元组：t=('a','bbb',1)		元组定义时可省略()
+										
+											注：
+												定义时不能省略()：		
+													1.元组作为字符传给函数调用
+													2.元组出现在print语句中的特殊场景
+												
+								内置tuple：
+									var="string"
+									tuple(var)
+						buffer对象：
+						xrange对象：
+					
+					注：序列和映射是两类主要的容器。序列中的每个元素都有自己的编号，而映射(字典)中的每个元素都有自己的值。集合也属于容器
+				集合：		set()	frozenset()
+					说明：集合没有顺序的概念，故无切片和索引操作
+					特点：
+						1.无序排列，可哈希
+						2.支持集合关系测试，成员关系测试，迭代
+						3.不支持索引 元素获取 切片
+					类型：
+						set()	forzenset()
+							没有特定的语法格式，只能通过工程函数创建
+							s=set([])
+					操作：
+						创建集合
+							可变： a=set('str')
+							不可变：a=frozenset('str')
+						添加操作	只用于set
+							add		# a.add('str') 将str作为整体添加到集合a中
+							update	# a.update('str') 将str的每个字母作为元素添加到集合a中
+						删除操作	只用于set
+							remove	# a.remove('元素')	直接删除集合中的该元素
+						成员关系
+							in / not in 	# 元素 in/not in  集合
+						交集 并集 差集
+							& 		# a & b
+							|		# a | b
+							- 		# a - b
+						
+						set去重,用于列表内容重复
+							list(set(a))
+						内置set/frozenset
+							var="string"
+							set(var)/frozenset(var)
+							
+							len(s)				- 测长度
+							s.copy()			- 深复制
+							max(s)	/ min(s)	- 求最值
+							s.pop()				- 随机抛出
+							s.add(s1)			- 增加
+							
+							s.difference(t)		- 求差集，在s中不在t中
+								s - t
+							s.intersection(t)	- 求交集		
+								s & t
+							s.isdisjoint(t)		- 若s和t无交集，则返回True
+							s.issubset(t)		- 若s是t的子集，则返回True
+							s.issuperset(t)		- 若s是t的超集，则返回True
+							s.symmetric_difference(t)	- 求对称差集，返回所有在s或t中，但又不同时在这两个集合中的项
+								s ^ t
+							s.union(t)			- 求并集		
+								s | t
+							
+							
+							
+				注：
+					不可变类型：int	  string	 tuple
+					可变类型：  list	dict
+					
+					Python核心数据类型
+						-	数字				：int long float complex bool
+						-	字符串				: str unicode
+						- 	列表				: list
+						-  	元组				: tuple
+						-	字典				: dict
+						- 	文件				: file	
+						- 	其它文件类工具		: pipes fifos sockets
+						-	集合				: set frozenset
+						- 	其他				: None
+						- 	编程单元类型			: 函数 模块 类
+						-	与实现相关的类型		: 编译的代码堆栈跟踪
+					
+					列表和字典都支持两种复制：深复制和浅复制
+					
+		变量的分解赋值
+			list=[1,2,3]	tuple=()
+			x,y,z=list
+			print x
+			print y 
+			print z
+		组合数据类型
+			列表和元组并不真正存储数据，而是存放对象引用
+			Python对象可以具有其可以被调用的特定"方法(函数)"
+	引号和转义字符
+		引号：
+			单双引号为字符串，不加区别
+			三引号(单/双)作用：
+				1.在赋值时可作为字符串
+				2.注释
+				3.文档字符串
+			
+			注："""用于多行注释和多行输出，其内可有''和""
+				
+		转义字符：
+			\：用来做转义					a="abc \n def"
+			r：表示原生字符串，消除转义 	a=r"abc \n def"	
+			u：用于中文前，表示Unicode码	c=u"中国"
+	注释：分为两种
+		# 单行注释
+	
+		"""
+		多行注释
+		"""
+	运算符与表达式
+		运算符
+			赋值运算符
+				=、+=、-=、*=、/=、%=、**=、//=
+			算术运算符
+				+、-、*、/(实数除法)、%、//(整数除法)、**
+			关系运算符 结果为bool型
+				>、>=、<、<=、!=、==
+			逻辑运算符
+				x or y , x and(&) y , not x
+			身份操作符 (用于比较两个对象的存储单元)
+				x is y , x is not y
+			成员操作符（右操作值为序列）
+				x in y , x not in y
+			位运算：
+				x | y , x & y , x ^ y ， x << y , x << y
+			一元运算
+				-x , +y , ~x
+			三元选择表达式
+				x if y else z
+			bool值的运算符:
+				and		# 
+				or		#
+				is		# 检查共享
+				==		# 判断等值
+				not		# 翻转
+					注：bool值具有惰性求值(短路逻辑)
+				
+				注：同样的功能，使用增强型赋值操作符的性能较好。增强型赋值的实际过程是创建了一个新的对象来存储结果后将变量名执行了重新绑定
+		
+		表达式：将不同的数据(包括变量、函数)用运算符按一定规则连接起来的一种式子
+			类型：	
+				(常量、变量、函数、对象)+运算符+优先级
+				字符串表达式
+				数值表达式
+				逻辑表达式
+				函数表达式
+				eval()和repr()
+		注：
+			所有python对象都支持比较操作
+				可用于测试相等性，相对大小
+				若是复合对象，python会检查所有部分，包括自动遍历各级嵌套对象，知道可以得出最终结果
+			测试操作符
+				"=="操作符测试值的相等性
+				"is"表达式测试对象的一致性
+			python中不同类型的比较方法
+				- 数字：通过相对大小进行比较
+				- 字符串：按照字典次序逐字符进行比较
+				- 列表和元组：自左向右比较个各部分内容
+				- 字典：对排序后的(键、值)列表进行比较
+			两个对象比较
+				1.值比较：对象中的数据是否相同			   a == b
+				2.身份比较：两个变量名是否引用的是同一对象   a is b
+				3.类型比较：两个对象类型是否相同			   type(a) is type(b)
+			python的隐性迭代工具
+				- in/not in		成员关系测试
+				- 列表解析
+				- map、reduce和filter函数
+	语句
+		代码组
+			1.缩进相同的一组语句构成一个代码块
+			2.首行以关键字开始(eg:if while...)，以冒号结束
+			3.Python使用缩进来分隔代码组，同一代码组必须严格左对齐，否则会造成语法错误
+		流程控制语句
+			说明：Python使用缩进作为其语言分组的方法
+			组成：
+				由条件和执行代码块组成，条件可分为决策、循环和分支，:用来分隔条件和代码块
+			选择判断
+				if 条件:
+					执行语句
+				elif 条件：
+					执行语句
+				else：
+					执行语句
+
+				注：python没有提供switch语句，但可以通过字典来实现switch的功能
+						1.定义一个字典
+						2.调用字典的get()获取相应的表达式
+			循环：
+				循环语句：
+					while循环
+						说明：用于编写通用迭代结构
+						语法：
+							while 条件：
+								执行语句
+							else:				# 同for
+								执行语句
+						
+					for循环
+						说明：一个通用的序列迭代器，用于遍历任何有序对象内的元素
+						语法：
+							for i in 序列:
+								执行语句
+							else:				# for循环正常结束则会执行else，此语句可不写
+								执行语句		# 若for语句因break中断，则不会执行else语句
+
+							注：
+								1.for中的最后一个迭代值将保留。即i将保留iterable中的最后一个值，且循环结束依然存在
+								2.else代码块：循环正常终止才会执行
+								3.for循环比while循环执行速度快
+				循环控制语句：			
+					break：
+						说明：结束当前整个循环
+					countine：
+						说明：直接开始下一次循环
+					pass：
+						说明：
+							用于在代码中占位，保持程序结构的完整性。可用于在函数的代码中占位，以后在完成代码
+					exit()
+			
+				死循环：
+					while True：
+				
+						
+					快速生成序列： range(i,j,n)
+						默认i从0开始，不包括j
+					遍历：
+						1.遍历序列
+							s=”hello”
+							l=[1,2,3,5]
+									
+							从序列中直接取值
+								for x in s:
+									print x
+							通过索引取值
+								for x in range(len(l)):
+									print x 
+						2.遍历字典
+							d={1:111,2:222,3:333}
+							for x in d:
+								print d[x]
+							for k,v in d.items():
+								print k,v
+						
+
+				注：python中没有i++或i--
+		输入输出语句：
+			输出
+				Python3：print()函数
+				Python2：print语句
+					print语句
+						1.基本输出
+						2.print语句后有逗号，则代表此语句未完，还在同一行(print x,	可非换行显示)
+						3.输出到文件  >>重定向
+							print >> file,"info"
+			输入
+				input()：
+					说明：将输入作为合法的Python表达式
+					示例：
+						num=input("How many numbers do you want ? ")
+				raw_input()
+					说明：将所有输入当做原始数据，然后放入字符串中
+					示例：
+						
+			
+			从技术角度来讲，print是把一个或多个对象转换为其文本表示形式，然后发送给标准输出或另一个类似文件的流
+		
+		赋值语句
+			说明：Python在首次给变量赋值时创建变量名，并且建立引用
+			1.隐式赋值：import,from,def,class,for，函数参数
+			2.元组和列表分解赋值，当赋值符号(=)的左侧为元组或列表时，python会按照位置把右边的
+			  对象和左边的目标自左向右逐一进行配对，个数不同时会触发异常，此时可以切片的方式进行
+			3.多重目标赋值	a1=a2=a3
+			4.增强赋值		+= -= *= /= //= %=
+		调用语句
+			print				- 打印对象
+			if/elif/else		- 条件判断
+			for/else			- 序列迭代
+			while/else			- 普通循环
+			pass				- 占位符，什么也不执行
+			break
+			continue
+			def
+			return
+			yield
+			global				- 命名空间
+			raise				- 触发异常
+			import				- 模块属性访问
+			class				
+			try/except/finally	- 捕捉异常
+			del					- 删除引用
+			assert				- 调试检查
+			with/as				- 环境管理器
+		三元表达式
+			1. expr	if conditons else expr			
+					eg: >>> 5 if True else 3
+			2. [expr1,expr2][condition]
+					eg: >>> [2,3][True]
+		迭代器		- 支持每次返回自己所包含的一个成员的对象
+			说明：迭代器又称游标，它是程序设计的软件设计模式，是一种可在容器物件(如列表等)上实现元素遍历的接口
+			可迭代对象：
+				序列类型：	list str tuple
+				非序列类型：	dict file
+				用户自定义的包含了__iter__()或__getitem__()方法的类
+			使用iter()可从任何序列对象中得到迭代器，要使迭代器指向下一个元素，则使用成员函数next(),当没有元素是，则引发StopIteration异常
+		列表解析		效率是for循环的一倍
+			说明：是python迭代机制的一种应用，常用于实现创建新的列表，因此要放置与[]中
+			语法：
+				1.[expr for iter_var in interable]
+				2.[expr for iter_var in interable if cond_expr]
+		生成器
+			说明：生成器并不真正创建数字列表，而是返回一个生成器对象，此对象在每次计算出一个条目后，把此
+				条目"产生"(yield)出来。生成器表达式使用了"惰性计算"或称"延迟求值"的机制
+			语法：
+				1.(expr for iter_var in iterable)
+				2.(expr for iter_var in iterable if cond_expr)
+
+			注：
+				1.函数中使用yield，会返回一个生成器对象
+				2.生成器与列表解析如同xrange与range的区别
+
+	
+	正则：
+		- 在Python中通过re模块来实现
+		- 正则表达式模式被编译成一系列的字节码，然后用C编写的匹配引擎执行
+		
+	函数:
+		说明：
+			函数是python为了代码最大程度地重用和最小化代码冗余而提供的基本程序结构。它是一种设计工具，
+			能让程序员将复杂的系统分解为可管理的部件用于将相关功能打包并参数化。函数可以嵌套定义
+		函数的执行环境
+			通过多种方法获得输入并产生输出
+			
+				输入								  输出
+													return语句 	
+				参数			  函数				可变参数
+				全局变量							全局变量
+				文件/流			本地变量			文件/流		
+		分类：
+			1.全局函数：					定义在模块中
+			2.局部函数：					嵌套于其它函数中
+			3.lambda函数:					表达式
+			4.方法(类中的函数)：			与特定数据类型关联的函数，并且只能与数据类型关联一起使用
+		
+			1.自定义函数
+			2.预定义的Python函数
+		定义：
+			def name():
+				"""info"""				# 文档字符串
+				command
+				return N				# 当return返回多个值时，系统会返回成一个元组
+				
+			注：若无返回值语句，自动返回None
+		调用：
+			name()			// callable()用于测试函数是否可以被调用，其在python3.0中不再可用
+		函数属性：
+			
+		参数：
+			说明：一般不要在函数内部修改传递来的可变对象(eg:list dict)
+			分类：
+				形参
+				实参
+					调用元组：
+						t=('name',20)
+						fun(*t)
+					调用字典：
+						d={'name':a,'age':22}
+						fun(**t)
+					
+					注：	**		# 字典
+							*		# 元组
+					
+				缺省参数
+				冗余参数
+					fun(x,*args,**dwargs)
+			参数传递形式
+				位置参数：	从左向右匹配
+				关键字参数：按名称匹配(name=value)
+				合用		位置参数在前，关键字参数在后
+				默认参数：	定义时，位置参数在前，默认参数在后
+				可变参数：	
+							定义函数时使用*	:收集位置参数		列表
+							定义函数时使用** :收集关键字参数	元组
+			
+		变量作用域
+			说明：Python创建、改变或查找变量名都是在名称空间中进行的。在代码中变量名被赋值的位置决定
+				了其能被访问到的范围
+			分类：
+				1.全局变量
+				2.局部变量		-- 通过global强制声明为全局变量	
+					格式： global 变量名
+				3.内置变量(由__builtin__模块提供)
+				
+				注：函数定义了本地作用域，而模块定义了全局作用域
+			变量名解析：LEGB原则
+				变量名引用分三个作用域进行：首先是本地(Local)、之后是函数内(Enclosing)、接着是全局(Global)、最后是内置(Bulit-in)
+		
+		
+		返回值：
+			return用于返回结果对象，其为可选。无return语句的函数自动返回None对象，不带参数值的return语句返回None。返回多个值时，彼此间
+			使用逗号分隔，且组成元组形式返回一个对象
+		lambda：匿名函数
+			说明：lambda函数是一种快速定义单行的最小函数，从Lisp借来，可以用在任何需要函数的地方。支持默认参数。
+				lambda函数拥有自己的命名空间，且不能访问自有参数列表之外或全局命名空间里的参数，
+			语法：
+				lambda args:expr
+			实例：
+				f=lambda x,y:x+y
+				f(1,2)				返回3
+			特点：
+				1.lambda的首要用途是指定短小的回调函数
+				2.lambda是一个表达式而非语句
+				3.lambda是一个单个表达式，而非一个代码块
+				4.lambda将返回一个函数而不是将函数赋值给某变量名
+				5.def语句创建的函数将赋值给某变量名，而lambda表达式则直接返回函数
+			优点：
+				1.使用python写一些执行脚本时，使用lambda可以省去定义函数的过程，让代码更加精简，更易理解
+				2.对于一些抽象的，不会在别的地方再复用的函数，直接使用lambda，可以不用考虑命名的问题
+				3.lambda主要起到函数速写的作用。如果通过函数的方式表述更有效，但本身的功能却很简单，使用lambda更好			
+		内建函数
+			求绝对值：	abs()
+			求最值： 	max()	min()
+			求长度： 	len()
+			求商与模： 	divmod()	eg: divmod(5.2)
+			求幂：		pow()		eg:	pow(2,3[,4])	2**3%4_
+			类型转换
+				- str(),repr()或format()	: 将非字符型数据转换为字符
+				- int()						: 转为整数
+				- float()					: 转为浮点数
+				
+				- list()					: 将字符串转为列表
+				- tuple()					: 将字符串转为元组
+				- set()						: 将字符串转为集合
+				- set()						: 将字符串转为不可变集合
+				- dict()					: 创建字典
+				
+				- chr()						: 将整数转换为字符（编码转换）
+				- ord()						: 将单个字符转换成整数
+
+				- hex()						: 整数转为16进制	
+				- bin()						: 整数转为2进制
+				- oct()						: 整数转为8进制
+			某个对象可否被调用：	callbale()
+			获取对象类型：			type(var_name)
+			查看模块帮助：			help(module_name)	须先将模块导入才能查看
+			简要查看模块函数：		dir(module_name)
+			判断对象类型：			isinstance()		eg: isinstance(l,int)
+			比较两个对象：			cmp()
+			快速生成序列：			range()		xrange()
+			返回N所对应的二进制：	bin(N)	
+			查看内存地址：			id()
+			查看数据类型：			type()
+			测量长度：				len()	
+		装饰器
+			说明：
+				1.装饰器本身是一个函数，用于装饰其它函数
+				2.功能：增强被装饰函数的功能
+				
+			装饰器一般接收一个函数对象作为参数，已对其进行增强
+		生成器函数发送协议:
+			yield x
+		闭包：闭包叫lexical closure（词法闭包）
+			说明：可以将各种参数，根据不同的使用情况来灵活配置
+				- 指函数及相关的环境所组成的整体
+				- python闭包从表现形式上可以解释为函数在嵌套环境中，若在一个内层函数里对外层函数中的变
+				  量进行了引用,则在外层函数返回后，内存函数依旧可以使用其外层函数中的变量，这些变量就构
+				  成了内层函数使用时的环境
+				- 隐藏状态
+			定义：
+				def f1(a):
+					def f2(b):
+						return a+b
+					return f2
+			调用：
+				m=f1(1)		返回的是f2函数的地址
+				n=m(2)		返回3
+		python函数式编程
+			说明：也称泛函编程，是一种编程范例
+			
+			filter(func.seq)	- 过滤器
+				- filter()为已知的序列的每个元素调用给定的布尔函数
+				  调用中，返回值为非零的元素被添加至一个列表中
+			map(func.seq1[,seq2])				- 映射器
+				- map()将函数调用"映射"到每个序列的对应元素上并返回一个含有所有返回值(元组)的列表
+			reduce(func,seq[,init])		- 折叠
+	对象
+		概念：
+			1.程序中存储的所有数据都是对象
+			2.每个对象都有一个身份(id),一个类型(type)和一个值
+				对象的类型也称对象的类别，用于描述该对象内部表示及其所支持的方法和操作
+				实例被创建后，其id和type则不可变
+					若对象值可变，则称为可变对象;若对象值不可变，则称为不可变对象
+			3.若某个对象包含对其它对象的引用，则将其称为容器
+			
+			封装、继承、多态
+		定义：
+			class a:
+				"""   """						文档字符串	
+				def __init__(self):				初始化函数
+					self.m=1
+				
+				def name():
+					"""	"""						文档字符串
+					command
+		分类：
+			文件对象
+				open(name[,mode[,bufsize]])					- 用于打开文件和创建文件对象
+					mode:	
+						r	w	a	
+						r+	w+	a+		- "+"表示同时支持输入、输出操作
+						b				- 以二进制方式
+					bufsize：
+						0				- 禁用
+						复数			- 使用系统默认缓冲
+						1				- 使用缓冲，只缓冲一行数据
+						2+				- 指定缓冲空间大小
+				f.fileno()				- 返回文件描述符
+				f.tell()				- 当前文件的字节数
+				f.seek(offset[,whence])
+					whence:	
+						0	- 从文件头	默认
+						1	- 从当前位置
+						2	- 从文件尾
+					offset：
+						
+					
+				f.readline()
+				f.readlines()	
+				f.next()				- 从当前位置读取一行
+				f.name					- 返回当前文名
+				f.close()				- 关闭文件
+				f.closed				- 查看文件是否关闭
+				f.flush()				- 将内存中的缓冲写入文件
+				f.writelines()		
+				
+				f.encoding				- 文件编码格式
+				f.mode					- 打开属性
+				
+
+				os			- 与文件系统相关的模块(跨系统的兼容的文件系统的API)
+				
+					目录：
+						chdir()
+						chroot()
+						listdir()
+						mkdir()
+						makedirs()		- mkdir -pv
+						getcwd()
+						rmdir()
+						removedirs()	- 删除多级目录
+					文件：
+						mkfifo()		- 命名管道
+						mknod()
+						remove()		- 删除文件
+						unlink()		- 取消链接
+						rename()		- 重命名
+						stat()		
+						symlink()		- 创建符号链接
+						utime()			- 更新文件时间戳
+						tmpfile()		- 创建并打开(w+b)一个新的临时文件
+					权限
+						access()
+						chmod()
+						chown()
+						umask()
+					文件描述符
+						open()
+						read()
+						write()
+					设备文件
+						mkdev()
+						major()
+						minor()
+				os.path					- 实现路径管理
+					basename()
+					dirname()
+					join()
+					split()				- 返回dirname(),basename()的元组
+					splitext()			- 返回(filename,extension)元组
+					
+					信息
+						getatime()
+						getctime()
+						getmtime()
+						getsize()
+						
+					查询
+						exists()
+						isabs()			- 绝对路径
+						isdir()
+						isfile()
+						islink()
+						ismount()		- 是否为挂载点
+						samefile()		- 两个路径是否指向同一文件
+		引用计数：
+			说明：所有对象都有引用计数
+			导入：
+				import sys
+				sys.getrefcount()
+			
+			增加对象的引用计数
+				1.对象创建时
+				2.将对象添加进容器时
+				3.当对象被当做参数传递给函数时
+				4.为对象创建另外变量名
+			减少引用计数
+				1.引用此对象的某变量名被显式销毁	del
+				2.给引用此对象的某变量名重新赋值
+				3.从容器中移除对象
+				4.容器本身被销毁
+		对象持久存储(对象的流式化)
+			将对象存储到文件中
+				pickle
+				marshal
+			
+			将对象存储到数据库中
+				DBM接口
+				shelve模块
+			
+		注：
+			Python包含6种内建的数据序列：列表 元组 字符串 Unicode字符串 buffer对象 xrange对象
+			python中的所有对象都是"第一类的"，即，使用标识符命名的所有对象都具有相同状态，可直接当数据进行处理
+			
+	类
+		说明：定义了被多个同一类型对象共享的结构和行为)(数据和代码)
+		类的成员：
+			数据：成员变量或实例变量
+			成员方法：简称方法，是操作数据的代码，用于定义如何使用成员变量
+		
+		面向对象的程序设计方法
+			所有东西都是对象，程序是一大堆对象的组合
+		面向对象编程的模型机制有3个原则：
+			封装(Encapsulation)
+				- 隐藏实现方案细节
+				- 将代码及处理的数据绑定在一起的一种编程机制，用于保证程序和数据不受外部干扰且不会被误用
+			继承(Inheritance)
+				- 一个对象获得另一个对象属性的过程，用于实现按层分类的概念
+				- 一个深度继承的子类继承了类层次中它的每个祖先的所有属性
+				- 超类，基类，父类
+				- 子类，派生类
+			多态(Polymorphism)
+				- 允许一个接口被多个通用的类动作使用的特性
+				- 一个接口，多个方法
+					用于为一组相关的动作设计一个通用的接口，以降低程序复杂性
+		对象的接口--方法
+			
+		类间关系
+			依赖
+				一个类的方法操纵另一个类的对象
+			聚合
+				类A的对象包含类B的对象
+			继承
+				描述特殊与一般关系
+			
+		类包含两种对象
+			类对象：可调用对象
+			实例对象：可以调用实例中的方法
+			
+		实例初始化
+			- 通过调用类来创建
+				instance=ClassNmae(args..)
+			- 类在实例化时可使用__init__和__del__两个特殊方法
+			
+		语法格式
+			class ClassName(bases):
+				"class documentation string"
+				data=value
+				def method(self,...):
+					self.member=value
+					
+		Python构造器
+			创建实例时，Python会自动调用类中的__init__方法，隐性地为实例提供属性
+			__init__方法被称为构造器
+			
+			def __init__(self,..):
+				self.member=value
+		Python析构器
+			def __del__(self,...):
+				pass
+		
+		类的特殊属性
+			获取类/实例的属性
+				1.class.__dict__
+				2.dir(class)
+		Python类方法中可用的变量
+			实例变量
+				self.变量名
+			局部变量
+				方法内部创建的变量，可直接使用
+			类变量(静态变量)
+				类名.变量名
+			全局变量：模块中
+				直接使用
+			
+		类、实例、和其它对象的内建函数
+			issbuclass(sub,sup)	
+				- bool函数，判断一个类是否由另一个类派生
+			isinstance(obj,class_obj)
+				- bool函数，判断一个对象是否是给定类的实例
+			hasattr(obj,'attr')
+				- bool函数，判断一个对象是否拥有指定的属性
+				- 同类函数：getattr()	setattr()	delattr()
+			super(type[,obj])
+				- 在子类中找出其父类以便于调用其属性
+			
+		注：
+			Python的此类包含了一系列预编写好的语句的程序文件称作"模块"
+			能够直接运行的模块文件通常称作脚本(即程序的顶层文件)
+			文档字串： 模块、类或函数的第一条语句是字符串，则该字符串就成为文档字符串，可用__doc__属性引用
+			一个未指定基类的类，其默认有一个名为object的基类
+			超类是一个或多个用于继承的父类的集合
+		
+	异常：
+		说明：
+			python的运行时错误称作异常。python异常是一个对象，当python检测到一个错误时，会触发一个异常
+		分类：
+			语法错误：软件的结构上有错误而导致不能被解释器解释或不能被编译器编译
+			逻辑错误：由于不完整或不合法的输入导致，也可能是逻辑无法生成，计算或输出结果需要的过程无法执行等
+		机制：
+			说明：python程序出现了错误而在正常控制流以外采取的行为
+			
+			第一阶段：解释器触发异常，此时当前程序流将被打断
+			第二阶段：异常处理，如忽略非致命性错误、减轻错误带来的影响等
+		功能：
+			1.错误处理
+				·python的默认处理：停止程序，打印错误信息
+				·使用try语句处理异常并从异常中恢复
+			2.事件通知
+				用于发出有效状态信号
+			3.特殊情况处理
+				无法调整代码去处理的场景
+			4.终止行为
+				try/finally语句可确保执行必需的结束处理机制
+			5.非常规控制流程
+				异常是一种高级跳转(goto)机制
+		异常处理：
+			检测：
+				说明：异常通过try语句来检测
+			
+				try语句主要有两种形式
+					1.try-except：检测和处理异常
+						可以有多个except
+						支持使用else子句处理没有探测异常的执行的代码
+					2.try-finally：仅检查异常并做一些必要的清理工作
+						仅能有一个finally
+						
+					try语句的符合形式
+						try-except-else-finally
+					
+					没有发生异常时，else才会执行
+					无论异常是否发生，finally子句都会执行
+						finally子句并不捕获异常，只用于定义必须进行的清理工作，如关闭文件或断开服务连接等
+						finally中的所有代码执行完毕后会继续向上一层引发异常
+						
+			语法：
+				try:
+					执行代码
+				except 异常名,msg：
+					执行代码
+					
+				try:
+					执行代码
+				finally:
+					执行代码
+			
+					注：finally子句
+						说明：Python提供try-finally子句来表述：不论抓捕到的是什么错误，不论错误是不是发生，这些代码必须运行
+				自定义异常
+					raise语句可显示触发异常
+						raise[SomeException[,args[,traceback]]]
+							SomeException：可选，异常的名字，仅能使用字符串、类或实例
+							args：可选，以元组的形式传递给异常的参数
+							traceback：可选，异常触发时新生成的一个用于异常-正常化的跟踪记录，多用于重新引发异常
+			异常对象
+				python异常时内置的经典类Exception的子类的实例
+					- 为了向后兼容，Python还允许使用字符串或任何经典类实例
+					- Exception是从BaseException继承的新实例
+				Python自身引发的所有异常都是Exception的子类的实例
+				大多数的标准异常都是StandardError派生的，其有3个抽象类的子类
+					- ArithmeticError
+						由算术错误而引发的异常基类
+						OverflowError、ZeroDivisionError、FloatingPointError
+					- LookupError
+						容器在接收到一个无效键或索引时引发的异常的基类
+						IndexError、KeyError
+					- EnvironmentError
+						由于外部原因而导致的异常的基类
+						IOError、OSError、WindowsError
+				
+				标准异常类
+					AssertionError 			- 断言语句失败
+					AttributeError			- 属性引用或赋值失效
+					FloatingPointError		- 浮点型运算失败
+					IOError					- I/O操作失败
+					ImportError				- import语句不能找到要导入的模块，或者不能找到该模块特别请求的名称
+					IndentationError		- 解析器遇到了一个由于错误的缩进而引发的语法错误
+					IndexError				- 用来索引序列的整数超出了范围
+					KeyError				- 用来索引映射的键不在映射中
+					KeyboardInterrupt		- 用户按了中断键(Ctrl+C,Ctrl+Break或Delete)
+					MemoryError				- 运算耗尽内存
+					NameError				- 引用了一个不存在的变量名
+					NotImplementedError		- 由抽象基类引发的异常，用于指示一个具体的子类必须覆盖的一个方法
+					OSError					- 由模块os中的函数引发的异常，用来指示平台相关的错误
+					OverflowError			- 整数运算的结果太大导致溢出
+					SyntaxError				- 语法错误
+					SystemError 			- Python本身或某些扩展块中的内部错误
+					TypeError				- 对某对象执行了不支持的操作
+					UnboundLocalError		- 引用未绑定的本地变量
+					UnicodeError			- 在Unicode的字符串之间进行转换时发生的错误
+					ValueError				- 应用于某个对象的操作或函数，这个对象具有正确的类型，却又不适当的值
+					WindowsError			- 模块os中的函数引发的异常，用来指示与Windows相关的错误
+					ZeroDivisionError		- 除数为0
+					......
+					
+				自定义异常类
+					从自定义异常类和标准异常类进行多重继承
+						eg： class CustomAtttributeError(CustomException,AttributeError):
+								pass
+					使用标准库中的其它异常(等同于自定义的异常类)
+					
+			抛出异常
+				raise 执行代码
+			手动触发异常			- assert语句
+				说明：用于在程序中引入调试代码
+				语法：
+					assert condition[,expression]
+						若condition条件满足，则assert不做任何操作
+						若condition条件不满足，则assert使用expression作为参数实例化AssertionError并引发结果实例
+							
+					若运行python是使用了-O优化选项，则assert将是一个空操作(编译器不为assert语句生成代码)
+					运行时不使用-O选项，则__debug__内置变量为True，否则其值为False
+						
+					assert语句相当于：
+						if __debug__:
+							if not condition:
+								raise AssertionError,<expression>
+	模块与包：
+		模块：
+			说明：可以将代码量较大的程序分割成多个有组织的、彼此独立但又能相互交互的代码，这些自我包含
+				的有组织的代码段就是模块。模块是Python组织代码的基本方式。物理形式上表现为以.py结尾的代
+				码文件，当其导入到另一个脚本中运行时(不用加后缀.py)，称其为模块。Python中，模块也是对象。
+				模块里的代码可以是一段直接执行的脚本，也可是一些类似库函数的代码从而可由别的模块执行导
+				入(import)。在一个模块的顶层定义的所有变量都在被导入时成为了被导入模块的属性
+					
+			模块导入：在脚本中用 import 模块名 导入
+				语法：
+					# vim file.py
+						import module1[,module2,...]		# 导入指定的整个模块，并生成一个以模块名命名的名称空间
+							import module as module_alias	# 若以别名导入，则只能使用别名，原名不可用
+						
+						from module import name1[,name2...] # 只导入指定模块的部分属性至当前名称空间
+						
+					print str_name
+					print fun_name()
+					print __doc__		# 输出开头的双引号注释
+				机制：import语句导入指定的模块时会执行三个步骤
+					1.找到模块文件
+						在指定的路径下搜索
+					2.编译成字节码
+						文件导入时就会编译，因此，顶层文件的.pyc字节码文件在内部使用后就会被丢弃，只
+						有被导入的文件才会留下.pyc文件
+					3.执行模块的代码来创建其所定义的对象
+						
+					模块只在第一次导入时才会执行如上步骤
+						后续的导入操作不过是提取内存中已加载的模块对象
+						reload()可用于重新加载模块
+				模块搜索
+					1.程序的主目录
+					2.PYTHONPYTN目录
+					3.标准链接库目录
+					4.任何.pth文件的内容
+					
+					四者组合即为sys.path所包含的路径
+						import sys
+						sys.path
+				注：
+					import和from都是隐性赋值语句
+					import将整个模块对象赋值给一个变量名
+					from将一个或多个变量名赋值给导入此模块的模块中的同名对象
+			
+			安装第三方模块：安装路径 /usr/lib/python2.7/site-packages/
+				1.python-setuptools工具：一个方便的安装第三方python模块的工具
+					# easy_install package		-- /path/python2.7/Scripts/easy_install
+				2.源码安装
+					# cd package
+					# python setup.py build		-- 检查是否具有编译源代码的能力（是否具有C/C++的编译环境）
+					# python setup.py install 	-- 安装
+			常用模块：
+				os模块：
+					目录操作
+						import os
+						os.mkdir('/path/dir')
+						os.makedirs('/path/dir1/dir2')		-- 创建多级目录
+						os.rmdir('/path/dir')
+						os.removedirs('/path/dir1/dir2')	-- 删除多级目录
+					
+						os.getcwd()							-- 显示当前路径
+						os.listdir（'/path/dir'）			-- 显示目录内容
+						os.chdir('/path/dir')				-- 切换路径
+				sys
+			
+			注：
+				每个模块都有一个名为__name__的内建变量，此变量会根据调用该模块的方式的不同发生变化
+					若此文件被作为模块导入，则__name__的值为该模块名称(文件名)
+					若此文件被直接执行，则__name__的值为"__main__"
+				Python内置的模块		>>> help('modules')
+		包：
+			说明：
+				- 用于将一组相互依赖的模块归并到一个目录中，此目录即包，目录名即为包名
+				- 包是一个有层次的文件目录结构，它定义了一个由模块和子包组成的Python应用程序执行环境
+				- 基于包，Python在执行模块导入时可以指定模块的导入路径
+					包路径须在sys.path路径中
+					import dir1.dir2.mod
+				- 包的每个目录内必须有__init__.py文件
+					该文件可包含python代码，但通常为空。仅用于扮演包初始化的挂钩、替目录产生模块命名
+					空间以及使用目录导入时实现from *行为的角色
+				
+			建立：
+				1.建立一个文件夹(包名)
+				2.在其下建立一个__init__.py文件
+				3.根据需要在文件夹下存放脚本文件，已编译扩展及子包
+				4.导入：import 包名.模块名
+			安装包
+				说明：第三方模块的默认安装路径通常为：site-packages
+				安装：
+					# python setup.py build
+									--build-base=/path/file
+					# python setup.py install
+				
+					自定义安装路径
+						--user=
+						--prefix=
+						--exec-prefix=
+					深度制定
+						--install-purelib=/path/python_lib
+						--install-platlib=/path/plat_lib
+						--install-lib=/path/lib
+	
+		发布Python模块或程序：python模块、扩展和应用程序可以打包和发布
+			- 压缩文件(使用distutils)
+				windows的zip文件和类Unix平台的.tar.gz文件
+			- 自动解包或自动安装可执行文件
+				Windows中的.ext文件
+			- 自包含的，不要求安装的预备运行可执行程序
+				Windows的.exe文件、Unix上带有一个小的脚本前缀的zip压缩文件、Mac上的.app文件等
+			- 平台相关的安装程序
+				Windows上的.msi文件、linux上常见的.rpm、src.rpm和.deb文件等
+			- Python eggs
+				较流行的第三方扩展
+		
+			使用disutils发布模块
+				1.创建发布
+					1.将各代码文件组织到模块容器中
+					2.准备一个README或README.txt文件
+					3.在容器中创建setup.py文件
+				2.在要发布的容器目录中执行命令
+					python setup.py sdist
+					或 python setup.py bdist
+					
+				注：
+					获取帮助的方式
+					python setup.py --help
+					python setup.py --help-comands			所有可使用的命令
+					python setup.py COMMAND --help			获取特定命名的帮助
+					python setup.py COMMAND --help-formats	获取特定命名支持使用的格式
+			
+			PyPI	- 他人发布的python的第三方模块的地方
+			ipython：是python的一个模块，优化python接口
+				# /usr/local/python/bin/python setup.py build		- 编译
+				# /usr/local/python/bin/python setup.py install		- 安装
+			
+				
+	优美代码结构
+		\	:语句换行处理，但包含[],{}或()就不需要使用多行连接符，直接换行即可
+		()	:方便阅读代码
+		;	:多语句单行写入
+        
+        
+        
+        #!/usr/bin/env python
+        # coding=utf-8
+        # sky
+        "脚本文档"
+        
+        import sys
+        
+        
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
+
+        # 程序主体
+        if __name__=="__main__":
+            function()
+	
+	注：
+		Python程序可以分解为模块、语句、表达式和对象
+			程序由模块构成
+			模块包含语句
+			语句包含表达式
+			表达式建立并处理对象
+		import math		-- python中与数学运算相关的库
+		
+		各类对象的属性：
+			函数的属性
+				__doc__
+				__name__
+				__dict__
+				__code__
+				__globals__
+	
+			方法的属性
+				__doc__
+				__name__
+				__class__		- 方法所属的类
+				__func__		- 实现该方法的函数对象
+				__self__		- 调用此方法的实例
+				
+			内置函数
+				__doc__
+				__name__
+				__self__
+			
+			类
+				__doc__
+				__name__
+				__bases__
+				__dict__
+				__module__
+				
+			实例
+				__class__
+				__dict__
+机制：
+	对象引用
+		Python将所有的数据存为内存对象,变量事实上是指向内存对象的引用。当数据对象赋值给一个变量时，是该变量引用了该数据对象
+		每个数据对象都有一个引用计数，可调用查看：	>>>import sys   
+													>>>sys.getrefcount(数据对象)	
+		当某数据对象的变量引用其它数据变量后，该数据对象的引用计数减一。当减到0时，该数据对象被销毁
+		动态类型：在任何时刻，只要需要，某个对象引用都可以重新引用一个不同的对象(可以是不同的数据类型）
+		
+		以单一下划线开头变量名(_x)不会被form module import * 语句导入
+		前后有双下划线的变量名(__x__)是系统定义的变量名，对python解释器有特殊意义
+		以两个下划线开头但结尾无下划线的变量名(__x)是类的本地变量
+		交互式模式下，变量名"_"用于保存最后表达式的结果
+		
+		变量名没有类型，对象才有
+		列表和元组并不真正存放数据，而是存放对象的引用
+	缩进：
+		同一层次的语句必须有相同的缩进，否则报错
+		在进行缩进时不要混合使用空白和制表符，否则在不同平台中将无法工作
+		缩进时使用单个制表符或两个或四个空格
+		
+    运行机制：当按下enter键开始执行脚本后
+        1.Python先将脚本编译成字节码文件(pyc,pyo)
+        2.Python虚拟机解释并运行字节码文件
+        
+        (
+         编译型语言的内部机制：
+            1.先将源代码编译成机器码，生成可执行文件
+            2.运行可执行文件 
+        )
+
+	
+	Python对内存的使用：   拷贝：不同的内存地址
+		浅拷贝：对引用的拷贝(只拷贝父对象，父对象中的子对象不拷贝)
+		深拷贝：对对象资源的拷贝(父对象和字对象均拷贝)	
+		
+	The Zen of Python：
+		>>> import this
+
+		
+		python2提供两种字符串对象类型
+			字节字符串：		字节(8bit数据)序列
+			Unicode字符串：	Unicode字符(16bit数据)序列
+			
+			声明编码的集中方式：
+				#!/usr/bin/python
+				#coding:utf8
+				#coding=utf8
+				#encoding:utf8
+				#encoding=utf8
+				#-*- coding:utf8 -*-
+			
+			若文件中有中文，需在首行写入：# coding:utf-8
+			符合规范即可： coding[:=]\s*([-\w.]+)
+			python的默认文件编码是ascii码
+			注：若要使用Unicode编码，则在字符之前使用u来进行标识，eg： u'hello'
+		
+		如何获取使用帮助：
+			1.获取对象支持使用的属性和方法		dir()
+			2.某方法的具体使用帮助				help()		
+			3.获取可调用对象的文档字串			print obj.__doc__
+	
+		
+			
+		指定运行的python：#!/usr/bin/python2.7
+		
+		mysqldb
+			须有：MySQL-python包
+			导入：import MySQLdb
+			连接： conn=MySQLdb.connect(user='root',passwd=''.host='ip')
+		
+		format格式化：
+			>>> a="it is {} {}" .format ("my","apple")
+			>>> print a
+			it is my apple
+
+			>>> b="this is {1} {0}" .format ("apple","my")
+			>>> b	  
+			'this is my apple'
+
+			>>> c="this is {whose} {fruit}" .format (fruit="apple",whose="my")
+			>>> c
+			'this is my apple'
+			
+			>>> d="it is %(whose)s %(fruit)s" % {'whose':'my','fruit':'apple'}
+			>>> d
+			'it is my apple'
+		
+		文件和目录操作
+			操作：w/r/a
+			
+			打开：	d=open('file_name','w')
+			写入：	d.write('hi\nsecond hi') 		须以w/w+打开
+			关闭：	d.close()
+			读取：	d=open('file_name','r')
+					print d.readline()
+			注：可用help(d)查看帮助
+			
+		列表是有序的对象结合，字典是无序的对象集合。两者之间的区别在于：字典当中的元素是通过键来存取的，而不是通过偏移存取
+		三内置方法：	
+			type(var_name)		# 查看变量的类型
+			help(module_name)	# 查看模块帮助	须先将模块导入才能查看
+			dir(module_name)	# 简要查看模块的函数
+		python中的真和假
+			1.任何非0数字和非空对象都为真
+			2.数字0，空对象和特殊对象None均为假
+			3.比较和相等测试会递归地应用于数据结构中
+			4.返回值为True或False
+			
+			- 非0数字为真，否则为假
+			- 非空对象为真，否则为假
+			- None则始终为假
+		zip		- 返回并行的元素元组的列表，常用于在for循环中并行遍历整个数组
+			zip(lis1,list2,list3)		- 返回一个一一对应的元组序列

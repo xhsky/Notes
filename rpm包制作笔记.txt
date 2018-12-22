@@ -1,0 +1,169 @@
+
+制作目标：
+	1.应用程序
+	2.程序库
+	3.一系列系统配置文件
+	4.文档文件
+	5.rpm包/source rpm
+	
+目录结构：
+	SOURCES:	存放原材料，包括源码，补丁等
+	SPECS：		存放spec文件
+	BUILD：		打包过程中的工作目录
+	BUILDROOT：	软件安装的临时目录(会自动建立)
+	SRPMS：		存放src.rpm文件
+	RPMS：		编译好后的rpm包存放目录
+
+编译命令：
+	rpm
+		-ba：编译所有，包括binary和src.rpm
+		-bs：只建立一个source rpm
+		-bb：编译一个binary rpm
+		-bc：只执行到%build阶段
+		-bp：只执行到%prep阶段
+		-bi：只执行到%install阶段
+		-bl：在编译开始前，检测%file段的文件是否与%BUILDROOT下的一一对应
+		
+		注：-b表示build制作
+	查看rpm包中的文件：
+		# rpm2cpio *.rpm | cpio -t
+	将rpm包解压：
+		# rpm2cpio *.rpm | cpio -div
+
+spec文件：
+	说明：
+		1.spec文件中的指令大多数都是标签形式定义的
+		2.定义宏当做变量使用：
+			%define str_name value
+		  引用：%{str_name}
+		3.spec文件中使用#作为注释，但#后不能使用%引用变量，会直接引用，产生错误。可使用%%方式书写
+		  
+	软件包相关信息：
+		 Name：		dreambase
+			软件包名称，不要出现"-"
+		 Version:	1.0
+			版本号
+		 Release:	1%{?dist}
+			发行号
+		 Group：	
+			所属的软件包组，可从/usr/share/doc/rpm-version/GROUPS中查找
+		Summary：
+			一个简短的描述信息，最好不要超过50个字符。%descript选项允许更详细的描述
+	公司相关信息：
+		Vendor：
+			提供rpm包的公司或组织
+		URL：
+			提供下载rpm包的网址，或公司网址
+		Packager：
+			作者名字和邮箱( sky <x_hsky@163.com> )
+		License：
+			版权信息。Copyright:软件包所采用的版权规则。具体有：GPL(自由软件)，BSD，MIT，Public Domain(公共域)，
+			Distributable(贡献)，commercial(商业)，Share(共享)等，一般的开发都写GPL
+	定义依赖关系：
+		Requires：
+			安装依赖
+		Provides：
+			软件包所能提供的能力
+		BuildRequires：
+			编译依赖
+			
+		BuildRoot：
+			软件安装目录。可通过该环境变量引用：$RPM_BUILD_ROOT %{buildroot}
+	源文件：
+		source：
+			指定源文件，可通过sorcer0，source1，source2编号定义(%{name}-%{version}.tar.gz)
+	编译安装：
+		%prep：将SOURCES目录下的源码包解压至BUILD目录下并打补丁(如果有的话)
+			%setup -q			# 这是最常见的一条指令，该指令会完成后续阶段目录切换和设置。若去掉该指令，则后面
+								# 每个阶段都需要手动切换响应的目录
+		%build：执行configure和make操作
+			%configure
+			make %{?_smp_mflags}
+								# 这两条指令会自动将软件安装的路径设置成如下约定：
+									1.可执行程序：		/usr/bin
+									2.依赖的动态库：	/usr/lib或/usr/lib64 (视操作系统版本而定)
+									3.二次开发的头文件：/usr/include
+									4.文档及手册：		/usr/share/man
+		%install：执行make install操作。该操作会在%_buildrootdir目录建立好目录结构，将需要打包到rpm软件包里的文件从
+				  %_builddir里拷贝到%_buildrootdir里对应的目录里.这里的%install主要就是为了后面的%file服务的
+			rm -rf $RPM_BUILD_ROOT
+			make install DESTDIR=$RPM_BUILD_ROOT
+			
+			%{__install} -p -D
+			
+		定义安装脚本：
+			%pre:
+				安装前运行的脚本
+			%post:
+				安装后运行的脚本
+			%preun：
+				卸载前运行的脚本
+			%postun：
+				卸载后运行的脚本
+				
+				$1：表示第一次安装
+				$2：或者更高的数据，表示升级
+				$0：表示卸载		
+		%clean： 编译完成后一些清理工作，主要包括对%{buildroot}目录的清空
+			rm -rf $RPM_BUILD_ROOT
+	
+	打包：
+		%files：列出%{buildroot}目录下最终打包到rpm包里的文件和目录
+			%defattr(-,root,root,-)		# 为下列文件设置属性(文件权限，用户名，组名，目录权限)
+			%doc
+
+		
+			/usr/sbin/				定义目录
+			/etc/nginx/conf/*		使用通配符
+			
+			%doc /path/file			将file作为文档文件
+			%doc file				会将file放在/usr/share/doc/pkg-version/目录下
+			
+			%docdir 				将整个目录作为文档
+			%config					将文件当做配置文件
+	日志：
+		$changelog：记录的每次打包时的修改变更日志
+			* Web Apr 11 2016 修改人 <邮箱> x.y.z-r
+			- 修改
+			- 注释
+
+制作步骤：
+	1.设置目录结构
+	2.放置源文件
+	3.创建spec文件
+	4.编译源码包生成rpm		
+	
+制作：
+	1.下载依赖工具
+		# yum install rpm-build rpmdevtools
+	2.建立普通用户
+		# useradd rpm
+		# su - rpm
+	3.建立相关目录和文件
+		# rpmdev-setuptree					# rpmdev-setuptree命令默认将再当前用户主目录下创建一个RPM构建根目录结构，
+											# 如果需要改变次默认位置，可以修改配置文件:~/.rpmmacros中变量_topdir对应
+		# cd rpmbuild/SPECS/
+		# rpmdev-newspec
+	4.修改spec文件
+		# 
+	
+	
+	# rpmbuild --showrc    			查看rpm的变量
+	
+	install：
+		说明：复制文件，设置属性
+		参数：
+			
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

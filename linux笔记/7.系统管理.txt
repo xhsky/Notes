@@ -1,0 +1,1374 @@
+
+
+所有问题查找：四个层次
+
+	防火墙(iptable(通过ip控制)，TCP Wrapper(通过进程名控制))---服务配置----- 文件权限 ----SELinux
+
+系统服务：
+	守护进程分类：
+		1.super daemon：由统一的daemon(xinetd)来唤起其它服务，   
+			优点：
+				1.super daemon可具有安全控管的机制
+				2.服务在客户端连接结束后就关闭，不会占用系统资源
+			缺点：
+				反应时间较慢
+		2.stand alone：自行单独启动的服务，常驻内存，响应速度快		
+		
+	进程设置
+		启动脚本：
+			# /etc/init.d/
+		各服务初始化环境配置文件:
+			# /etc/sysconfig/
+		super daemon配置文件：
+			# /etc/xinetd.conf	/etc/xinetd.d/
+		服务各自的配置文件
+			# /etc/
+		服务产生的数据库：
+			# /var/lib/
+		服务的pid：
+			# /var/run/
+			
+	进程启动
+		# /etc/init.d/daemon *
+		# service daemon *
+		# /etc/init.d/xinetd *
+		
+			xinetd的参数文件
+				=：	表示后面的设置参数就是如此
+				+=：表示后面的设置在原来的设置上加入新的参数
+				-=：表示后面的设置在原来的设置上减去新的参数
+				
+				disable			[yes|no]，默认为yes，要启动设为no
+				id：			[服务名称]
+				server：		[启动程序]
+				server_args		[程序参数]
+				user：			[启动该程序的用户]
+				group：			[同user]
+				
+				socket_type		[stream|dgram|raw]，stream为tcp协议，dgram为udp，raw代表server需要同ip直接交互
+				wait			[yes|no]，默认为no(多线程)，yes代表单线程
+				instances		[最大连接数|unlimted]，即多少人连接此服务
+				per_source		[单用户来源数|unlimited]，即同一个ip最多的连接数
+				cps				[N M]，同一秒内的最大连接数N，若超过则暂时关闭服务M秒
+				
+				log_type		[日志等级]
+				log_on_success/log_on_failure
+								[PID HOST USERID EXIT DURATION]
+								
+				env				[变量名称=变量值]，额外变量设置
+				port			[非正规端口号]，此port须同/etc/services内相同
+				redirect		[ip port]，服务转址，客户端连接到此服务时，可将其转到另一台主机
+				
+				bind			[ip]，服务接口锁定，当主机有多个ip时，指定可使用此服务的ip
+				interface		[ip]，同bind
+				only_from		[ip/mask]，允许登录的ip(0.0.0.0为所有ip)
+				no_access		[ip/mask],同only_from，拒绝登录
+				
+				access_times	[HH:MM-HH:MM HH:MM-HH:MM]，24小时制，该服务启动时间
+				umask			[022]
+				
+	开机自启
+		# chkconfig --list [daemon]
+		# chkconfig daemon on/off
+			影响2/3/4/5
+	
+	特殊的系统服务：
+		计划任务：
+			at：		 一次性任务  由/etc/init.d/atd进程管理，是后台执行，可防脱机
+				文件：	/var/spool/at/，可以编辑的
+				
+				# atd			可启动atd服务
+				# atq			查看任务队列
+				# atrm N		删除任务N
+				# at  TIME
+					TIME的格式
+						HH:MM				在今日的HH:MM执行，若时间已过，则明天执行
+						HH:MM YYYY-MM-DD	在具体时间执行
+						HH:MM + N [minutes|hours|days|weeks]
+							eg: now + 5 minutes
+				batch：系统有空才进行后台任务，语法与at相同，实质是at
+				
+				限制用户文件
+					- /etc/at.allow
+					- /etc/at.deny
+				
+				at 一般用于网络调试
+				
+			crontab：   重复性任务 由/etc/init.d/crond进程管理
+				文件：	
+					实际命令：	/var/spool/cron/*
+					配置文件：	/etc/crontab
+					日志：		/var/log/cron
+					
+				# crontab  [-u user] file
+				# crontab -e/-l/-r
+							 在crontab的时间表中分 时 日 月与星期是分开的
+							 每月的4号与每周一到周三的11点重启smb 
+								0 11 4 * mon-wed /etc/init.d/smb restart
+
+					
+				
+				定时脚本：	/etc/crontab --> /etc/cron.*/
+					eg: 	- tmpwatch   清除/tmp下的文件(/etc/cron.daily/tmpwatch),该软件需下载
+							- logrotate	config: /etc/logrotate.conf /etc/logrotate.d/
+							- logwatch		config: /etc/logwatch/
+						
+							
+					/etc/crontab内字段说明及举例：
+						 *         代表所有有效值   
+						 -         指定一个整数范围   eg: 1-4意味着1,2,3,4
+						 ，        指定一个列表       eg: 3,4,6,8表明这四个指定的整数
+						/N		   指定间隔频率       eg: 0-32/2可用来在小时字定义每隔两小时
+						 #         注释
+							 
+				取消默认发邮件：
+					说明：crontab的默认输出对象是邮件
+					1.在第一行加入 MAILTO=""
+					2.使用	&> /dev/null 改变默认输出
+				限制用户文件：
+					- /etc/cron.allow
+					- /etc/cron.deny
+					
+					/etc/cron.allow和/etc/cron.deny文件都被用来限制cron的使用。若两个文件被修改，cron不必重启，
+					因为该文件每分钟都会被cron读取。若cron.allow存在，则cron.deny文件会被忽略
+					
+				cron服务每分钟不仅要读一次/var/spool/cron/内的文件，而且要读一次/etc/crontab	
+				计划性任务若有屏幕输出则以邮件形式发送给用户
+				可唤醒停机期间的crontab任务：anacron
+					检测停机期间应该执行但没有执行的crontab任务，并执行。其实质是crontab下的一个例行性任务
+				
+				注：在crontab中%是有特殊含义的，表示换行的意思。如果要用的话必须进行转义\%，如经常用的date `+%Y%m%d`在crontab里
+					是不会执行的，应该换成date `+\%Y\%m\%d`
+			
+		CUPS：Common Unix Printing System
+			/etc/cups/cups.conf
+			/etc/cups/printers.conf
+				1.lpadmin
+				2.system-config-printer
+				3.cups web   http://localhost:631
+		
+		进程
+			信号：
+				查看信号： 		# kill -l   # man 7 signal
+				发送信号的命令:	
+					通过PID：	# kill [-signal] pid
+					通过名称: 	# killall [-signal] comm_name 
+					通过模式：	# pkill [-signal] pattern
+						-1：重新读取参数的配置文件
+						-2：ctrl+c
+						-9：强制杀死
+						-15：正常终止
+						-17：ctrl+z
+				
+			优先级(-20 -- 19)  -- default 0
+				说明：优先级越小，越先被执行
+					PR：			进程的实际优先级，是内核来动态调整的
+					NI：			优先值，是用户层面的概念。用户无法直接调整进程优先级，可以通过nice值来进行微调
+					真正的优先级：	PRI(new)=PRI(old)+nice
+					
+					注：
+						1.虽然nice值是可以影响PRI，但最最终的PRI是要经过系统分析后才会决定的
+						2.root可随意调整自己或他人程序nice值，范围为 -20~19；但一般用户仅可调整自己程序Nice值，范围仅为0-19(避克
+							一般用户抢占系统资源),且仅能将值调高，无法降低
+				查看nice值： 
+					说明：范围：-20 -- 19   默认为0
+					操作：
+						# ps -ao comm,nice
+						# top
+					
+				执行nice的命令：	# nice -n -5 command				当启动一个进程时
+									# renice -7 -p PID			调整
+			Job控制：&
+				# jobs 			只能查看自己的终端
+					-	表示倒数第二被处理的
+					+ 	最新被处理的
+				# fg %n			将n号工作取到前台
+				# bg %n   		让后台stopped的工作运行
+				# kill %n		杀死n号工作
+			脱机管理
+				方法一：
+					# nohup commands &		nohup不支持bash内置命令
+					# nohup commands &> file.log &
+				方法二：
+					# ctrl+z
+					# bg
+					# disown -h %1
+							
+								用disown -h jobspec来使某个作业忽略HUP信号。
+								用disown -ah 来使所有的作业都忽略HUP信号。
+								用disown -rh 来使正在运行的作业忽略HUP信号。
+			进程查看
+				# ps
+					与自己bash相关的进程
+						# ps -l
+								
+							F：flags，进程标志，常见数字有
+								4：		代表进程权限为root
+								1：		表示此子进程仅可进行fork而无法进行exec
+							S：status：进程状态
+								R：		running
+								S：		Sleep，但可被唤醒
+								D：		不可被唤醒的sleep，通常可能是此进程在等待I/O
+								T：		stop，可能是后台暂停或除错状态
+								Z：		Zombie，已终止但无法从内存中删除
+							UID/PID/PPID
+							C: 			CPU使用率，百分比
+							PRI/NI：	Priority/Nice，优先级
+							ADDR/SZ/WCHAN：
+								ADDR：	指出该进程在内存的哪个部分，若是running的进程，一般显示-
+								SZ：	该进程占内存的大小
+								WCHAN：	表示该进程目前是否运行，若运行则显示-
+							TTY：		登录者的终端接口
+							TIME：		花费CPU运行时间
+							CMD：		触发进程的命令
+						
+					所有进程
+						# ps aux
+							USER：		进程用户
+							PID
+							%CPU：		使用的CPU
+							%MEM：		使用的内存
+							VSZ：		使用的虚拟内存(K)
+							RSS：		占用的固定内存(K)
+							TTY：		该进程是在哪个终端机上运行，？代表与终端机无关
+							STAT：		目前状态
+							START：		该进程被触发的时间
+							TIME：		占用CPU的时间
+							COMMAND：	实际命令
+				# top
+					按键命令
+						?：显示所有的按键命令
+						P：以CPU使用资源排序
+						M：以内存使用排序
+						N：以PID排序
+						T：以CPU使用时间排序
+						k：杀死某个进程
+						r：重新制定nice值
+						q：退出
+						1：可显示多个CPU
+						
+					内存显示：
+						VIRT：进程申请内存的大小，包括共享库、共享内存、堆、栈等，所有已申请的总内存大小
+						RES：表示驻留大小，准确表示一个进程消耗的实际物理内存(直接对应于%MEM列)
+						SWAP：交换内存
+						SHR：与其它进程共享的内存
+						CODE：简单反应了应用程序代码大小
+						DATA：反应的数据段的大小(堆、栈申请的总空间之和)
+						
+						
+				# pstree
+					-A：以ASCII字符来连接
+					-U：以uft8来连接
+					-p：同时列出pid
+							
+							
+			由文件找出进程：fuser
+				1.查询文件或目录的使用者
+					# fuser -uv /path/dir
+						c：此进程在当前目录下(非子目录)
+						e：可被触发为执行状态
+						f：是个被打开的文件
+						r：代表顶层目录
+						F：该文件被打开，但在等待回应
+						m：可能为分享的动态数据库
+				2.查询文件系统的使用者				根据其文件名自动上提到该文件系统的顶层，用于umount
+					# fuser -m /mnt/www
+				3.查询端口使用进程
+					# fsuer -uvn tco 22
+				4.关闭进程
+					# fuser -vki /path/dir
+						-k：以-9杀死
+						-i：交互询问
+						
+					# fusermount -uz /data			# 不用重启，卸载！！！！
+			由进程找出文件：lsof
+				# lsof [options]
+					-u user：找出该用户打开的文件
+					-U：列出socket文件类型
+					+d dir：后接目录，找出该目录下已被打开的文件
+			
+			通过程序名字找出其pid：
+				# pidof p_name
+			通过预定义的匹配模式
+					# pgrep -U root
+					# pgrep -G studeng
+
+高级磁盘管理
+	RAID：        
+		软磁盘阵列：文件的读写性能与数据保全
+		 RAID-0(等量模式，stripe) 性能最佳
+		 RAID-1(映像模式，mirror) 完整备份
+		 RAID 0+1 或 RAID 1+0 先组成RAID-0再组成RAID-1
+		 RAID 5(性能与数据备份的均衡考虑)
+		 parity：由于有同为检验码，因此RAID 5的总容量会是整体磁盘数量减一块。RAID5只能支持一块磁盘的损毁
+			 spare disk：预备磁盘功能
+				   可以主动重建原本坏掉的那块磁盘数据到新的磁盘
+				   
+		硬件磁盘阵列在linux下来看就是一块实际的大磁盘，因此硬件磁盘阵列的设备文件名为/dev/sd[a-p],因其使用到SCSI的模块之故。
+		至于软件磁盘阵列则是系统仿真的，因此使用的设备文件名是系统的设备文件，名为/dev/md0 /dev/md1。
+		RAID的Linux id号为 fd
+		RAID无服务支持，由内核支持
+		
+		mdadm	Multiple Disk Admin
+			创建模式		
+				-C
+					专用选项
+						-l				级别
+						-n #			设备个数
+						-a {yes|no}		是否自动为其创建设备文件
+						-c				CHUNK大小，默认为64K
+						-x #			指定空闲盘个数
+			管理模式
+				--add	--remove	--fail
+			监控模式
+				-F
+			增长模式
+				-G
+			装配模式
+				-A
+		
+		
+		RAID5实例：
+			1.分区 4个 更改文件系统类型 fd
+			2.使用mdadm创建RAID5
+					# mdadm -C /dev/md0 -l5 -n3 -x1 /dev/sdb1 /dev/sdc1 /dev/sdd1 /dev/ade1
+			3.查看RAID基本信息  
+					# mdadm -D /dev/md0
+					 -- 查看当前系统正在使用的RAID设备信息
+						  cat /proc/mdstat
+			4.格式化RAID5并挂载
+					# make.ext4 /dev/md0
+			5.模拟一块磁盘损坏
+					# mdadm /dev/md0 -f /dev/sdb1    --- 模拟磁盘损坏(才可拔出)
+					# mdadm /dev/md0 -r /dev/sdb1    --- 热拔出磁盘,会自动选择备用磁盘备份
+			6.插入一块正常磁盘
+					# mdadm /dev/md0 -a /dev/sda3
+			7.设置开机自启动RAID
+				手工：# mdadm -A /dev/md0 /dev/sdb[1-4]			亦可将此命令写入rc.local中自启动
+				
+				自动：生成RAID配置文件
+					# echo "DEVICE /dev/sdb1 /dev/sdc1 /dev/sdd1 " >> /etc/mdadm.conf  
+					# mdadm -Ds >> /etc/mdadm.conf   
+					# echo "MAILADDR mospiral@gmail.com" >> /etc/mdadm.conf  
+							 MAILADDR指定出问题时监控系统发邮件的地址
+		
+				# /etc/mdadm.conf文件格式如下： 
+					DEVICE /dev/sdb1 /dev/sdc1 /dev/sdd1  
+					ARRAY /dev/md0 level=raid5 num-devices=3 metadata=0.90 UUID=e0d929d1:69d7aacd:5ffcdf9b:c1aaf02d 
+					MAILADDR mospiral@gmail.com 
+					
+					#DEVICE行指明：依据该配置文件开启阵列时，去查找那些设备的超级快信息；若没有该行，就去搜索mtab中
+					有设备分区的超级快信息；所以改行可以不写，但是只要写上，以后添加spare设备时就需要同时修改改行信息
+					
+					#ARRAY 行指明raid的名称，级别uuid等基本信息
+					#可以添加诸如MAILADDR及PROGRAM等指定monitor状态下的监控报警信息
+					
+			8.最后写入/etc/fstab文件中自动挂载
+			9.停止RAID5
+				卸载    #mdadm -S /dev/md0
+			10.启动RAID5
+                    #mdadm -A /dev/md0 （有配置文件）
+			11.删除RAID5
+				卸载	# umount /dev/md0
+				停止 	# mdadm -Ss /dev/md0    
+				删除  	# mdadm --zero-superblock /dev/sd{b,c,d}1    
+								# --zero-superblock 加上该选项时，会判断如果该阵列是否包含一个有效的阵列超级快，若有则将该超级块中阵列信息抹除。  
+						# rm /etc/mdadm.conf  
+						# 清理/etc/fstab中的内容
+	
+	LVM
+	
+		物理存储介质(physical media，PM)：			系统存储设备 eg：sda1
+		物理卷(physical volume,PV):					与物理存储介质相比包含有LVM的相关管理参数
+		卷组(volume group,VG):						由物理卷组成，可创建逻辑卷
+		逻辑卷(logical volume,LV):					由卷组划分，在其上可创建文件系统
+		PE(physical extent):						物理卷的基本单元。具有唯一编号的PE可被LVMH寻址
+		LE(logical extent)：						逻辑卷的基本单元。可被寻址。同一个卷组中，LE和PE大小相同且一一对应
+		
+		在lv中添加空间后，系统显示未添加是因为尚未格式化   
+		建立LVM
+			1.分区           -- 8e  partx -a /dev/sd*
+			2.创建PV
+				# pvcreate /dev/sd*	
+				# pvscan	# pvdisplay  -- 查看
+			3.创建VG
+				# vgcreate vg-name /dev/sd* /dev/sd*
+				# vgscan	# vgdisplay
+			4.创建LV
+				# lvcreate -L 256M -n lv-name vg-name
+								-L 大小
+								-l	PE个数
+				# lvscan	# lvdisplay
+			5.LV格式化
+				# mkfs.ext4 /dev/vg-name/lv-name
+			6.写入/etc/fstab
+			7.挂载	# mount -a
+		
+		扩展VG 
+			1.分区
+			2.创建PE
+			3.将PE加入VG	# vgextend vg-name /dev/sd*
+			
+		从VG中扩展LVM	
+			-在线扩容
+				1.扩展LVM的大小
+					# lvextend -L 300M /dev/vg-name/lv-name
+									300M 	- 扩展至300M
+									+50M	- 加50M
+				2.将新增加的容量应用于整个文件系统
+					# resize2fs -p /dev/vg-name/lv-name 
+			-非在线扩容
+				# lvextend -L +70M /dev/myvgl/mylv2
+				# e2fsck -f /dev/myvgl/mylv2
+				# resize2fs /dev/myvgl/mylv2
+				# mount /dev/myvgl/mylv2 /mnt/mylv2
+				
+		缩小LVM	
+			1.卸载
+			2.检查分区完整性				# e2fsck -f /dev/vg/lv1			
+			3.调整分区大小					# resize2fs /dev/vg/lv1 300M
+			4.在线变更						# lvreduce -L 300M /dev/vg/lv1
+			5.重新挂载
+		更新磁盘
+			# pvmove /dev/sda3
+			将新磁盘加入到LV中后，只需用上述命令一个一个移除旧磁盘，系统会自动在线将旧磁盘中的数据移向新磁盘
+		LVM的关闭
+			1.卸载所有的LVM文件系统				# umount /path
+			2.删除LV							# lvremove /dev/vg-name/lv-name
+			3.关闭VG							# vgchange -a n vg-name
+			4.删除VG							# vgremove vg-name
+			5.删除PV							# pvremove /dev/sd*
+			6.更改文件系统的ID(83)
+			
+		LVM Snapshots   ---- 存储变化前的内容
+			采用写时复制技术(copy-on-write,CoW)，不需停止服务或将逻辑卷设为只读就可备份。
+			创建快照实则也是创建了一个逻辑卷，只不过该卷的属性与普通逻辑卷的属性不同
+			
+			建立快照
+				1.对LV建立快照
+					# lvcreate -s -L 300M -n snapshot /dev/vg-name/lv-name
+				2.挂载快照
+					# mount /dev/vg-name/snapshot	/path
+			备份快照
+				快照挂载后，立即同步主存储设备
+				# rsync -a /path /backup
+			删除快照
+				1.卸载快照
+					# umount /path
+				2.删除
+					# lvremove /dev/vg-name/snapshot
+			快照作用
+				1.备份
+				2.虚拟化 
+				3.数据回溯
+
+
+	Quota： -- 针对文件系统
+		原理：quota是通过分析整个文件系统中每个用户或用户组拥有的文件总数与总容量，再将这些数据记录在该文件系统的最顶层目录，			  然后在该配置文件中使用每个账号(或用户组)的限制值去规定磁			  盘使用量的
+		磁盘配额可以针对用户和用户组
+		两种限制：
+			blocks  inodes
+		查看quota的使用状况
+			- # quota user
+			- # repquota -a
+			
+		建立磁盘配额
+			1.使文件系统支持quota
+				- 查看其是否为独立分区	# df -h  [/home]
+				- 查看其是否支持quota	# mount [ | grep /home ]
+				- 使其支持quota
+					1.在/etc/fstab中的挂载属性添加usrquota(,grpquota)	或 # mount -o remount,usrquota,grpquota /home
+					2.# umount 分区；mount -a或# mount -o remount /home
+			2.统计该文件系统的状态
+				# quotacheck -cuv /home     		生成/home/aquota.user文件,记录各个用户配额信息(非文本文件，不能手动编辑)
+					-c		不读取已存在的aquota文件，创建新文件
+					-a		扫描所有在/etc/mtab中含有quota支持的文件系统
+					-u		针对用户，扫描文件与目录的使用情况，会建立aquota.user
+					-g		针对用户组，建立aquota.group
+					-v		显示扫描过程
+			3.启用quota
+				# quotaon /home
+			4.使用quota
+				# edquota user [-f /home]
+				# edquota -u user1    		-- 用户
+				# edquota -g group1   		-- 用户组
+				# edquota -t          		-- 修改宽限时间
+				# edquota -p user user1		-- 以user为模板进行配置
+			5.查看quota限制值的报表
+				·查看用户或用户组的报表
+					# quota -uvs user		-- 用户
+					# quota -gvs group		-- 用户组
+				·查看文件系统的报表
+					# repquota -avus		-- 用户
+					# repquota -avgs  		-- 用户组
+			6.关闭quota
+					# quotaoff /home
+					# quotaoff -a (根据/etc/mtab来全部关闭)
+					# quotaoff -u user      quotaoff -g group
+
+		quota的测试与管理
+			warnquota：对超过限额者发出警告mail
+				不会自动执行，一般需手动。依照/etc/warnquota.conf的设置。亦可将 /usr/sbin/warnquota 写入 /etc/cron.daily/warnquota中自动执行
+			setquota：直接于命令中设置quota限额
+				eg：# setquota -u user 1000 2000 0 0 /home
+		
+		Quota针对网络服务的限制
+			- www server：每个人的网页空间的容量限制
+			- file server：每个人最大的可用网络硬盘空间
+			- mail server：每个人的邮件空间限制
+			- 以link的方式来使邮件可以作为限制的配额
+				设置用户的邮件信箱与主文件夹的总体磁盘使用量为固定。但/home与/var/spool/mail不在同一个文件系统。
+				可将邮件目录移动到/home下(ln -s /home/mail /var/spool/mail)，再将/home进行quota限额设置(新的
+				distributions大都有SELinux机制，可能会不允许移动邮件目录，需先关闭SELinux或修改SELinux规则)
+		
+		Quota的使用限制
+		  1.针对的是文件系统 (你无法针对目录来限制)
+		  2.内核必须支持quota
+		  3.只对普通用户有效(不能对root进行限制)
+		Quota的规范设置选项
+		  1.容量限制(block)
+		  2.文件数量限制(inode)
+		  3.hard/soft
+		  4.grace time -- 7 days  若超期，soft值会变成hard值
+		
+		
+		
+		
+
+3.网络设置 
+
+
+	ping、traceroute、host、dig、netstat、arp
+
+	网卡命名
+		ethernet： 	ethN
+		loopback:	lo
+		point to point protocol:	pppN
+		virtual:	brN
+		
+	ifconfig
+		# ifconfig ethX
+			-a：显示所有的配置
+		# ifconfig ethX IP/MASK {up|down}
+			# ifconfig ethX:name IP/MASK 
+			配置的地址立即生效，但重启网络或主机，都失效
+			
+			ip alias： eth0:xxx
+				需写入ifcfg-eth0:xxx 
+				要注释MAC
+			note：修改device名称   必须是静态ip 
+			
+	route：
+		查看：	# route -n
+		添加：
+				# route add -net|-host DEST gw NEXTHOP
+				# route add default gw NEXTHOP		--- 添加默认路由
+		删除：
+				# route del -net|-host IP/MASK
+				# route del -net 0.0.0.0	===== # route del default	---- 删除默认路由
+		其永久配置路由在网络配置的目录下建立route-ethX文件，
+			语法规则1：
+				DEST/MASK via NEXTHOP
+			语法规则2：
+				ADDRESS0=
+				NETMASK0=
+				GATEWAY0=
+	ip:
+		link：网络接口属性
+			# ip [-s] link [show eth*]
+			# ip link set ethX {up|down}
+		addr：协议地址
+			# ip addr add IP/MASK dev ethX
+			# ip addr add IP/MASK dev ethX label ethX:name
+			# ip addr del IP/MASK dev ethX
+			# ip addr show
+			# ip addr flush dev ethX  -- 删除某个设备上的所有ip
+			
+			# ip addr [add|del] [IP参数] [dev 设备名] [相关参数]
+				add|del ：进行相关参数的增加 (add) 或删除 (del) 设定，主要有：
+				IP参数 ：主要就是网域的设定，例如 192.168.100.100/24 之类的设定；
+				dev ：这个 IP 参数所要设定的设备，例如 eth0, eth1 等等；
+				相关参数：如下所示：
+						broadcast：设定广播位址，如果设定值是 + 表示让系统自动计算；
+						label    ：该设备的别名，例如eth0:0；
+						scope    ：这个设备的领域，通常是以下几个大类：
+								   global ：允许来自所有来源的连线；
+								   site   ：仅支持IPv6 ，仅允许本主机的连接；
+								   link   ：仅允许本设备自我连接；
+								   host   ：仅允许本主机内部的连接；
+								   所以当然是使用 global 了。预设也是 global ！ 
+
+		route：路由	 
+			# ip route
+			
+		ip命令配置的地址不能被ifconfig看到--反过来则可
+
+	ports：	netstat
+		0.0.0.0:			表示主机的所有ip地址(包括127)
+		127.0.0.0:			只能本机访问，不能对外提供服务
+		:::					前两个"::"是"0:0:0:0:0:0:0:0"的缩写，相当于IPv6的"0.0.0.0",即本机所有IPv6的地址
+	dns： host   dig
+
+	网卡接口： ifup  ifdown 
+
+	两套网络系统：
+		1.传统UNIX和linux： /etc/sysconfig/network-scripts/
+		2.RedHat：/etc/sysconfig/networking/
+	网络参数(7)：
+		IP		Netmask		Gateway  	---- 更改后重启网络
+		DNS		DNS Suffix        		---- 更改后重启网络
+		hostname	/etc/hosts    		---- 更改后不需重启网络
+			ip alias： eth0:xxx
+	
+	
+	使用DHCP的客户端命令：
+		# dhclient --自动搜索
+		# dhclient -r   --- 取消
+	
+	整个网络都应用的参数：
+		/etc/sysconfig/network
+		/etdc/nsswitch.conf
+		
+	网络配置文件：		/etc/sysconfig/network
+	网络接口配置文件：	/etc/sysconfig/network-scripts/ifcfg-ethX
+	NetworkManager服务一般用于linux客户端。服务器一般将其关闭		# /etc/init.d/NetworkManager stop
+	
+	网络设置：
+		1.图形界面 	 	# system-config-network[-gui]
+		2.文本界面 		# system-config-network-tui		/	# setup
+	命令行下的文件下载和网页浏览
+		Wget：是用来递归下载、离线查看本地服务器HTML文件一个很好的工具，能镜像整个网站，支持代理浏览以及暂停/回复
+			  下载。支持http，https，ftp协议
+			下载单个文件
+				# wget ftp://ip/path/*				/etc/wgetrc
+			递归下载整个网站
+				# wget -r http://ip
+			下载指定类型的文件
+				# wget -r -A png,pdf http://ip
+			
+			wget 
+				-O filename	url						# 表示另存为
+				-c url								# 断点下载
+				-b									# 后台下载，日志写入wget-log文件中
+				--spider							# 测试下载链接，若回复OK，则表示下载链接是正确的
+				--http-user=username --http-password=password		# https下载，指定用户名和密码
+				 --ftp-user=USERNAME --ftp-password=PASSWORD		# ftp下载，指定用户名和密码
+				
+				
+							
+		cURL：是在多种协议上传输数据的命令行工具。cURL是支持FTP, HTTP, FTPS, TFTP, TELNET, IMAP, POP3，LDAP协议
+			浏览网页
+				# curl http://ip					显示html
+			下载文件
+				# curl -o file_name http://ip/path/file 		指定文件名file_name
+				# curl -O http://ip/path/pic[1-10].jpg			存储为服务器上的文件名且批量下载
+				# curl -x ip:port -o file_name http://ip/file	指定http访问所使用的ip和端口
+			指定访问所宣称的自己的浏览器信息
+				# curl -A "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)"  http://ip
+	
+		W3m：是GPL协议下发布的基于文本的web浏览器。支持表格，帧，颜色，SSL连接以及内联图像。W3m以快速浏览而出名。
+			浏览网页
+				# w3m http://www.baidu.com
+			
+		Elinks：是基于文本的免费浏览器，用于Unix及基于Unix的系统。Elinks支持 HTTP，HTTP Cookies以及支持浏览Perl和Ruby脚
+				本。也很好的支持选项卡浏览。最棒的是它支持鼠标、彩色以及支持一系列的协议，例如HTTP, FTP, SMB, Ipv4 和 Ipv6	
+			浏览网页：		
+				# links http://ip
+			测试链接：		
+				# links -dump http://ip
+			抓取网页代码：	
+				# links -source http://ip
+		
+		
+    从Linux终端中获取公有IP：
+        # curl ifconfig.me
+        # curl ipinfo.io/i
+模块管理
+	PAM(pluggable authentication modules):嵌入式验证模块
+		PAM可以说是一套应用程序编程接口(API),它提供一个验证机制，是一个独立的存在。任何程序有需求时，可向PAM发出验证要求的通知，
+		PAM经过验证后，将结果返回改程序，然后该程序就此作出动作。PAM通过一个与程序相同文件名的配置文件来进行一连串的认证分析需求
+			eg： /bin/passwd  /etc/pam.d/passwd
+
+	验证类型：
+		auth：		(authentication)用来验证用户的身份认证，常需密码
+		account：	检验用户是否具有正确的权限
+		session：	管理用户在此次登录或使用某个命令期间PAM给予的环境设置。通常用于记录用户登录与注销时的信息
+		password：	主要用于提供验证的修订工作。eg：修改密码
+	验证的控制标志：管理验证的放行方式
+		requied：	成功或失败均带有其信息，但都会继续后续的验证流程。有利于数据的登录日志(log)。
+		requisite：	成功或失败均带有其信息，但失败后会终止后续流程。
+		sufficient：成功或失败均带有其信息，但成功会返回信息。失败继续
+		optional：用于显示信息
+	模块：
+		/etc/pam.d*   			每个程序个别的PAM配置文件
+		/lib/security/* 		PAM模块文件的实际放置目录
+		/etc/security/*  		其它PAM环境的配置文件
+		/usr/share/doc/pam-*/  	详细的PAM说明文件
+	 
+	常用模块介绍：/lib/secrity/*
+		pam_nologin.so: 管理一般用户能否登录主机。当/etc/nologin存在时，一般用户无法登录(可切换)，且将该文件内容显示出来。
+						正常情况下，该文件不能存在于系统中。可建立一个/etc/nologin.txt,它针对用户shell为/sbin/nologin，
+						对其它用户无影响。当该用户登录时，无法登陆，且显示其文件信息。
+	
+		
+
+
+软件安装与应用
+	- 多个rpm软件包组合起来称为软件包组
+	- 用户自行安装软件一般安装在/usr/local/下
+	- 软件包管理器：依赖关系
+	
+	两大主流软件管理器：RPM	DPKG
+		rpm  ------  Redhat Packet Management
+		yum  ------  yellowdog update management
+		· rpm ---> yum
+		· dpt ---> apt-get
+	
+	软件包格式：
+		name-version-release.arch.rpm
+			eg: bind-major.minor.release-release.arch.rpm
+			主版本号：重大改进
+			次版本号：某个子功能发生重大变化
+			发行号：  修正了部分bug，调整了一点功能
+			release： rpm包制作的次数
+			
+		三大软件格式：
+			rpm	 j
+			tar.gz(tgz)/tar.bz2   
+			src.rpm
+
+			
+	程序包含：
+		1.二进制程序
+		2.库文件
+		3.配置文件
+		4.帮助文件
+	安装软件：
+		软件安装的路径
+			rpm包：
+				二进制程序：/bin，/bin, /sbin, /usr/bin, /usr/sbin
+				库文件：	/lib，/usr/lib
+				配置文件：	/etc
+				帮助文档：	/usr/share/{doc,man}	文档，手册
+			编译安装：
+				默认安装：
+					/usr/local/				不易删除
+						bin  sbin lib etc share/{doc,man}				
+				自定义安装：
+					/usr/local/process/		直接删除即可,但须链接各种路径
+						bin	sbin lib include etc share/{doc,man}
+	
+		一．软件包安装：rpm   yum   
+			(1) RPM包含3:	
+					1.本地数据库(/var/lib/rpm/)    
+					2.rpm命令与其相关的可执行文件   
+					3.rpm软件包
+						URL support： ftp://   http://
+				查询：
+					installed：    -qa   -qf   -ql  -qi  
+								   -qc(列出所有在/etc下的文件)  
+								   -qd(列出所有帮助文件) 
+								   -qR(列出该软件的所有依赖文件)
+								   
+					uninstalled：  -qip  -qlp  -qcp -qdp -qpR
+				验证：
+					# rpm -Va		-- 验证所有包的完整性(与本地数据库对比)
+					# rpm -V tree	-- 验证tree包的完整性
+					# rpm -Vf file	-- 查看某个文件的完整性
+					
+						检查出的文件信息：八个信息
+							S：文件容量大小				Size
+							M：文件的类型或属性(rwx)	Modediffers
+							5：MD5指纹					MD5
+							D：设备的主次代码			Device
+							L：link路径					Link
+							U：文件所有者				User
+							G：文件用户组				Group
+							T：文件的创建时间			mTime
+							
+							c：设置文件(config file)
+							d：文档(documentation)
+							g："鬼"文件(ghost file)，通常是该文件不被某个软件所包含
+							l：授权文件(licnese file)
+							r：自述文件(read me)
+							
+						数字证书：	Centos使用的是GNU计划的GPG加密证书	/etc/pki/
+							
+				安装:
+					# rpm -ivh	 *.rpm
+						--nodeps：忽略依赖关系
+						--replacepkgs：重新安装，替换原有安装	
+						--force：强行安装，可以实现重装或降级。重安装时配置文件不会被重装，若要重装则可将配置文件移除
+						--test： 仅作测试查看
+				
+						rpm的软件依赖关系若是死循环，则rpm -ivh  a.rpm b.rpm c.rpm	一起安装
+						
+				降级：当高版本不如低版本好用时
+					# rpm -Uvh --force lower.rpm		-- 正常降级
+					# rpm -ivh --force lower.rpm		-- 非正常降级，统中保留有原软件信息
+				删除:
+					# rpm -e package_name
+				更新:
+					# rpm -Uvh *.rpm	--- 若有旧版本则升级，否则安装
+					# rpm -Fvh *.rpm 	--- 若有旧版本则升级，否则退出
+							Red Hat Network(RHN）: Red Hat Update Agent（需注册）
+				重建数据库：
+					# rpm --rebuilddb		--- 重建数据库
+					# rpm --initdb			--- 初始化数据库		
+
+			(2) yum：   
+				
+					yum仓库配置目录：/etc/yum.repos.d/
+					yum本机信息目录：/var/cache/yum/
+					yum来源：1.ftp	2.web	3.file
+					yum仓库配置：在仓库配置目录中建立 *.repo文件	
+						baseurl=http://
+						baseurl=ftp://
+						baseurl=file:///
+					
+					查询
+						# yum list/grouplist   
+							# yum list ntp*
+						# yum search str			搜索某个软件名称或描述中的str
+						# yum info/groupinfo
+						# yum provides file/command	列出提供某个文件/命令的软件包			
+						# yum repolist
+					安装：
+						# yum install package
+						# yum groupinstall packagegroup
+					删除:	
+						# yum remove package
+						# yum groupremove packagegroup
+					更新：
+						# yum update [package]		无package则进行系统更新
+							# yum list updates		列出可更新的软件
+					清除cache:
+						# yum clean dbcache/all
+							packages：				清除已下载的包
+							headers：				清除下载的软件文件头
+							all：					清除所有容器数据
+					只下载:
+						yum自带工具：
+							# yum install yum-utils
+							# yumdownloader package
+						yum插件：
+							# yum install yum-downloadonly
+							# yum install --downloadonly --downloaddir=/path package
+					
+		二．源码安装	--- 定制，一般在/usr/local/pkg
+			1.解压		# tar *  -C /usr/local/src
+			2.设定		# ./configure --prefix=/usr/local/dir			--help
+							功能1：让用户选定编译特性
+							功能2：检查编译环境	
+			3.编译		# make									将源代码编译成可执行的二进制代码，用于系统安装
+			4.安装		# make install							将源代码的编译结果安装到系统中
+			5.清除		# make install clean						
+			
+			导出相关变量(4)
+				1.命令路径
+					修改PATH环境变量，以识别此程序的二进制文件路径
+						方法一：修改/etc/profile文件
+						方法二：在/etc/profile.d/目录下建立*.sh的文件
+						
+						写入: export PATH=$PATH:/path/bin:/path/sbin
+				2.库文件
+					默认系统搜索库文件路径为/lib，/usr/lib
+					故在/etc/ld.so.conf.d/中建立pkg.conf，直接写入库文件路径即可
+					# ldconfig -v		-- 重新搜索，将/etc/ld.so.conf的数据加载入高速缓存，同时记录一份在/etc/ld.so.cache中
+								-p			显示当前已加载的函数库
+								
+						# ldd /path/bin_file		显示该文件含有的动态函数库
+						
+				3.头文件
+					默认路径/usr/include
+					添加链接目录到/usr/include
+						# ln -s /usr/local/pkg/include  /usr/include/pkg
+				4.man文件
+					在/etc/man.config中添加一条MANPATH /usr/local/dir/man即可
+					
+			该类软件卸载
+				- 可用# make uninstall，若无，则只能一个一个删除文件了
+				- 若有导出变量痕迹，亦可清除
+				
+			每个源码文件官方都会发布相关指纹，可下载后进行验证对比，一般有两种机制
+				# md5sum file
+				# shaNsum file
+			
+			rpm与源码编译：
+				1.有些特性是编译选定的，若编译未选定次特性，将无法使用
+				2.rpm包的版本会落后于源码包
+				3.源码编译更适合当前硬件
+		
+		三.SRPM安装
+			SRPM：Source RPM
+				提供的是源代码，但含有该软件需要的依赖性软件说明及所有RPM文件所提供的数据，并提供了参数设置文件(configure和makefile)
+				故不再依赖平台(rpm)且有管理信息(tarball)
+					
+			安装
+				先将该软件以rpm管理的方式编译成rpm文件，再将rpm文件安装到linux系统中
+				1.不进行设置，直接安装
+					# rpmbuild --rebuild/--recompile soft-version.src.rpm
+						--rebuild		编译打包，生成rpm文件
+						--recompile		编译打包且直接安装
+				2.设置功能后再安装
+					# rpm -i software.src.rpm
+					# cd /usr/src/redhat/SPECS
+					# vim /usr/src/redhat/SPECS/software.spec			设置参数
+					# rpmbuild -bb software.specs  或 #rpmbuild -bp software.specs
+					
+						若是前者，则会在/usr/src/redhat/RPMS/noarch(根据具体包的不同，也可能是i386或i686等)目录下生成一个新的rpm包，
+					这个已编译好的二进制文件执行rpm -ivh安装即可
+						若是后者，则会在/usr/src/redhat/BUILD/software/目录下生成此包的源代码，可能是通过脚本安装，也可能是通过编译
+					源代码的方式进行安装。具体根据参考目录中提供的相关文件来进行
+					
+					
+				SRPM使用到的目录(/usr/src/)
+					以redhat为例，在其目录下
+						redhat/SPECS：		该软件的设置文件
+						redhat/SOURCES：	源文件(.tgz)以config文件
+						redhat/BUILD：		编译过程中的暂存文件
+						redhat/RPMS:		生成的rpm文件
+						redhat/SRPMS:		SRPM文件
+						编译过程中的错误会记录在/tmp目录下对应的错误文档	
+		
+	文件打包/归档：tar				节省磁盘空间；减少传输带宽
+		linux下的压缩方式： -- 只能压缩文件，自动删除原文件
+			gzip	文本压缩率：0.6-0.7
+				# gzip file  
+				# gunzip file.gz 	== # gzip -d file.zip
+				# zcat file.zip
+			bzip2 	文本压缩率：0.8
+				# bzip2 file  
+				# bunzip file.bz2  == # bzip -d file.bz2
+				# bzcat file.bz2
+			xz		文本压缩率：0.99
+				# xz file  -- 可用于嵌入式
+				# unxz file.xz  == # xz -d fiel.xz
+				# xzcat file.xz
+			zip最早的压缩工具，可压缩目录	
+				# zip file.zip file/dir		
+				# unzip file.zip
+					直接压其中某些文件：# unzip file.zip file1 file2
+					查看压缩内文件：	# unzip -v file.zip 
+				
+			-#：-9最佳，-1最快
+		windows下的压缩方式
+			- zip
+			- rar
+			
+			
+		打包及压缩 	--xattrs：归档时，保留文件的扩展属性信息
+			# tar -cpf  etc.tar /etc			--- 归档
+			# tar -zcpf etc.tgz  /etc		--- gzip压缩
+			# tar -jcpf etc.tbz2 /etc		--- bzip2压缩
+			# tar -Jcpf etc.txz  /etc		--- xz压缩
+				-p：保留备份数据的原属性，常用于备份
+				-P：保留绝对路径
+			不打包某些文件
+				# tar -jcvf /root/etc.tar.bz2 --exclude=/root/etc* --exclude=/root/etc.tar.bz2 /etc /root
+				
+		解压   --- 列表 -tvf file.tar
+			# tar -xvf  etc.tar -C /path		--- 展开归档，亦可自动识别压缩格式进行解压
+			# tar -zxvf etc.tar.gz -C /path		--- gzip解压
+			# tar -jxvf etc.tar.bz2 -C /path	--- bzip2解压
+			# tar -Jxvf etc.tar.xz  -C /path	--- xz解压
+			解压其中一个文件
+				# tar -xvf /root/ect.tar.gz etc/shadow
+		
+X window
+	
+	图形界面(graphical user interface) – GUI
+	命名起源：X在W(indow)的后面，戏称这一版本的窗口界面为X(有下一版的新窗口之意！)
+	Xorg组织通过X协议开发出了X11应用程序
+
+	X的组件
+		X server：客户端，管理硬件 屏幕绘制与提供字体功能。接收输入设备的信息，传递给X client处理，返回的信息，由X server输出到屏幕上
+	   
+		X client：服务器端，负责X server要求的事件的处理
+		X window manager(WM,窗口管理器)：特殊的X client，负责所有的X client软件
+			Gnome：	C
+			Kde：	C++
+			XFce：	嵌入式
+			
+			基于不同的窗口管理器
+				ubuntu	gnome
+				xubuntu	xfce
+				kubuntu	kde		
+		Display Manager：提供登录需求,加载用户选择的WM与语系等数据
+			先执行DM程序，该程序加载一个X server程序，然后在提供一个等待输入的接口程序，之后根据用户的选择去启动所需要的WM
+						 eg：gdm  kdm
+	
+	GNOME的资源管理器被称为鹦鹉螺
+	KDE的资源管理器被称为征服家
+	
+	
+	X window的启动流程
+		X server -  X client  
+		
+		文本界面 3
+			# startx			- 是一个shell脚本，依照配置文件开启X
+			流程
+				startx										-->
+				~/.xinitrc		-->
+					N			--> /etc/X11/xinit/xinitrc 	-->
+					Y										-->
+				/etc/X11/xinit/xinitrc.d/*					-->
+				
+				~/Xclients		-->
+					N			-->	/ec/X11/xinit/Xclients	-->
+					Y										-->
+				/etc/sysconfig/desktop
+		图形界面 5
+			/etc/inittab 5		- 启动图形开机
+			
+			流程
+				/etc/X11/prefdm	 -->  /etc/X11/xinit/xinitrc.d/*  -->   ~/.Xsession 			 						--> 	/etc/sysconfig/desktop
+																			N  -->       ~/.Xclients					-->
+																					 N --> /etc/X11/xinit/Xclient 		-->
+				
+					
+	
+
+	文本界面鼠标：
+		1.yum install gpm
+		2.service gpm restart
+		
+	Ctrl+alt+退格键 --- 关掉图形化界面
+		# X   -- 启动X server服务
+		# xinit  -- 启动一个客户端
+		# startkde – 启动kde桌面  或 # gnome-terminal  -- 启动gnome桌面
+
+	X window system  -- X 或 X11
+	X服务分为server和client。  
+	
+	
+	  
+	X window 系统最早由MIT在1984年开发出，开发者本意将X以应用程序的概念来开发。由于X能够通过网络进行图形界面的访问，因此发展出许多的X协议。
+	XFree86计划 – X+Free software+x86硬件
+	现在大部分的distribution使用的X都是由Xorg基金会所提供的X11软件
+	
+	窗口管理器的项目计划：KDE GNOME twm XFCE 每种窗口管理器所用以开发的显示引擎都不太相同，所着重方向也不一样，每套WM都是独立存在的
+	X window system的主从架构将硬件与上层处理分离。可以跨网络且跨平台
+
+	
+	在文本界面启动X：startx – shell script
+	   startx找出用户或系统默认的X server与X client的配置文件。也可通过外接参数来取代配置文件的内容。
+	   
+	
+
+备份
+	备份数据：
+		主机备份：	/etc	/usr/local	
+					/home	/root	/var/spool/mail	
+					/boot
+		服务备份：	软件数据
+		
+	备份设备
+		硬盘：保存不易
+		DVD-RW：速度尚可，但容量小
+		磁带(tape)：高容量，速度慢		推荐
+		
+	备份方式
+			在备份时，备份的数据若发生改变可能会产生错误，则须在备份前关掉某服务，完成后再开启
+		完整备份：每次备份耗时长
+			dd：可直接读取扇区，而不必考虑文件系统，但速度慢
+				eg：# dd if=/dev/sda of=/dev/sdb				sdb可以不必格式化
+					
+			cpio：能备份所有文件名，但要配合find命令
+				eg：# find / -print | cpio -covB > /dev/st0 	备份
+					# cpio -iduv < /dev/st0						还原
+			tar：	
+				eg：# tar --exclude /proc --exclude /mnt --exclude /mnt --exclude /tmp --exclude /bak -jcvp -f /bak/system.tar.bz2 /
+						/bak是独立的文件系统，除去几个目录，将/目录全部备份到/bak
+						
+		增量备份：每次备份只备份与前一次备份文件的差异
+					备份所需磁盘小，但还原麻烦且慢
+			dump/restore
+				eg：# dump -0u -f /bak/home.dump /home			完整备份
+					# dump -1u -f /bak/home.dump.1 /home		第一次增量备份
+						
+		差异备份：每次备份只备份与原始的完整备份的差异
+					随着系统的运行，备份所需的磁盘容量会越来越大，但还原简单快速
+			dump/restore
+			
+			tar:
+				eg: # 完整备份(时间 2015-9-2)
+					# tar -N '2015-9-2' -jpcv -f /bak/home.tar.bz2 /home	第一次差异备份(时间 2015-9-9)
+					# tar -N '2015-9-9' -jpcv -f /bak/home.tar.bz2 /home	第二次差异备份
+			rsync：快速对两个目录进行镜像
+				eg：# rsync -av /home /bak/									第一次会在/bak下产生home目录
+					# rsync -av /home /bak/									只备份有改动的文件
+	
+		关键数据备份
+			一般用tar
+				# tar -jpcvf mysql.`data +%F` /data
+	
+		远程备份
+			# tar -zcvf user@ip:/path  /file
+			# dump -0uf user@ip:/path  /file
+			# rsync -av -e ssh 本地文件 user@ip:path
+	
+	备份工具：
+		利用tar备份
+			将文件备份到磁带机
+				# tar -cvf /dev/st0 /home /root /etc
+			差异备份(备份某个时间点后的文件)
+				# tar -jcvf /root/etc.newer.then.passwd.tar.bz2 --newer-mtime='2015/6/20' /etc/*
+			利用管道命令与数据流
+				# tar -cvf - /etc/ | tar -xvf -
+		完整备份工具：dump
+			- 针对文件系统(可直接写设备名)和目录备份
+			指定等级：0为完整备份，1-9对前一次进行差异备份
+				文件系统：	均可
+				目录：		仅能使用level 0
+							不支持-u参数
+			# dump /filesystem
+				-S 		列出待备份数据需要的磁盘空间(单位 B)
+				-W		列出/etc/fstab中具有dump设置的分区是否备份过
+				-u		将此次备份的时间记录到/etc/dumpdates文件中
+				-v		将备份过程显示
+				-j		加入bzip2支持，将数据进行压缩，默认等级是2
+				-level	0-9共10个等级
+				-f		备份后文件名
+				
+			还原
+			# restore -f dumpfile 
+				模式：各模式不可混用
+					-t：列出备份文件中的信息
+					-C：将备份文件与目前的相比较，列出备份文件中有记录的，与目前不一样的
+					-i：进入互动模式，可还原部分文件
+					-r：还原文件系统
+				-h：查看完整备份中的inode和label信息
+				-f：要还原的文件
+		
+		光盘写入工具
+			建立镜像文件
+				# mkisofs
+					-o				产生的镜像文件名
+					-r				通过Rock Ridge产生支持UNIX/Linux的文件数据，可记录较多的信息		
+					-v				显示过程
+					-m file			排除某些文件
+					-V vol			新建volume
+					-graft-point	转嫁，isodir=sysdir
+				eg：# mkisofs -r -V 'linux_file' -o /tmp/system.img \
+					 -m /home/lost+found -m /home/aaa -graft-point /root=/root /home=/home /etc=/etc
+			刻录光盘
+					# cdrecord				命令似以过时
+
+		dd		可完整备份分区或磁盘
+			# dd if="input file" of="output file" bs="block size" count=number
+				bs：规划的一个block大小，若未指定默认为512B 
+		
+		cpio  可以备份任何的文件，包括/dev/下的任何设备，需要配合类似find等命令找到文件给予cpio备份
+			备份：# find * * | cpio -ovcB > [file|device]
+			还原：# cpio -ivcdu < [file|device]
+			查看：# cpio -ivct < [file|device]
+			
+				-o		将数据输出到文件或设备上
+				-B		让默认的Block可以增加到5120B，默认是512B，可让大文件的存储速度加快
+				-i		将数据自文件或设备复制到系统中
+				-d		新建目录
+				-u		自动将较新的文件覆盖较旧的文件
+				-t		配合-i参数可查看其内容
+				-v		详细显示			
+				备份到磁带机
+					# find * * | cpio -ocvB > /dev/st0
+					# cpio -idvc < /dev/st0
+	
+Linux内存管理：
+	内存：
+	缓存：
+		说明：磁盘的操作有逻辑级(文件系统)和物理级(磁盘块)，以下Cache就是分别缓存逻辑和物理级数据的
+		Page Cache：
+		Buffer Cache
+
+假设我们通过文件系统操作文件，那么文件将被缓存到Page Cache，如果需要刷新文件的时候，Page Cache将交给Buffer Cache去完成，因为Buffer Cache就是缓存磁盘块的。
+也就是说，直接去操作文件，那就是Page Cache区缓存，用dd等命令直接操作磁盘块，就是Buffer Cache缓存的东西。
+
+Page cache实际上是针对文件系统的，是文件的缓存，在文件层面上的数据会缓存到page cache。文件的逻辑层需要映射到实际的物理磁盘，这种映射关系由文件系统来完成。当page cache的数据需要刷新时，page cache中的数据交给buffer cache，但是这种处理在2.6版本的内核之后就变的很简单了，没有真正意义上的cache操作。
+ 
+Buffer cache是针对磁盘块的缓存，也就是在没有文件系统的情况下，直接对磁盘进行操作的数据会缓存到buffer cache中，例如，文件系统的元数据都会缓存到buffer cache中。
+ 
+简单说来，page cache用来缓存文件数据，buffer cache用来缓存磁盘数据。在有文件系统的情况下，对文件操作，那么数据会缓存到page cache，如果直接采用dd等工具对磁盘进行读写，那么数据会缓存到buffer cache。
+
+Buffer(Buffer Cache)以块形式缓冲了块设备的操作，定时或手动的同步到硬盘，它是为了缓冲写操作然后一次性将很多改动写入硬盘，避免频繁写硬盘，提高写入效率。
+Cache(Page Cache)以页面形式缓存了文件系统的文件，给需要使用的程序读取，它是为了给读操作提供缓冲，避免频繁读硬盘，提高读取效率。
+
+
+
+驱动管理
+	驱动程序：控制特殊设备的输入输出
+	主设备号：存取该设备的某种内核驱动，用于标识设备类型
+	次设备号：该设备在系统中的物理位置，用于标识同一种类型中的不同设备
+
+	创建设备文件：
+		# mknod 文件名 类型 主设备号 次设备号
+			类型：
+				b：	块设备
+				c：	字符设备
+				p：	管道文件
+
+	Linux认识的设备数据通过major和minor两数值决定。
+
+	
+	光驱：		/dev/cdrom
+	磁带机：	/dev/st0(SCSI)，/dev/ht0(IDE)
+	硬盘：		/dev/sd[a-p][1-16](SCSI/SATA)，/dev/hd[a-d][1-16](IDE)
+	打印机：	/dev/lp[0-2]
+	
+	/dev/console	-- 控制台当前窗口
+	/dev/tty		-- 当前窗口
+	/proc/self/fd/	-- 文件描述符
+	/dev/pts/*
+	/dev/stdout
+	/dev/stderr
+	/dev/stdin
+
+	显示器是字符设备
+
+	# lspci 		显示所有的pci
+		-v			显示详细信息
+		-vv			显示更详细信息
+		-n			查看pci的id
+	
+	# lsusb			显示所有usb
+	
+	# chvt n -- 切换到n号终端
+
+	Linux下光驱命令
+		# yum install eject
+		弹出光驱  # eject
+		弹入光驱  # eject –t
+
+
+	光盘默认在/dev/cdrom里  只需挂载到/mnt/cdrom即可
+	软盘默认在/dec/fd里     只需挂载到/mnt/floppy即可
+
+	# w
+	# skill -9 pts/1
+
+
+	udev：用户级软件，可使用户自行处理/dev下的设备
+	HAL：可将系统目前的所有硬件进行快照，并持续检查快照的内容
+
+
+
+
+内核初步
+	内核二进制文件： 				/boot/vmlinuz-version
+	内核被编译时选择的功能和模块	/config-version
+	虚拟文件系统： 					/boot/initrd-version.img
+	内核功能放置到内存地址的对应表  /system.map-version
+	内核模块：						/lib/modules/version/kernel/
+	内核版本：						/proc/version
+	系统内核功能：					/proc/sys/kernal/
+	内核模块下的目录
+		arch：			与硬件平台相关
+		crypto：		与内核支持的加密技术相关
+		drivers：		硬件驱动程序
+		fs：			内核支持的文件系统
+		lib：			函数库
+		net：			与网络有关的各项协议数据，包括防火墙模块
+		sound：			与音效有关的各项模块
+		modules.dep：	内核支持的各项模块的依赖性
+							# depmod		分析内核模块并写入该文件
+	   
+	系统调用接口：为了保护内核并方便与内核通信
+	   
+	Linux内核组件
+		1.文件系统模块(虚拟文件系统模块)：负责文件系统的管理。位于Linux2.6内科源码的fs目录下
+		2.内存管理模块：负责物理内存和虚拟内存的资源分配。位于内核源码的mm和arch/*/mm目录下
+		3.进程管理模块：进程资源分配协调管理。位于include/config/*/arch和arch目录下
+		4.进程间通信模块：协调进程之间的资源分配关系及进程资源的竞争分配
+		5.网络接口模块：若需对系统进行远程管理，可用此模块
+	   
+	   
+	内核相关命令
+		# lsmod 					: 显示已加载的模块
+		# modinfo NAME				：显示某模块的信息
+		
+		# insmod 完整文件名			: 将某个module插入到内核中
+		# modprobe	文件名			：自动根据依赖文件装入模块
+		
+		# rmmod 			：将某个module从内核中卸载
+		
+		# depmod 			: 生成依赖文件，告诉modprobe和kerneld要从哪儿调入modules。这个依赖文件就在/lib/modules/kernel版本/modules.dep。
+		# Kerneld			：负责自动的将模块调入内核和把模块从内核中卸载。	
+		# lspci				: 列出所有PCI设备
+		
+		
+	  
+	   
+	开机屏幕上显示的信息叫作内核引导信息
+		 # dmesg    /var/log/dmesg   
+
+	make menuconfig ---  打开菜单(必须在内核目录下运行)
+
+
+	更改内核参数
+		临时：
+			1.sysctl可以修改内核参数： -- 修改/etc/sysctl.conf文件，默认配置在/usr/lib/sysctl.d/目录下
+				- 列出当前的设置：				# sysctl -a
+				- 通过sysctl.conf文件重新加载：	# sysctl -p
+				- 动态地设置/proc的值： 		# sysctl net.ipv4.ip_forward=1
+			2./proc 伪文件系统(虚拟文件系统)
+				- 通过更改/proc中文件的内容来及时地向内核传递参数
+		永久：
+			修改/etc/sysctl.conf文件
+			
+	   system bus support
+		  PCI bus:  /sbin/lspci  /proc/bus/pci
+	   hotswappable bus support
+		  USB    PCMCIA USB
+
+
+
+系统管理
+	查看内存
+		# free [-t|-b|-m|-g] -t
+			-t：显示出物理内存和swap的总量
+		
+			buffers：缓冲
+			cache：缓存
+			第二行：显示的是减去缓存和缓冲的量
+	系统信息
+		# uname -a
+	启动时间与负载
+		#  uptime
+			1,5,15分平均负载
+	对外开放端口
+		# netstat -tlunp
+	内核信息
+		# dmesg
+	系统资源变化
+		# vmstat
+			-S k/m		以其它单位显示
+			
+			进程字段
+				r：等待运行中的进程数量
+				b：不可被唤醒的进程数量
+			内存字段
+				swpd：虚拟内存被使用的量
+				free：未被使用的内存容量
+				buff：用于缓冲存储器
+				cache：用于高速缓存
+				si：读取磁盘的量
+				so：交换分区使用的量
+			磁盘读写
+				bi：从磁盘读出的量
+				bo：写入磁盘的量
+			
+
+
+
+
+
+
+
+随机数生成器
+	/dev/random	/dev/urandom
+	echo $RANDOM
+	
+	
+	
+	特殊设备：/dev/null		/dev/zero

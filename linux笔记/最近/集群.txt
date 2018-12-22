@@ -1,0 +1,419 @@
+集群：各节点之间时间必须同步，可用NTP
+	Scale On：向上扩展
+	Scale Out：向外扩展
+	
+Cluster		--- 三类
+	LB：Load Balancing	负载均衡集群
+		- 目的：提高服务的并发处理能力
+		
+		- 定义：
+			在多个提供了相同能力的前端提供一个分发器，接收用户请求。然后根据某种策略，
+			将请求分发至后端主机。也应当具有对后端主机健康检查的功能
+		
+		
+		- 负载均衡器
+			- 调度算法：常用有10种
+				静态调度：纯粹根据算法本身进行调度，不考虑服务器本身的活动连接数和非活动连接数
+					RR：Round Robin,轮询
+					WRR：Weight Round Robin,加权轮询，兼顾性能
+					SH：Source Hashing(源地址Hash)，相同客户端访问同一台服务器。用于session affinity。若有session sharing，则不需SH算法
+					DH：Destination Hashing，用于访问相同的缓存 
+				动态调度：
+					LC：Least-Connection，最少连接
+						active*256+inactive，调度数值小的
+					WLC：加权最少连接，兼顾服务器性能。默认使用
+						(active*256+inactive)/weight
+					SED： 最短期望延迟	不考虑非活动连接数	开始时，权重大优先被调度
+						(active+1)*256/weight
+					NQ：Never Queue，基于SED算法
+					LBLC：Locality-Based Least-Connection ,基于本地的最少连接
+					LBLRC：基于本地的带复制功能的最少连接
+					
+			- 设备分类：
+				硬件设备：	- 一般两个，要备用
+					·F5：BIG IP		- 市面上最好的硬件设备
+					·Citrix：NetScaler
+					·A10
+				软件设备：
+					四层协议实现：	性能更好
+						LVS(Linux virtual Server)
+					七层协议实现：	反向代理		支持功能更多
+						·Nginx
+							支持协议：http,smtp,pop3,imap
+						·haproxy
+							支持协议：http,tcp(mysql,smtp)
+							
+	HA：High Availability	高可用集群
+		提升服务的始终在线能力
+		可用性：在线时间/(在线时间+故障处理时间)
+		
+		Messaging Layer：用来传递节点间的相互信息
+			- heartbeat(v1,v2,v3)
+				heartbeat v3
+					·heartbeat pacemaker cluster-glue
+			- corosync
+			- cman
+			- keepalived
+			
+		CRM：Cluster Resource Manager，集群资源管理器，为那些非ha-aware的应用程序提供调用的基础平台
+			DC：Designated Coordinator
+				PE：Policy Engine
+				TE：Transaction Engine
+			
+			Heartbeat v1自带的资源管理器：haresources
+			Heartbeat v2自带的资源管理器：haresources	crm
+			Heartbeat v3，资源管理器crm发展为独立的项目：pacemaker
+			
+			
+			haresource,crm(heartbeat v1/v2)
+			pacemaker(heartbeat v3/corosync)
+			rgmanager(cman)
+			 
+		RA：Resource Agent
+			RA Classes：
+				- Legacy heartbeat v1 RA
+				- LSB(/etc/init.d/)
+				- OCF(Open Cluster Framework)
+		RG：Resource Group
+		LRM：Local Resource Manager
+		
+		Resource Type：
+			primitive：主资源，在某一时刻只能运行在一个节点的资源
+			clone:克隆资源，将主资源克隆n份，在指定的节点上同时运行
+			group：组资源，将资源归类合并在一起同进同退，是个资源容器
+			master/slave:主从资源，运行在两个具有主从关系的两个资源		eg：drbd
+		
+		资源约束：Constraint
+			排列约束：(colocation)
+				资源是否能运行于同一节点
+					score：
+						正值：可以同在	
+						负值：不可同在
+			位置约束：(location),score
+				正数：倾向于运行此节点
+				负值：倾向于逃离此节点
+			顺序约束：(order) 
+				定义资源启动或关闭时的次序
+		资源隔离：
+			节点级别：
+				STONTIH
+			资源级别：
+				eg：FC SAN switch可以实现在存储资源级别拒绝某节点的访问
+		
+		without_quorum_policy: 资源管理策略
+			freeze
+			stop
+			ignore
+		
+		集群文件系统(可以在共享存储上施加锁，弥补DAS的不足)
+			GFS
+			OCFS2
+		
+		
+		
+	HP(HPC)：High Performance Compute，高性能计算
+			处理海量运算
+		·并行处理集群
+			- 分布式文件系统
+			- 将大任务切割成小任务，分别进行处理的机制
+	
+	
+	
+	
+LVS：	Linux Virtual Server
+	- 可理解为一个四层交换机设备，能根据用于请求的IP和端口号，将请求分发至后端的主机
+	LVS工作在input链上，与iptables不能同时工作
+	LVS两段式：
+		·ipvsadm：管理集群服务的命令行工具	用户空间
+		·ipvs：在内核中工作					内核空间
+	LVS分类：
+		Network Address Translation(LVS-NAT),地址转换
+		Direct Routing(LVS-DR)，直接路由
+		IP Tunneling(LVS-TUN)，隧道
+	
+			NAT：		- 一般不使用
+				1.集群各节点和director必须在同一个IP网络中
+				2.RIP通常是私有地址，仅用于各集群节点间的通信
+				3.director位于client和real server之间，并负责处理进出的所有通信
+				4.real server必须将网关指向DIP
+				5.director支持端口映射(director识别的端口可以与real server的端口不同)
+				6.real server可以使用任意类型的操作系统
+				7.较大规模应用场景中，director易成为系统瓶颈(一般最多支持10左右的个节点)
+				
+				配置
+					1.查看director内核是否支持ipvs
+					2.在director上安装ipvsadm工具
+					3.在real server上配置服务	eg: web
+					4.用ipvsadm在director上添加规则
+					5.打开转发
+					6.直接访问VIP
+					
+			DR：	- 常用	  性能好(不再处理响应报文，提升性能)，可支持100个左右节点
+				1.集群各节点和director必选在同一个物理网络中(需要用mac转发)
+				2.RIP可以使用公网地址，实现便捷的远程管理和监控
+				3.director仅负责处理入站请求(只改变MAC地址，直接将请求报文转发)，响应报文则由realserver直接发往客户端
+				4.real server不能将网关指向DIP
+				5.director不支持端口映射
+				6.director和real server都在一个网卡上配置两个IP VIP/CIP VIP/DIP
+				
+				
+				如何解决real server的VIP响应问题
+					1.在路由网关上直接VIP与director的VIP的MAC绑定
+					2.在real server上使用arptables，使其忽略arp广播
+					3.在real server的内核参数上修改
+						Kernel parameter
+							arp_ignore：定义收到的ARP请求时的响应级别
+								0：只要在本地配置有相应地址，就给予响应
+								1：仅在请求的目标地址配置在请求到达的接口上时才给予响应
+							arp_announce：定义将自己地址向外通告时的通告级别
+								0：将本地任何接口上的任何地址向外通告
+								1：试图仅向目标网络通告与其网络匹配的地址
+								2：仅向与本地接口上的地址匹配的网络进行通告
+				
+				配置：
+					1.在director上配置VIP和DIP，可用别名
+					2.在real server上开启arp_ignore和arp_annonuce功能
+						arp_announce：
+							#  sysctl -w net.ipv4.conf.eth0.arp_announce=2
+							#  sysctl -w net.ipv4.conf.all.arp_announce=2
+						arp_ignore:
+							# echo 1 > /proc/sys/net/ipv4/conf/eth0/arp_ignore
+							# echo 1 > /proc/sys/net/ipv4/conf/all/apr_ignore
+					3.配置VIP和RIP，并在real server的lo:vip上配置VIP且添加一条路由
+										# ifconfig lo:vip VIP broadcast VIP netmask 255.255.255.255 up
+										# route add -host VIP dev lo:vip
+					4.在director上添加一条路由
+										# route add -host VIP dev eth0:vip
+					
+					4.在real server上配置服务
+					5.用ipvsadm在director上添加规则
+					6.直接访问VIP
+			
+			
+			TUN：	- 当集群各节点在天南海北时
+				1.集群各节点可以跨越Internet
+				2.RIP必须是公网地址
+				3.director仅负责处理入站请求(将请求报文以隧道方式做二次封装)，响应报文则由realserver直接发往客户端
+				4.real server网关不能指向director
+				5.只有支持隧道功能的操作系统才能用于real server和director
+				6.director不支持端口映射
+	
+	
+	
+	查看内核是否支持ipvs
+		# grep -i vs /boot/config-*
+	安装ipvsadm命令行工具
+		# yum install ipvsadm 
+		
+		ipvsadm： 
+			- 管理集群的服务
+				添加：-A -t|u|f service-address [-s scheduler]
+					-t：TCP协议的集群
+					-u：UDP协议的集群
+						service-address：	Director_IP:Port			
+					-f：FirewallMark，FWM
+						service-address：	Mark Number
+				修改：-E
+				删除：-D -t|u|f service-address 
+					
+			- 管理集群服务中的RS
+				添加：-a -t|u|f service-address -r server-address [-g|i|m] -w weight
+					-t|u|f service-address：事先定义好的某集群服务
+					-r server-address：某RS的地址，在NAT模型中可使用IP:Port实现端口映射
+					[-g|i|m]：LVS类型
+						-g：DR	默认
+						-i：TUN
+						-m：NAT
+					- weigh：定义服务器权重
+				修改：-e 
+				删除：-d -t|u|f service-address -r server-address
+			- 查看 
+				-L|l
+					-n: 数字格式显示主机地址和端口
+					--stats：统计数据
+					--rate：速率
+					--timeout：显示tcp、tcpfin和upd的会话超时时长
+					-c：显示当前的ipvs的连接状况
+			- 规则管理：
+				清空所有集群服务
+					-C：清空ipvs规则
+				保存规则
+					-S
+						# ipvsadm -S > /path/file
+					或	# service ipvsadm save
+				载入此前的规则
+					-R
+						# ipvsadm -R < /path/file
+					或  # service ipvsadm reload
+					
+	LVS的持久连接：
+		无论使用何种算法，LVS持久都能实现在一定时间内，将来来自同一个客户端请求派发至此前选定的RS
+		在基于SSL通常需要持久连接
+		
+		在director中有一个持久模板连接(内存缓冲区)
+			每一个客户端及分配给他的RS的映射关系
+		
+		ipvsadm -A|E ... -p timeout
+			timeout：持久连接时长，默认300秒，单位是秒
+			
+		
+		分类：
+			PPC：Persistent port connections 将来自同一个客户端对同一个集群服务的请求，始终定向至此前选定的RS	持久端口连接
+				# ipvsadm -A -t IP:Port -s rr -p 600
+			PCC：persistent client connections 将来自同一个客户端对所有端口的请求，始终定向至此前选定的RS			持久客户端连接
+				# ipvsadm -A -t IP:0 -s rr -p 600
+					若端口设置为0，则所有端口请求均发送至选定的RS，无论其服务是否在director中设置(若无设置，则会出错)
+			PNMPP：Persistent Netfilter Marked Packet Persistence，将来自同一客户端的某些请求作标记并始终定向至此前选定的RS	持久防火墙标记连接
+				对某些服务端口作标记，eg：
+					# iptables -t mangle -A prerouting -d Real_server_ip -i eth0 -p tcp --dport 80  -j MARK --set-mark N(8)
+					# iptables -t mangle -A prerouting -d Real_server_ip -i eth0 -p tcp --dport 443 -j MARK --set-mark N(8)
+				定义集群服务
+					# ipvsadm -A -f 8 -s rr -p 700
+	
+	
+	
+heartbeat:
+	
+	三个配置文件
+		1.秘钥文件：authkeys	(600)
+		2.heartbeat服务的配置文件：ha.cf
+		3.资源管理配置文件：
+			haresources		crm
+	
+	配置：
+		1.时间同步
+		2.SSH多机互信
+		3.主机名称要与uname -n相同，并均可通过/etc/hosts解析
+		4.下载heartbeat,将/usr/share/doc/heartbeat-version/{ha.cf,authkeys,haresource}复制到/etc/had.d/下，并将authkeys改为600权限
+		
+		
+	在HA的集群上，服务一般不可开机自启
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+存储：
+	接口：
+		并行：由于物理线路的原因，其传输频率不能太高，故其传输速度并不和并行度成正比
+		串行：从理论上看，其传输效率不高，但其数据准确性，高频率的支持，使传输速度可以很高
+
+		目前，计算机的外部接口和硬盘的外部接口均被串行接口所取代
+		
+	硬盘接口类型				- 使用的某种接口的硬盘就称之为XXX硬盘
+		按其接口协议/规范
+			- ATA
+				1.IDE接口，即并行ATA接口      	早期PC机多用此类型接口硬盘
+				2.STAT接口，即串行ATA接口		这类硬盘，转速通常不太高，容量大，目前PC机或者IOPS要求不是太高的存储多使用这种接口的硬盘。
+			- SCSI
+				1.SCSI接口，并行接口			早期计算机的外设(打印机，扫描仪等)多用此接口
+				2.SAS接口，串行SCSI接口			这类硬盘，转速高，IOPS高，适用于OLTP系统的存储
+		
+	存储方案：即用单独的软硬件将磁盘/磁盘组管理起来，供主机使用
+	
+		存储分类
+			封闭系统的存储			- 主要指大型机
+			
+			开放系统的存储			- 指基于Windows、UNIX、Linux等操作系统的服务器
+				内置存储
+				
+				外挂存储
+					直连式存储(DAS)
+					
+					网络存储(FAS)
+						网络附加存储(NAS)
+					
+						存储区域网络(SAN)
+						
+				SAN是Storage Area Network的缩写，也就是说SAN是一个网络；
+				NAS是Network Attached Storage的缩写，也就是说NAS是一个存储设备；
+				
+				NAS：用户通过TCP/IP协议访问数据，采用业界标准文件共享协议如：NFS、HTTP、CIFS实现共享。
+				SAN：通过专用光纤通道交换机访问数据，采用SCSI、FC-AL接口。
+				
+				SAN结构中，文件管理系统（FS）还是分别在每一个应用服务器上；而NAS则是每个应用服务器通过网络共享协议（如：NFS、CIFS）使用同一个文件管理系统。换句话说：NAS和SAN存储系统的区别是NAS有自己的文件系统管理。
+				NAS是将目光集中在应用、用户和文件以及它们共享的数据上。SAN是将目光集中在磁盘、磁带以及联接它们的可靠的基础结构。		
+		
+		目前的外挂存储解决方案主要分为三种：
+			1.DAS
+			2.NAS
+			3.SAN
+			
+			存储方案内部使用的硬盘，多为SATA/SAS，追求高性能也用SSD，经过串联/RAID之后，对主机提供访问接口。
+									
+	
+	DAS：Direct Attached Storage，直接附加存储。直接接到主板总线
+		IDE：133Mb
+		STAT：600Mb
+		SAS：6Gbps
+		UltraSCSI：320Mbps	
+		USB 2.0：60MB/s
+		USB 3.0：640/s
+		
+		IDE，SCSI：并口
+		SATA，SAS，USB：串口
+	 
+	NAS：Network Attached Storage，网络附加存储。文件服务器
+		 
+		100Mbps				1000Mbps
+			12.5MB					125MB
+			
+	SAN：Storage Area Network，存储区域网络
+		分类：
+			1.FC SAN 			- 基于光纤通道
+			2.IP SAN：iSCSI		- 基于以太网 
+		SCSI：Small Computer System Interface
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+heartbeat
+health check
+split-brain
+	fencing：隔离
+		节点级别：STONITH: Shoot The Other Node In The Head
+		资源级别
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		

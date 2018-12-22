@@ -1,0 +1,462 @@
+ 搭建服务器的一般流程
+	防火墙(iptables,tcp_wrappers) --> 服务器配置 --> SELinux --> 文件系统权限
+	
+	atuofs服务
+	
+	netstat -tlunp
+		-a		列出所有的状态(tcp/udp/unix socket)
+		-c N	N秒自动更新
+		-l		仅列监听
+			
+			stat：
+				establised			已建立连接的状态
+				syn_sent			发出主动连接(syn标志)的连接数据包
+				syn_recv			接收到一个要求连接的主动连接数据包
+				fin_wait1			该socket已中断，该连接在断线当中
+				fin_wait2			该连接已挂断，等待对方主机响应断线确认的数据包
+				time_wait			该连接已挂断，但socket还在网络上等待结束
+				listen				服务监听的port
+	nmap
+		# nmap 扫描类型 扫描参数 范围
+			类型
+				-sT		扫描tcp数据包已建立的连接
+				-sS		扫描tcp数据包带有syn卷标的数据
+				-sP		以ping的方式扫描
+				-sU		以UDP的数据包格式进行扫描
+				-sO		以IP的协议进行主机的扫描
+			参数
+				-PT		使用tcp的ping方式扫描，可获知当前有哪些主机存在
+				-PI		使用实际的ping(带有icmp)来扫描
+				-P		是port range
+			范围
+				192.168.1.100
+				192.168.1.0/24
+				192.168.*.*
+				192.168.1.0-50,60-100,200
+	
+	
+	arp -n		 内存中记录mac与ip的对应(20min)
+	
+		
+	vi /etc/crontab
+	
+	查询相关软件
+		# yum search ***
+		# yum list ***
+	找出配置文件
+		# rpm -qc ***
+	查看日志
+		一般在/var/log/message里列出相关信息
+		大部分在/var/log/***/的目录下
+		
+	规范密码设置
+		1.# vim /etc/login.defs				设置更换密码的时间
+		2.# vim /etc/security/limits.conf	规范用户相关权限
+		3.# pam								额外进行密码验证
+	
+	网络连接技术
+		施乐公司的Ethernet
+		IBM的Token-Ring
+		Internet	---DARPA的Arpanet(tcp/ip)
+		
+	防火墙针对mac进行策略定义时，只能在局域网中进行
+	
+	G以太网对Jumbo frame支持，可使mtu定义为9000byte，但建议只在内网中实行。在internet中很可能无法拆分frame而导致数据包丢失
+	
+	同一个网络的定义：
+		在同一个物理网段内，主机的ip具有相同的net_id，且具有唯一的host_id
+		
+	loopback：测试操作系统内部循环的一个网段
+	
+	
+	特权端口：0-1024
+		特权端口要启动时，启动者的身份必须是root
+		
+	防火墙		
+		主要针对tcp/ip的数据包头部进行过滤，分析的是osi的2,3,4层，控制mac，ip，icmp，tcp和upd的端口和状态
+		linux主要通过Netfilter和TCP Wrappers两个机制来管理的
+		
+		linux系统上防火墙的主要类别
+			1.单一主机型
+				Netfilter和TCP Wrappers
+			2.网络型
+				Netfilter和Proxy Server
+				
+				
+			Netfilter(数据包过滤)
+				针对mac，ip，icmp的类别，ucp，tcp的状态以及port
+			TCP Wrappers(程序管理)
+				针对程序名称(与其启动的端口无关)
+					/etc/hosts.allow	/etc/hosts.deny
+						规则：
+							服务(程序名):ip/netmask
+								默认不支持子网缩写
+							hosts.allow ---> hosts.deny
+					支持的程序：
+						1.由super daemon(xinetd)所管理的服务
+						2.支持libwrap.so模块的服务(可用 # ldd `which sshd` | grep libwrap 来查看)
+			Proxy(代理服务器)
+				是一种网络服务，可以代理用户的需求，通常架设在路由器上
+				
+		DMZ：非军事化隔离区
+			将网络服务独立放置在两个防火墙中间的网络。其重点在于保护服务器本身，能将Internet与Lan都分隔开来
+			
+		三表五链
+			Filter：针对本机数据包，默认
+				input， output，forward
+			NAT：	针对主机后的局域网
+				prerouting，output，postrouting
+			Mangle：针对特殊的数据包的路由标志
+				all
+				
+		语法
+			查看
+				# iptables [-t table] [-L] [-nv]
+					-t后接表，默认为filter，也可是nat
+					-n不进行ip与hostname的反查
+					-v列出更多信息
+					
+					target：代表进行的操作
+						accept，reject，drop
+					prot：	代表使用的数据包协议
+						tcp，udp，icmp
+					opt：	额外的选项说明
+					source：针对来源ip
+					destination：针对目标ip
+				# iptables-save
+			清除
+				# iptables [-FXZ]
+					-F		清除所有已指定的规则
+					-X		清除用户自定义的chain
+					-Z		将所有的chain的计数与流量统计都归零
+			定义默认策略
+				# iptables [-t table] -P CHAIN ACCEPT/DROP/REJECT
+			定义规则
+				# iptables [-AI CHAIN] [-io 网络接口] [-p 协议] [-s 来源网络] [--sport 端口范围] [-d 目标网络] [--dport 端口范围] -j [ACCEPT/DROP/REJECT/LOG]
+					-A		追加一条规则，在最后
+					-I		插入一条规则，在第一条
+					
+					-i		须与input配合
+					-o		须与output配合
+					
+					-p		tcp，udp，icmp和all
+					
+					-s		ip/mask，若是不许： ! ip/mask
+					-d		同-s
+					
+					--sport	其端口范围可以使连续的,eg： 30001:30009
+					
+					-j		LOG(将对应的数据包相关信息记录到内核日志(/var/log/messages)中)
+					没有指定的项目，则表示该项目完全接受
+				
+				# iptables -A INPUT -i eth0 -p tcp --sport 1:1023 --dport  1:1023 --syn -j DROP
+					丢弃来自远程的小于1023的端口数据的主动连接，但不适用于ftp的主动连接中
+					
+			外挂模块
+				# iptables -A INPUT [-m 模块] [--state 状态]/[--mac-source *] -j ***
+					-m：iptable的外挂模块
+						state：	状态模块
+							--state：数据包状态
+								INVALLD:	无效的数据包，eg：数据 破损
+								ESTABLISHED:已经连接成功的连接状态
+								NEW：		想要新建立连接的数据包状态
+								RELATED:	表示该数据包与主机发送出的数据包有关
+						mac：	网卡硬件地址
+							--mac-source：	来源主机的mac
+				
+	查看内核捕捉网卡的信息
+		# dmesg | grep -in 网卡设备名
+	
+		Centos7的使用的网卡模块一般为r8169
+		# modinfo r8169
+		
+	升级内核
+		# yum install kernel
+	升级系统
+		# yum update -y
+			
+			yum clean [packages/headers/metadata/cache/all]
+				清除在/var/cache/yum中的数据
+	网络文件
+		/etc/sysconfig/network-scritps/ifcfg-***
+		/etc/sysconfig/network
+		/etc/resolv.conf
+		/etc/hosts
+		/etc/services
+		/etc/protocols
+		
+		在网络配置文件中，hwaddr可略，但若有多个相同网卡，且使用模块相同，须写入
+	
+	网络命令
+		ifconfig ifup/ifdown  route   ip  dhclient
+	
+	
+		ifconfig -a
+		ifconfig eth0 options
+			options:
+				up,down
+				mtu 9000
+				ip/mask
+				
+		ifup/ifdown
+	
+		route -n
+		route add/del -net/-host ip netmask mask gw ip/dev interface
+		route add default gw ip
+		route del default
+		
+		
+		
+		ip 		neighbour/link/addr/route
+			ip -s l
+			ip nei 
+			
+			ip link set device option
+				option:
+					up/down
+					address **.**.**.**		设置mac				网卡须支持mac更改
+					name new_dev			设置设备名
+					mtu 9000
+					
+			ip add add ip/mask broadcast + dev eth0 label eth0:0
+			ip add del ip/mask dev eth0 
+				
+				scope：
+					global			允许所有来源的连接
+					site			仅支持ipv6，仅允许本主机连接
+					link			仅允许本设备自我连接
+					host			仅允许本主机内部的连接
+			ip rou | column -t
+			ip route add ip/mask dev eth0
+			ip route add ip/mask via ip dev eth0
+			ip route add default via ip dev eth0
+			
+			ip route del ip/mask
+				
+			
+				proto：此路由的路由协议
+					redirect
+					kernel			直接由内核判断自动设定
+					boot
+					static
+					ra
+				scope：路由的范围
+					link			与本设备直接连接
+					
+				静态路由：
+					在route-interface中写入
+						ip/mask via ip dev eth0
+					
+		dhclient eth0
+	 无线网络
+		iwlist	iwconfig
+		
+	ss代替netstat
+
+	nmtui属于curses-based text user interface（文本用户界面)，用于修改网络和主机名
+		# nmtui
+		# nmtui help
+	nmcli
+		显示链接
+			# nmcli conn show
+		显示设备
+			# nmcli dev show
+
+	
+	ping
+		若主机与检测主机不在同一个网络中，TTL默认使用255，若在一个网络中，默认使用64
+		ping options ip
+			options
+				-c N		
+				-n			在输出数据时，不进行ip与主机名的反查，直接使用ip输出
+				-s N		输出的icmp大小
+				-t N
+				-W N
+				-M do/dont	用于检测mtu
+							do：可重新拆包与打包
+							dont：不允许
+	traceroute options ip				# yum install traceroute 
+		options：
+			-n				不进行名称解析
+			-U				使用udp的33434来检测，默认
+			-I				使用icmp方式检测
+			-T				使用tcp的80来检测，由于目前udp/icmp攻击较多，很多路由器可能取消了这两个数据包的响应功能，可使用tcp
+			-W N			若N秒内没回应则不通，默认5s
+			-p N			设置端口号
+			-i dev
+		
+	yum install bind-utils bind-libs
+
+		host host_name [server_ip]
+			-a				列出详细设置
+	
+		nslookup host_name/ip
+		
+		dig
+		
+		
+	telnet可以连接到某个端口上
+		# telnet ip port
+		
+	ftp ip
+	lftp [-p port] [-u user[,passwd]] ip		
+		
+	links
+	wget options 网址				/etc/wgetrc
+		--http-user=username
+		--http-password=password
+		--quiet
+	
+	捕获数据包	yum install tcpdump
+		# tcpdump [-Aennqx] [-i 接口] [-w 存储文件名] [-c 次数] [-r 文件] [格式]
+			-A			以ascii显示，常用来抓取网页数据
+			-e			使用mac来显示
+			-nn			直接以ip显示
+			-q			简略显示
+			-x			列出十六进制及ascii显示，用于监听数据
+			-w			存入文件
+			-r			从文件中读出数据(-w的文件)
+			-c			监听的数据包数
+			
+		# tcpdump -i eth0 -nn -port 21 -X
+	
+	启动端口连接	yum install nc
+		登录端口
+			# nc ip port
+		激活端口并监听
+			# ncat -l ip port 
+		
+			
+	
+	stand alone		较快响应速度
+	super daemon	可以额外提供一些管理
+	
+	acpid			电源管理模块
+	haldaemon		用于系统硬件变更检测的服务，与usb设备有关
+	
+	
+				
+		
+	主机受攻击后的恢复流程
+		1.立即拔除网线
+		2.分析日志(/var/log/messages,/var/log/secure,last)
+		3.检查主机开放的服务
+		4.查询internet上的安全通报
+		5.重要数据备份(/etc/passwd,/etc/shadow,www,/home等)
+		6.最好重新安装
+						
+						
+	域名注册网站
+		静态DNS
+			http://www.netsol.com
+			http://www.dotster.com
+			http://www.godaddy.com
+		动态DNS
+			http://www.no-ip.com		--- 免费
+			
+			
+	远程连接
+		文本明文：Telnet，RSH
+		文本密文：SSH
+		图形：XDMCP,VNC,XRDP
+		
+			ssh加密/解密主要使用RSA/DSA/Differ-Hellman等机制
+			注：
+				1.每次启动ssh时，若无公私钥，则会自动创建(/etc/ssh/ssh_host*)
+				2.只有客户端会记录曾经连接过的服务器，服务器不记录曾经的客户端
+				3.客户端的秘钥随机产生于本次连接当中
+				4..ssh目录必须为700，authorized_keys文件必须为644
+				
+			免密码登录
+				# ssh-keygen 
+				# ssh-copy-id user@ip
+				# ssh user@ip
+			
+			ssh的安全设置
+				1.ssh本身的强化(/etc/ssh/sshd_config)，默认即可
+				2.TCP Wrapper的使用
+				3.iptable
+			
+			客户/服务器的概念指的是具体运行的进程，而非电脑或用户。不是与用户联系最密切的电脑就是客户，而是首先要明确服务资源，
+			然后再以资源提供者和资源占用者来进行区分
+			
+			X server：负责屏幕画面的绘制与显示
+			X client：负责数据运算
+			WM		：控制所有X Client的程序，Window Manager
+						Gnome，Kde，Xfce
+			DM		：提供用户登录界面，并启动WM
+			
+				X window启动
+					DM ---> 加载一个X server ---> WM ---> X client 
+					
+				XDMCP（X Display Manager Control protocol
+					port：177/udp
+					
+					XDMCP协议由DM提供，可根据不同的DM来进行设置
+						X11：XDM
+						KDE：KDM
+						Gnome：GDM
+						
+					安装
+						# yum install "Desktop" "Desktop Platform" "X Window System"
+					配置
+						vim /etc/gdm/custom.conf
+							[security]
+								AllowRemoteRoot=yes				# 默认不许root登录
+								DisallowTCP=false				# 允许客户端以tcp方式连接
+							
+							[xdmcp]
+								Enable=true						# 启动XDMCP
+					启动
+						# init 5		/ 	# gdm		
+					
+					客户端
+						开启6000-6010端口
+						
+						linux：
+							xhost + 是使所有用户都能访问Xserver. 
+							xhost + ip使ip上的用户能够访问Xserver. 
+							xhost + nis:user@domain使domain上的nis用户user能够访问 
+							xhost + inet:user@domain使domain上的inet用户能够访问。
+							
+							# xhost + ip
+							# X -query ip :1
+						windows：
+							软件：Exceed，Xming
+			
+			SSH
+				当ssh更改端口时，可能会提示SElinux错误，参照/etc/ssh/sshd_config文件说明
+			
+	systemd的服务管理程序
+		列出正在运行的服务
+			# systemctl
+		以树形列出正在运行的进程
+			# systemd-cgls
+		控制
+			# systemctl start domain
+			# systemctl stop domain
+			# systemctl restart domain
+			# systemctl status domain
+			# systemctl enable domain
+			# systemctl disable domain
+			# systemctl is-enabled domain
+			# systemctl list-unit-files
+			# systemctl is-active domain
+		切换运行级别
+			# systemctl isolate multi-user.target
+			# systemctl isolate graphical.target
+		修改默认级别
+			# ln -sf /lib/systemd/system/{multi-user.target,graphical.target} /etc/systemd/system/default.target
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+	
+						

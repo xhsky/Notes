@@ -1,0 +1,101 @@
+
+
+
+Controller节点安装
+	
+	RabbitMQ
+	MySQL
+	Keystone
+	Glance
+	Neutron
+	Nove(除去nova-compute)
+	Cinder(除去cinde-volume)
+	Horizon
+	
+	
+	注意所有组件的日志文件权限
+	
+	1.添加liberty源
+		# yum install centos-release-openstack-liberty
+	2.安装ntp时间同步
+		# yum install ntp
+		# 启动
+	3.安装mysql
+		# yum install mariadb-server python-mysqldb 
+		# 启动
+	4.安装Messaging
+		# yum install rabbitmq-server
+			安装后在/etc/hosts中写入 127.0.0.1 hostname name
+		# systemctl start rabbitmq-server
+		
+	Keystone
+		安装
+			# yum install openstack-keystone
+		更改配置
+			# vim /etc/keystone/keystone.conf
+				admin_token=openstack
+				debug=True
+				verbose=True
+				connection=mysql://keystoneuser:openstack@localhost/keystone
+		建立数据库：
+			# mysql -uroot -p -e "create database keystone;"
+			# mysql -uroot -p -e "grant all privileges on keystone.* to keystone@"%" identified by openstack;"
+		初始化数据库：
+			# keystone-manage db_sync
+		启动：
+			# systemctl start openstack-keystone
+	
+	Glance:
+		# yum install openstack-glance
+		# vim /etc/glance/glance-api.conf
+		
+		# vim /etc/glance/glance-registry.conf 
+			
+		# glance-manage db_sync
+		
+		
+	Neutron
+		yum install openstack-nentron openstack-neutron-openvswitch
+		
+	Nova：
+		yum install openstack-nova
+		
+		
+		启动顺序	api nova-cells   nova-cert       openstack-nova-conductor      
+			nova-consoleauth   openstack-nova-console  compute
+			
+			
+    Horizon
+		yum install openstack-dashboard
+		
+		
+		
+		
+其实OpenStack的nova-network部署可以分成3个网段。公网网段，内网网段和虚拟机网段。
+公网网段指的是可以直接访问到互联网的网段（但是此IP不一定非要从公司外部也能访问，
+这里的内外是从OpenStack网络系统出发而不是从公司网络的视角出发，请注意），
+也就是Floating IP配置的网段，我把它绑定在了Eth0。内网网段指的是OpenStack系统内各
+服务器之间互联的顶层交换机所划的网段，这里将其设置为192.168.3.X，此网段无需出口，
+我把它绑定在了Eth1，在公司的网络也就是公网网络是访问不到的。虚拟机网段指的是虚拟机运
+行时其IP所在的网段，也就是Nova-Network中提到的Fix-IP，由于NOVA底层是采用libvirt，所
+以OpenStack内部默认将其设置为桥接网络br100，这里将其桥接在内网网络上，也就是Eth1
+
+
+
+两年后再来看H版的OpenStack，子项目已经暴增到9个，对一个新人而言也许难以下手，但如果
+可以从发展的角度看，会清楚很多，我是这样理解：最初的A版应该是学习AWS的EC2+S3，只抽象
+出计算与存储两个服务；存储一直是一个比较容易理解的层次，接口明晰，而计算/VM则变数很多，
+一开始也只能将Image的管理剥离出来，成为Glance；后来，为了产品化，出于安全性及简化使用
+的需求，洐生了Keystone和Horizon；再后来，E版对Nova进行了大的调整，尽量解耦，从而允许网
+络和卷管理独立，为后来Neutron和Cinder的出现做了铺垫；再后应该是出于监控和统计的需求，
+出现了Ceilometer；然后发现过度解耦，提供的选择太多，组织起来比较麻烦，所以做了Heat（我
+相信，如果OpenStack继续像Linux那样发展下去，将来Heat会变成今天Linux Kernel的menuconfig:）
+从这个过程可以看出，大部分的功能，都是慢慢从最核心的计算需求中抽离出来的。
+
+
+
+您会发现文档中的安装演示步骤都是以Ubuntu为模板的。这也不足为怪，因为OpenStack基金会与Ubuntu
+的东家Canonical合作甚密；并且文档是以搭建实验开发平台为读者目标进行编攒的，以Ubuntu的apt-get
+管理方式进行OpenStack的安装确实也会给初学者带来许多方便。但是，如果您需要搭建一个多节点平台，
+一个真正需要运营的生产环境，还是建议使用CentOs，或者是商业系统RedHat等。因为毕竟Ubuntu开发中
+面向的群体主要还是桌面用户，对于服务器的支持并不是十分友好。

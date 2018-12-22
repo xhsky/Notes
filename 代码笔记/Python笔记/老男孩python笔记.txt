@@ -1,0 +1,1192 @@
+
+Python擅长的领域:
+	1.web开发
+		Django、pyramid、Tornado、Bottle、Flask、WebPy
+	2.网络编程
+		Twisted、Requests、Scrapy、Raramiko
+	3.科学运算 人工智能
+		Scipy、Pandas、Ipython NumPy、Matplotlib、Enthought librarys
+	4.GUI图形开发
+		wxPython、PyQT、Kivy
+	5.运维自动化
+		OpenStack、SaltStack、Ansible、腾讯蓝鲸
+	6.金融
+		语言结构清晰简单、库丰富、擅长科学计算和统计分析。生产效率远高于C C++ Java，尤其擅长策略回测
+
+课程介绍
+	语言基础: 5-6 weeks
+		数据类型
+		流程控制
+		常用模块
+		函数、迭代器、装饰器
+		递归、迭代、反射
+		面向对象编程
+		购物车程序
+		ATM信用卡程序开发
+		计算器程序开发
+		模拟人生游戏开发
+	网络编程: 4-5 weeks
+		Socket c/s编程、Twisted异步网络框架、网络爬虫开发
+		多线程、多进程、协程gevent、select/poll/epoll
+		生产者消费者模型
+		审计堡垒机系统开发
+		FTP服务器开发
+		批量命令、文件分布工具
+		RabbitMQ消息队列、SqlAlchemy ORM
+		类SaltStack配置管理工具开发
+		Redis/MEMCache/MongoDB 缓存数据库
+	Web基础开发:3-4 weeks
+		Html/CSS基础
+		Dom编程
+		原生JS学习
+		Jquery/EasyUi/AngulaJS
+		Ajax异步加载
+		Highchart画图
+		Bootstrap
+	算法&设计模式:2 weeks
+		冒泡、二叉树、哈希、拆半等常见算法学习
+		工厂模式、单例模式、享元模式、代理模式等常用设计模式学习
+	PY WEB框架 5 weeks
+		MVC架构讲解
+		自行开发一个WEB框架
+		Django/Tornado/Flask/Bottle/WebPy框架学习
+		Session/中间件/ORM/Cookie/CSRF/FORM ...
+		Restful API框架
+		权限管理后台开发
+		开发BBS论坛
+		开发WEB聊天室
+	项目实战篇 8 weeks
+		购物商城开发
+		主机管理+任务编排+运维审计堡垒机开发
+		分布式类Nagios/Zabbix监控产品开发
+		CMDB资产管理开发
+		基于用户视角的网站访问质量检测分析平台开发
+		Docker自动化管理平台开发
+		OpenStack二次开发
+
+目标:
+	开发自动化运维平台、监控、CMDB、Docker/Openstack/Zabbix等开源软件二次开发，web聊天软件，BBS，博客，企业网址等
+
+All growth is a leap in the dark!
+
+
+编程语言分类
+	编译型和解释型
+	静态语言和动态语言
+		静态语言:是指静态类型语言，其数据类型是在编译期间检查的(写程序时要声明所有变量的数据类型)
+		动态语言:是指动态类型语言，其数据类型是在运行期间检查的(永远也不用给任何变量指定数据类型)
+	强类型定义语言和弱类型语定义言
+		强类型定义语言:强制数据类型定义的语言。一个变量一旦被指定了某个数据类型，如果不经过强制转换，则它永远都是这个数据类型，强类型定义语言
+									是类型安全的语言
+		弱类型定义语言:数据类型可以被忽略的语言。它与强类型定义语言相反，一个变量可以被赋予不同类型的值
+		
+		注:
+			1.强类型定义语言在速度上可能略逊色于弱类型定义语言，但强类型定义语言带来的严谨性能有效避免许多错误
+			2.一种语言是不是动态语言于该语言是否类型安全之间完全没有联系
+
+
+			Python是一门动态解释型的强类型定义语言
+				缺点:
+					1.速度慢，比C要慢很多，也比java慢一些
+					2.代码不能加密
+					3.线程不能利用多CPU问题。GIL(全局解释器，Global Interpreter Lock),是计算机程序设计语言解释器用于同步线程的工具，使得任何时刻仅有一
+						个线程在执行，Python的线程是操作系统的原生线程。在Linux为pthread，在Windows上为Win thread，完全由操作系统调度线程执行。即使在多
+						核CPU平台上，由于GIL的存在，都会禁止多线程的并行执行
+
+Python解释器
+	CPython:
+		C语言开发的解释器，同时也是官方版本的解释器。
+	IPython:
+		基于CPython之上的一个交互式解释器。只是在交互式上有所增强，其余和CPython完全一样
+	PyPy:
+		它的目标是执行速度，采用JIT技术，对Python代码进行动态编译(不是解释)，可以显著提高Python代码的执行速度(比Java快，不比C慢)。
+		绝大部分的Python代码都可以在PyPy下执行。但PyPy和CPython有所不同，则会导致相同的Python代码在两种解释器下运行处不同的结果。需要了解PyPy和
+		CPython的不同点。PyPy的改进是在内部机制上更改，对外运行和CPython相同
+	JPython:
+		运行在Java平台上的python解释器，可以直接将Python代码编译成Java字节码执行(由JVM执行)
+	IronPython:
+		类似JPython，是运行在.net上的python解释器，可以直接将Python代码编译成.net字节码
+
+Python2和Python3的区别:
+	最大的改变是Python3支持了Unicode
+	print语句
+	库名改变
+	
+	python3中input 等于 python2中raw_input。Python2中的input所输入的内容被当做变量处理，加引号才当字符串处理
+
+
+
+
+#!/usr/bin/env python
+# coding:utf8								显示规定按utf8编码执行该脚本
+
+
+if __name__ == '__main__':
+  pass
+
+  用于区分该文件是主动被执行还是由其它文件调用执行(import)
+    主动执行则 __name__为__main__
+    被调用执行则 __name__为文件名(不加.py即模块名)
+
+
+
+变量:
+	取名:
+		1.字母，数字，下划线组合
+		2.开头不能为数字
+		3.关键字不能为变量名:
+			and,as,assert,break,class,continue,def,del,elif,else,except,exec,finally,for,from,
+			global,if,import,in,is,lambda,not,or,pass,print,raise,return,try,while,with,yield
+		注:
+			1.字母连接之间尽量用下划线
+			2.Python中无常量，若想表示常量，则变量名为大写，意为尽量不要更改
+
+
+字符编码:
+	python解释器在加载.py文件中的代码时，会对内容进行编码(默认ascill，主要用于显示现代英语和其它西欧语言，用8位来表示。)
+	
+	ascill,包含了127个英文字符	
+	1980年，gb1312存储7445个中文字符(简体中文)
+		big5(繁体中文)
+	1995年，gbk1.0收录了21886个中文字符
+	2000年，gb18030取代gbk1.0成为国家标准，收录27484个中文字符，且收录了主要少数民族文字
+		现在pc平台必须支持gb18030,对嵌入式产品不作要求。故手机、mp3一般只支持gb2312
+		但gb编码只是针对中文的。其他非英文字符用其它编码表示。多编码会造成整个编码系统混乱，故推出Unicode码。兼容所有字符和编码，
+    unicode中存一个英文字符和中文汉字都占两个字节
+		同时规定所有的字符和符号最少用16位来表示。即原ascii编码系统存储至少变大了一倍
+	utf-8是对Unicode编码的压缩和优化。将所有的字符和符号进行分类: ascii码中的内容用1个字节来保存，欧洲的字符用2个字节，东亚的字符用3个字节
+
+  编码与转码
+    utf8.decode  ---> unicode <--- gbk.decode
+    unicode.encode ---> utf8/gbk
+
+
+注释:
+	#									单行注释
+	''' '''/""" """  	多行注释、打印多行内容
+	''/""							括住变量内容(单行)，不加区别使用。只有在混用是嵌套使用以区别
+
+输入输出:
+	input()			所输入内容统一被认为是字符，若需要其它格式，则用需强制类型转换int(),str()
+		输入不显示:
+			import getpass
+			password = getpass.getpass("password:")
+	print()			%s:字符串 %d:整型 %f:浮点数
+    变色: print("This is \033[31:1m%s\033[0m color" % "red")
+		格式化输出三种方式
+			1. info1 = """\
+                ----------- info of %s ----------------
+                Name:%s
+                age:%d
+                salary:%s
+                """ % (name,name,age,salary)
+            2. info2 = """
+            ------------- info of {_name} ------------
+            name:{_name}
+            age:{_age}
+            salary:{_salary}
+            """.format(_name=name,_age=age,_salary=salary)
+            3. info3 = """
+            ------------ info {0} ------------
+            name:{0}
+            age:{1}
+            salary:{2}
+            """.format(name,age,salary)
+
+流程控制:
+	逻辑判断
+		if
+		esif
+		else
+	循环
+		while True:
+		else:
+
+		for
+		else:
+
+
+
+库/模块:
+	1.标准库/内置模块: Python本身自带，不需要安装的库
+    时间: 三种表示(自定义字符串, 时间戳, 元组)
+      import time:
+        time.timezone: 本地时间和utc相差秒数
+        time.altzone: 夏令时和utc相差秒数
+        time.daylight: 是否使用夏令时
+
+        time.time(): 返回时间戳
+        time.sleep(N): 暂停N秒
+
+        time.gmtime([N]): 将时间戳转换为utc的元组时间, 无参数则默认当前时间戳
+        time.localtime([N]): 将时间戳转换为本地的元组时间, 无参数则默认当前时间戳
+        time.mktime(tuple): 将元组时间转换为时间戳
+
+        time.strftime(format[, tuple]): 将元组时间转换为字符串时间
+        time.strptime(string, format): 将字符串时间转为元组时间
+
+        time.asctime([tuple]): 将元组时间转换为字符串时间(系统定义)
+        time.ctime([N]): 将时间戳转为字符串时间(系统定义)
+
+      import dateime:
+        datetime.datetime.now()   返回当前时间
+        datetime.datetime.now()+datetime.timedelta(3)               当前时间加3天
+        datetime.datetime.now()+datetime.timedelta(-3)              当前时间减3天
+        datetime.datetime.now()+datetime.timedelta(hours=3)         当前时间加3小时
+        datetime.datetime.now()+datetime.timedelta(minutes=30)      当前时间加30分钟
+      
+      import random
+        random.random()               返回[0,1)之间的随机小数
+        random.uniform(M, N)          返回[M,N)之间的随机小数
+        random.randint(M, N)          返回[M, N]之间的随机整数
+        random.randrange(M, N[, n])   返回[M, N)之间的随机整数, n为步长
+        random.choice(sequence)       随机返回序列中的一个元素
+        random.sample(sequence, N)    随机返回序列中的N个元素
+        random.shuffle(list)          将list中的元素打乱, 洗牌
+      import os                       提供对操作系统进行调用的接口
+      import sys
+        sys.argv                      命令行参数, 第一个元素时程序本身路径
+        sys.exit([n])                 退出程序
+        sys.version                   获取Python的版本信息
+        sys.path()                    模块的搜索路径
+        sys.platform                  操作系统平台名称
+        sys.stdout.write("str:")
+        var=sys.stdin.readline()[-1]
+      import shutil               高级的文件 文件夹 压缩包处理模块
+        
+      import json                 字符串和Python数据类型间转换
+        json.dumps()
+        json.dump()
+        json.loads()
+        json.load()
+      import pickle               Python特有的类型和Python数据类型间转换
+        pickle.dumps()
+        pickle.dump()
+        pickle.loads()
+        pickle.load()
+      import shevle               简单的, k-v的将内存数据持久化的模块
+      import xml  
+      import pyyaml               用于配置文件
+      import configparser         生成和修改常见的配置文档
+      import hashlib              加密相关的操作, 3.x代替了md5模块和sha模块, 主要提供sha1, sha224, sha256, sha384, sha512, md5等算法
+      import hmac                 双层加密
+      import re                   正则
+        re.match()                从头开始匹配
+        re.search()               只返回第一个匹配
+        re.findall()              返回所有匹配, 以list形式
+        re.split()                匹配到的字符当做分隔符
+        re.sub()                  匹配字符并替换
+        匹配\
+
+
+        
+
+        
+
+        
+      
+  2.第三方库/开源模块: 安装才能用
+  3.自定义模块
+
+  模块本质就是py文件, 为了实现某个功能
+  包: 本质就是个目录, 但必须带有一个__init__.py文件. 为了组织模块
+
+  import module1_name, module2_name                 # 将module_name中的所有代码运行一边然后赋值给module_name
+  from module_name import m1, m2, m3                # 将module中的m执行在当前文件中执行了一遍
+  from module_name import m1 as m1_alias            # 别名. 若多次使用module_name.m1(), 则每次都会有查找的过程. 故可使用该方式直接导入m1, 作为优化, 不用每次查找
+
+  导入模块的本质: 把python文件解释了一遍
+  导入包的本质: 执行该包下的__init__.py文件
+
+  导入动态库: 导入模块名的字符串形式(lib/aa.py)
+    import importlib
+    aa.mod = importlib.import_module('lib.aa')
+
+
+
+  搜索的库路径: print(sys.path)
+  sys.argv: 文件名及参数列表    sys.argv[0]   sys.argv[1]
+
+  os.system("ls")          调用系统命令, 返回状态值
+  os.popen("ls").read      调用系统命令, 返回显示结果 
+  os.mkdir("dir_name")     创建目录
+
+  定义库目录:
+    import os
+    import sys
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(base_dir)
+
+pyc: pyc实则是PyCodeObject的一种持久化方式
+  1.python运行时, 先将编译的结果保存在内存中的PyCodeObiect中, 当python程序运行结束后, python解释器将PyCodeObject写回到pyc文件中.
+  2.当Python程序第二次运行时, 会先寻找pyc文件.
+  3.若找到, 则对比pyc文件和py文件的更新时间.若py文件时间更新,则重新执行上诉过程.若pyc文件时间新, 则直接载入, 节省了编译时间
+  4.若找不到, 则重复上面过程
+
+数据类型:
+  int       python3无long int类型, 一律使用int
+  float     5.23E-4 == 5.23 * 10 ** -4 
+  complex
+
+  boolean   True|False
+
+  str      存储文本, 不能修改
+  bytes     存储二进制(音频,图片), 不能修改
+    python3不会以任何隐式的方式转换str和bytes
+
+    bytes和str的相互转换:
+      str.encode("utf8") ---> bytes ---> bytes.decode("utf8") ---> str
+
+三元运算:
+  result = value1 if condition else value2
+  值为真, result = value1
+  值为假, result = value2
+字符串: str
+  str.capitalize()      首字母转成大写
+  str.count("str")      计数
+
+  str.center(40, '-')   str居中, 不足40补-
+  str.ljust(50, "*")    居左, 不足50右补*
+  str.rjust(50, "*")    居右, 不足50左补*
+
+  str.encode("utf8")    编码
+  str.endswith("ends")  str是否以"ends"结尾
+  str.startswith("starts")  str是否以"starts"开头
+  str.find("st")        查找符合的第一个字符的第一个字母索引
+  str.rfind("st")       查找符合的最后一个字符的第一个字母索引
+  str.format(name="sky", year=26)
+  str.format_map({"name":"sky", "year":26})
+  str.index("s")        索引
+  str.isalnum()         是否完全由字母和数字组成
+  str.isalpha()         是否完全由英文字母组成
+  str.isdecimal()       是否完全由十进制组成
+  str.isdigit()         是否完全由整数组成
+  str.isidnetifier()    是否为一个合法的标识符
+  str.islower()    是否是小写
+  str.isupper()    是否是大写
+  str.isnumeric()       是否是全是由数字组成
+  str.isspace()         全是空格
+  str.istitle()         每个首字母大写
+  str.join()            合并为字符串     "+".join(["1", "2", "3"])     1+2+3
+  str.lower()           转为小写
+  str.upper()           转为大写
+  str.swapcase()        将字符中大写转为小写, 小写转为大写
+
+  str.lstrip()          去除字符串左边的空格和换行
+  str.rstrip()          去除字符串右边的空格和换行
+  str.strip()           去除字符串两边的空格和换行
+  str.replace("old", "new"[, 1])   将字符串中old替换成new. 默认-1全部替换, 1则只替换第一个
+  str.split("st")                  st为分隔符, 将str分隔为列表.默认分隔符为空格
+  str.splitlines()                 将换行符为分隔符, 将str分隔为列表.
+  str.title()                     将字符转换为title
+
+列表: list
+  list_name[] 空列表
+  list_name[1:3:N]  切片, 左闭右开
+  list_name.index("list_1")  索引
+
+
+  list_name.insert(N, "list_n") 插入
+  list_name.append("list_last") 追加
+  list_name.extend(list_name2)  追加新列表
+  list_name.clear()             清空
+
+  list_name_new = list_name.copy()            浅复制(只拷贝第一层)   
+                = list_name[:] 
+                = copy.copy(list_name)        import copy
+                = list(list_name)
+  import copy; copy.deepcopy(names)   深复制
+  list_name_new=list_name 软连接
+
+  del list_name[n]
+  list_name.remove(n)
+  list_name.pop([n])  参数为空, 默认最后一个.否则指定第n个
+
+  list_name[2] = "list_2"   更改
+  list_name.count("list_3") 计数
+  list_name.reverse()       翻转
+  list_name.sort()          排序, 特殊字符 -> 数字 -> 大写字母 -> 小写字母(ASCII排序)
+
+  for i in list_name:
+     print(i)
+  for index, item in enumerate(list_nam):
+    
+元组: tuple 只读列表
+  tuple_name=()
+  tuple_name[1:3:N]         切片
+  tuple_name.count("t_1")   计数
+  tuple_name.index("t_1")   索引
+
+字典: dict 无序的
+  dict["key"]
+  dict.get("key")             不存在返回None, 存在返回value. 推荐安全获取
+  dict["key"] = "value"      存在则修改, 不存在则添加
+  
+  del dict["key"]
+  dict.pop("key")             删除key
+  dict.popitem()              随机删
+  "key" in dict               是否存在该key
+
+  dict.keys()
+  dict.values()
+  dict.setdefault("key", "values")    若无key, 则添加并返回指定的values. 若有key, 则返回相应的values
+  dict.update(dict_new)               将dict_new覆盖到dict, 都存在的key则更新, 不存在的key则添加
+  dict.items()                        将字典转成列表, key和value以元组显示
+
+  dict.fromkeys(list, value)               通过一个list初始化一个dick. value若为多层, 则为浅复制. 这里直接用dict引用方法即可
+  dict.clear()
+  dict.copy()                         浅拷贝
+
+  for i in dict:
+    print(i, dict[i])
+
+  for k, v in dict.items():         # 会有一个dict转成list的过程, 若数据量过大, 则效率很低, 推荐使用上面的循环
+    print(i, k)
+
+集合: set, frozenset  无序, 去重, 关系测试(交, 并, 差)
+  set.intersection(set_other)         # 交集    set1 & set2
+  set.union(set_other)                # 并集    set1 | set2
+  set.difference(set_other)           # 差集    set1 - set2
+  set.issubset(set_other)             # 是否是子集
+  set.isupperset(set_other)           # 是否是超集
+  set.symmertric_dirfference(set_other)       # 对称差集      set1 ^ set2
+  set.isdisjoint(set_other)                   # 两个set无交集则为True
+
+  set.add("str")                          # 添加
+  set.update(list)                        # 添加多项
+
+  set.remove("str")                       # 删除并返回该值
+  set.discard("str")                      # 删除
+  set.copy()     浅拷贝
+  set.pop()      删除并返回任意一个元素
+
+
+  
+
+str, list, tuple, dict, set
+  len(structure)            # 长度
+  x [not] in structure            # 是否存在
+
+
+文件:
+  f = open("/path/file", "r", encoding="utf8"):
+    pass
+    a 追加
+    w 写
+    r 读
+    r+ 读写(追加)
+    w+ 写读(新建文件)
+    a+ 追加读
+    rb  二进制读      不能用encoding.   用处: 1.网络传送socket 2.二进制文件
+    wb  二进制写
+    ab  二进制追加
+  with open("/path/file", "r", encoding="utf8") as f:         该语句同f=open语句, 但可省略f.close() 当with代码块执行完后, 内部会自动关闭并释放文件资源
+    pass
+  with open("/path/file1", "r", encoding="utf8") as f1,  open("/path/file2", "r", encoding="utf8") as f2:  可同时对多个文件的上下文进行管理
+    pass
+    
+
+  f.read([N])             # 读取整个文件, N可读取前N个字符
+  f.readline()            # 读一行
+  f.readlines()           # 按行显示为列表(读取了整个文件, 只适合小文件)      
+    for line in f.readlines():
+    for line in f:        # 一行行读, 且内存中只保存一行. 迭代器.  效率最高
+
+  f.tell()                # 返回光标所在位置
+  f.seek(N)               # 将光标移动到位置N, 一般移到0
+  f.encoding              # 打印文件编码
+  f.name                  # 打印文件名
+  f.closed                # 文件是否关闭
+  f.readable()            # 文件是否可读
+  f.writeable()           # 判断文件是否可写
+  f.truncate([N])         # 截断文件, 默认全部清除. N: 从第N个字母开始截断. 光标位置每影响
+
+  f.flush()               # 将缓存中的数据写入磁盘
+  f.close()
+进度条:
+    import sys, time
+    for i in range(50):
+      sys.stdout.write("#")
+      sys.stdout.flush()
+      time.sleep(1)
+函数:
+
+    过程是没有返回值的函数. 在Python中, 将过程隐式地返回None
+
+  函数是将逻辑结构化和过程化的一种编程方法
+  递归函数:
+    函数内可调用函数, 若调用自身, 则为递归函数
+  高阶函数: 
+    1.函数接受另一个函数名作为实参(在不修改装饰器函数源代码的情况下为其添加功能)
+    2.函数中的返回值中包含函数名(不修改函数的调用方式)
+  匿名函数: lambda
+  嵌套函数:
+    在一个函数的函数体内, 用def来定义一个新函数
+  内置函数:
+    
+    
+  函数的好处:
+    1.代码重用
+    2.保持一致性
+    3.可扩展性
+  参数:
+    形参和实参
+
+    调用:
+      位置参数调用, 关键字参数调用, 默认参数, 参数组
+
+      参数组: 用于形参数目不固定的情况
+        1.可用*开头的变量来表示. 但会将N个位置参数按照元组的形式处理
+          def test(*args): 
+            print(args)
+          test(1, 2, 3, 4)
+          test(*[1, 2, 3, 4])
+        2.可用**开头的变量来表示. 但会将N个关键字参数按照字典的形式处理
+          def test(**kwargs): 
+            print(kwargs)
+          test(name="sky", age=18)
+          test(**{'name':"sky", 'age':18})
+
+      注:
+        1.实参中, 关键字参数要在位置参数之后
+        2.形参中, 参数组参数一定要在最后
+        3.参数组若未接受参数, 则表示()或{}
+
+
+  return语句:
+    1.返回值
+      数量
+        =0  返回None
+        =1  返回object
+        >1  返回tuple 可返回多个值, 任意类型. 该返回值以元组形式显示
+    2.结束函数
+
+  变量:
+    局部变量 全局变量
+    除了str和int, list, dict, set, class都可以在函数内部更改全局变量
+
+
+    
+eval("str")   将str转为dict
+    
+
+装饰器: decorator 也叫语法糖
+  本质是函数, 装饰其它函数(为其它函数添加附加功能)
+  原则:
+    1.不能修改被装饰函数的源代码
+    2.不能修改被装饰函数的调用方式
+
+
+迭代器&生成器: generator
+  列表生成式:       [ i*2 for i in range(10) ]
+
+  生成器: 一边循环一边计算的机制  ( i*2 for i in range(10) )
+    1.生成器只有在调用时才会去生成相应的数据. 只在内存中保留当前的数据
+    2. g.__next__()   
+    3. yield 
+
+  协程: 比线程更小的一个单位, 寄生在线程里
+
+面向对象: OOP, 利用类和对象来创建各种模型来实现对真实世界的描述, OOP可使程序的维护和扩展变得简单且大大提高开发效率. 
+  类是由type类实例化产生
+  class: 抽象
+  object: 具体
+
+  OOP的三大特性:
+    封装: encapsulation
+      class c_object(object):
+        pass
+    继承: inheritance, 节省代码
+      class c_object(object1[, object2]):
+        pass
+
+      1.可操作父类的属性和方法
+      2.子类执行过程中, 总是先在本类中查找对应的方法, 找不到后才到父类中逐个查找(包括构造和析构函数). 按照广度优先原则
+      3.子类初始化过程中不会执行父类的构造和析构函数, 除非手动自定(子类的构造函数参数必须包含父类的参数):
+          def __init__(self, name, age, sex):
+            father.__init__(self.name, age)                   # 经典类写法
+            super(son.self).__init__(name, age)               # 新式类写法, 多继承时按照广度优先继承一个父类
+
+      新式类和经典类:
+        py2: 经典类是按深度优先来继承的, 新式类是按广度优先来继承的
+        py3: 经典类和新式类都是按广度优先来继承的
+          
+    多态: polymorphism    一种接口多种实现
+      多态允许将子类的对象当做父类的对象使用, 某父类型的引用指向其子类型的对象, 调用的方法是该子类型的方法. 这里引用和调用方法的代码\
+      编译前就已经决定了, 而引用所指向的对象可以在运行期间动态绑定
+
+      封装: 隐藏实现细节, 使代码模块化. 继承: 扩展已存在的代码模块(类). 都是为了代码重用. 多态: 接口重用
+      Python不支持多态, 但可以间接实现
+
+  属性:
+    实例变量(静态属性, 通过class.var调用):  描述具体对象的属性
+    类变量(通过object.var调用):             公用的属性, 节省内存开销
+    私有属性(__var)
+  方法
+    实例方法: fun(self), 第一个参数强制为类实例参数
+      构造方法: __init__(self)
+      析构方法: __del__(seldf)
+      私有方法: __fun(self)
+    类的特殊成员方法:
+      obj.__doc__           类的描述信息
+      obj.__module__        当前对象属于那个模块
+      obj.__class__         输出当前类
+      obj()                 调用类中的__call__(self, *argv, **kwargv):
+      class.__dict__        类的所有属性, 不包括实例属性
+      obj.__dict__          实例中的所有属性, 不包括类属性
+      obj                   打印对象时会返回__str__(self)的返回值
+
+      obj[key]            自动触发 __getitem__(self):
+      obj[key]=value      自动触发 __setitem__(self):
+      del obj[key]        自动触发 __delitem__(self)
+
+      __new__()
+      __metaclass__()
+
+
+
+
+
+
+    类方法(动态属性): @classmethod
+      在实例方法上添加@classmethod. 只能访问类变量, 不能访问实例变量
+    静态方法: @staticmethod
+      在实例方法上一行添加@staticmethod, 则该类方法变为和类无关的函数(参数不需写self, 也无法访问类或实例中的任何属性). 唯一联系是需要通过实例调用
+    属性方法: @property
+      在实例方法上一行添加@property, 把一个方法变成静态属性
+
+      @fun.setter
+      @fun.delete
+
+    实例变量存储在实例的内存空间
+    类变量和类方法存储在类的内存空间
+
+  构造函数: __init__(self)
+    在实例化过程中初始化对象
+  析构函数: __del__(self)
+    在实例释放或销毁时自动执行的扫尾工作(关闭打开的数据库连接和打开的临时文件等)
+
+
+  私有属性: 在属性名前加 __ ,  只能在类内部调用
+  私有方法: 在方法名前加 __ ,  只能在类内部调用
+
+  class class_name:     经典类
+    pass
+
+  class class_name(object): 新式类
+    pass
+
+
+  反射:
+    通过字符串映射或修改程序运行时的状态, 属性和方法. 
+
+    getattr(obj, str)         根据str去获取obj里对应名称的方法的内存地址或属性的值
+    hasattr(obj, str)         判断一个对象里是否有名为str的方法或属性
+    setattr(obj ."str", v)    根据str设置/添加obj内同名的属性或方法. obj.str=v
+    delattr(obj, str)         根据str删除同名的属性或方法
+
+编程方法: 不同的编程方式的特点进行归纳总结得出来的编程方式类别, 即为编程范式
+  面向对象: 类(class)
+  面向过程: 过程(def)
+  函数式编程: 函数(def)
+    
+python开发规范: 一行最好不要超过80个字符
+软件目录结构规范:
+  Foo/
+    -- bin/                                         # 可执行文件(也可起名script/)
+      |-- foo
+    -- core/                                        # 存放项目的所有源代码. 源代码中的所有模块,包都在此目录.不要置于顶层
+      |-- test/                                     # 单元测试代码
+          |-- __init__.py
+          |-- test_man.py
+
+      |-- __init__.py
+      |-- main.py                                   # 程序入口
+    -- docs/                                        # 文档
+      |-- conf.py
+      |-- abc.rst
+    -- logs/
+    -- setup.py                                     # 安装, 部署, 打包脚本
+    -- requirements.txt                             # 软件依赖的外部python包列表
+    -- README                                       # 项目说明文件
+    -- LICENSE.txt
+    -- ChangeLog.txt                                
+
+异常:
+  try:
+    code
+  except error_type1 as e:
+    code
+  except error_type2 as e:
+    code
+  else:                             # 一切正常才执行
+    code
+  finally:
+    code                            # 不管有错没错都执行
+
+
+  try:
+    code
+  except (error_typ1, error_type2) as e:
+    code
+
+  try:
+    code
+  except Exception as e:
+    code
+
+
+  自定义异常:
+    
+    class SkyError(Exception):
+      def __init__(self, msg):
+        self.msg=msg
+
+    try:
+      raise SkyError("str")           # 主动触发异常
+    exception SkyError as e:
+      code
+
+  断言:
+    assert condition[, msg]
+
+
+Socket网络编程:
+  客户端发送的数据必须为bytes类型
+
+  粘包: 
+    原因: 网络编程中会有缓存发送和分包发送的机制
+      缓存发送: 发送端将几次发送的数据包缓存合成一个数据包在发送
+      分包发送: 当发送的数据超过MTU的大小时, 发送会将这个数据包分隔成几个不超过MTU的数据包发送
+    解决:
+      缓存发送: 在多个连续的send之间添加recv, 用来接收确认信息或判断yaoshou
+      分包发送: 在发送前将数据长度发送给客户端, 客户端多次接收数据, 直到长度大小相等
+
+  socketserver: 实现并发处理
+
+并发:
+  线程:
+    1.操作系统能够调度的最小单位, 包含在进程中, 是进程的实际运作单位. 
+    2.一条线程指的是进程中一个单一顺序, 是一串指令的集合
+    3.线程还可以创建线程, 但两者之间是平级关系
+    4.python多线程不适合CPU密集型任务(线程上下文切换好资源), 适合I/O密集型的任务
+
+    import threading
+    t=threading.Thread(target=fun, args(n, ))
+    t.setDaemon(True)     # 设置守护线程
+    t.start()             # 启动线程
+    t.join()              # 显式等待线程执行结束
+
+    threading.get_ident()   # 当前线程号
+
+
+    线程锁(互斥锁):
+      lock=threading.Lock()
+
+      lock.acquire()
+      pass
+      lock.release()
+    递归锁:  解决多重线程锁导致程序锁死问题
+      lock=threading.RLock()
+
+      lock.acquire()
+      pass
+      lock.release()
+
+    信号量: 
+      互斥锁: 同一时间允许一个线程更改数据.
+      信号量: 同一时间允许N个线程修改数据(某个线程完成后则补充新线程加入, 不会等待N个完成后再放进N个)
+
+      semaphore=threading.BoundedSemaphore(N)
+      semaphore.acquire()
+      pass
+      semaphore.release()
+
+    Events: 一个简单的同步对象(通过设置全局变量), 用于线程间交互
+      event=threading.Event()       # 定义event
+      event.wait()                  # 等待flag被设置
+      event.set()                   # 设置flag(全局变量)
+      event.clear()                 # 清空全局变量
+      event.is_set()                # 是否设置了标志位
+
+    线程Queue: 队列, 一个有顺序的容器. 只在线程间可以相互访问
+      1.解决程序解耦: 生产者和消费者无关, 只关注队列
+      2.提高效率: 生产者发送至队列后无须等待
+
+      在并发编程中使用生产者和消费者模型能够解决大多数的并发问题. 该模式通过平衡生产线程和消费线程的工作能力来提高程序的整体处理数据的速度
+
+      import queue
+      
+      q=queue.Queue([maxsize=N])                        # 先入先出队列,  maxsize设置队列长度, 0为无限制
+      q=queue.LifoQueue([maxsize=N])                    # 后入先出队列
+      q=queue.PriorityQueue([maxsize=N])                # 存储数据时可设置优先级的队列
+
+      q.put("str")                   # 放数据
+      q.put_nowait("str")            # 
+      q.get()                        # 取数据
+      q.get_nowait()                 # 当队列中无数据时, get()会卡主, get_nowait()会报异常退出
+
+      q.join()
+
+      q.all_tasks_done()             # 
+      q.task_done()
+
+      q.maxsize                       # 返回队列长度
+      q.mutex
+      q.not_empty                     # 队列是否为空
+      q.not_full                      # 队列是否满了
+      q.qsize                         # 队列当前长度
+      q.queue                         # 返回队列内容
+      q.unfinished_tasks
+
+      q1.empty()                      # 队列是否为空
+      q1.full()                       # 队列是否满了
+  协程: Gevent
+    又叫微线程, 用户态的轻量级线程. 实质是单线程, 在函数间切换(遇到I/O则切换, 即将I/O的时间省了出来)
+      线程切换时其上下文和栈会保存到CPU的寄存器里. 协程拥有自己的寄存器上下文和栈. 协程调度切换时, 将寄存器上下文和栈保存到其它地方, 切换回来时则恢复先前保存的寄存器上下文和栈
+      协程是由线程调度的
+
+    1.无法利用多核资源, 需要同进程配合才能运行在多CPU上
+    2.进行阻塞(blocking)操作(如I/O时)会阻塞掉整个程序
+
+    手动切换(greenlet)
+    自动切换(gevent), 封装了greenlet. 它是以C扩展的形式接入了Python的轻量级协程
+      import gevent
+      from gevent import monkey
+      monkey.patch_all()      # 将当前程序的所有I/O操作标记以便gevent识别
+
+      gevent.joinall(
+        [gevent.spawn(fun1, "arg"),
+        gevent.spawn(fun2, "arg"),
+        gevent.spawn(fun3, "arg")]
+        )
+
+    epoll底层是libevent.so实现的
+    gevent底层是libevent.so实现的
+  事件驱动:
+    网络编程范式:
+      事件驱动:
+        IO模式:
+          同步IO:
+            阻塞IO: 在内核准备数据和将数据从内核空间拷贝到用户空间两个阶段都被阻塞
+            非阻塞IO: 在后一个阶段阻塞等待, 第一个阶段, 当用户调用时, 内核会直接返回没有准备好数据的信息(即用户会不断的主动询问内核是否准备好数据)
+            IO多路复用: 有三种模式: select, poll, epoll. 监控多个文件描述符
+              select: select()系统调用监视多个文件描述符的数组, 当select()返回后, 该数组中就绪的文件描述符便会被内核修改标志位, 使进程可获得该描述符从而进行后续的读写操作
+                1.默认监控连接数1024
+                2.select()所维护的fg的数据结构越大, 其复制给用户(将数据结构从内存空间复制到用户空间)的开销也线性增长. 且用户程序还得重新扫描一遍fg, 获取准备好的fg
+              poll: 同select(), 但去掉了1024的数量限制
+              epoll: 
+                1.无连接数限制
+                2.只返回代表就绪的文件描述符数量的值, 则只需去fg数组中获取相应的文件描述符即可, 彻底省掉了fg在系统调用时复制的开销
+                3.epoll采用基于事件的就绪通知方式(select/poll中, 进程只有在调用一定的方法后, 内核才会对所有监视的fg进行扫描. 而epoll事先通过epoll_ctl()来注册一个fg, 一旦基于某个fg继续时, 内核会采用类似callback的回调机制, 迅速激活该fg, 当进程调用epoll_wait()时便得到通知)
+
+          异步IO: 两个阶段都非阻塞
+          信号驱动IO
+          
+      (同步)单线程编程:
+      多线程编程:
+    
+    
+    
+  进程:
+    1.只是资源的集合
+    2.进程要操作CPU, 必须先创建一个线程(进程至少包含一个线程(一般叫主线程))
+    3.进程不执行, 执行变成主线程
+
+    多进程可解决多核问题, 但进程之间无法共享数据
+
+    from multiprocessing import Process
+    p=Process(target=fun, args(n, ))
+    p.start()
+    p.join()
+
+    os.getppid()                  # 父进程pid
+    os.getpid()                   # 进程pid
+
+    进程间通信(中间件):
+      1.进程Queue(不是一个共享队列, 而是分别存在父, 子进程中. 通过pickle序列化到一块中间内存, 然后再反序列化到另一个进程实现队列共享)
+        from multiprocessing from Queue
+        q=Queue()
+
+        和线程queue用法基本相同
+        q.close()
+      2.Pipe
+        from multiprocessing from Process, Pipes
+        parent_conn, child_conn=Pipe()
+
+        p=Process(target=fun, args=(child_conn, ))
+        parent_conn.send("str")
+        parent_conn.recv()
+        parent_conn.close()
+      3.manager(类似进程Queue, 在多个进程间拷贝)
+        from multiprocessing from Process, Manager
+        with Manager() as manager:
+          d=manager.dict()              # 生成字典, 可在多个进程间共享数据
+          l=manager.list()              # 生成列表, 可在多个进程间共享数据
+
+          p=Process(target=fun, args(d, l))
+    进程锁: 防止屏幕输出混乱
+        from multiprocessing from Process, Lock
+
+        l=Lock()
+        l.acquire()
+        pass
+        l.release()
+
+    进程池: 多个关联进程之间的内存独立(内存数据克隆了多份), 资源占用大. 同一时间最多有N个进程在CPU上运行(当其中一个进程结束则新产生一个子进程加入)
+      from multiprocessing import Process, Pool
+      pool=Pool(N)      # 运行进程池中同时放入N个进程.
+      for i in range(10):
+        pool.apply(func=fun, args=(i, ))                          # 同步执行
+        pool.apply_aysnc(func=fun, args=(i, ))                    # 异步执行
+        pool.apply_aysnc(func=fun1, args=(i, ), callback=fun2)                    # 异步执行, callback为回调函数, func1子进程执行完后即执行func2(fun2是主进程执行而非子进程)
+
+      pool.close()              # 关闭pool, 使其不接收新的任务
+      pool.join()               # 必须写在close或terminate之后
+
+      
+      
+        
+
+
+  所有在同一个进程里的线程可以共享同一块内存空间的资源
+
+  主线程中开启多线程, 主线程退出之前, 最后默认有一个thread.join(), 等待所有非守护线程执行完后才退出程序(主线程代码早已执行完毕)
+
+  守护线程: 执行后台任务(发送keepalive包或执行定期垃圾回收等), 仅在主线程运行时有用, 当程序退出时, 守护线程自动被杀死
+    t.setDaemon(True)
+    t.start
+
+
+
+
+  1.线程共享进程的内存空间, 进程的内存是独立的
+  2.线程可以直接访问其进程的数据, 而子进程拥有独立的从父进程拷贝的数据
+  3.同一个进程的线程直接可以直接通信.  而进程通信必须通过中间代理来实现
+  4.创建新线程很简单, 创建新进程需要对其父进程进行一次克隆
+  5.线程可以操作同一进程里的其它线程, 但进程只能操作其子进程
+  6.主线程的更改可能影响其它线程, 但父进程的修改不会影响其子进程
+
+  GIL: Golbal Interpreter Lock
+    python用的是系统的C的线程代码. python进程确实将线程分配多多个CPU上了, 但是在同一时间只有一个线程可以修改内存数据(cpython用gil限制)
+
+
+
+
+rabbitmq:
+redis:
+  管道:
+    一次请求中指定多个命令可以使用pipline实现, 且默认情况下一次pipeline是原子操作
+    pipe=conn.pipeline(transaction=True)
+    pipe.set("a", 1)
+    pipe.set("b", 1)
+    pipe.execute()
+  发布订阅:(广播)
+    
+    
+mysql:
+
+  SQLAlchemy: Python编程语言下的一个ORM框架, 该框架建立在数据库API之上, 使用关系对象映射进行数据库操作(将对象转换成SQL, 然后使用数据API执行SQL并获取结果)
+    ORM: object relational mapping, 对象映射关系程序
+    pip install sqlalchemy
+    pip install pymysql
+
+    特点: 隐藏了数据访问细节, 封闭的通用数据库交互, 使得构造固化数据结构变得简单易行
+
+    dialect用于和数据库API交互, 根据配置文件的不同调用不同的数据库API, 从而实现对数据库的操作
+堡垒机:
+  商业: 齐治
+  开源: jumpserver
+
+
+
+    
+
+
+
+    
+
+
+  
+    
+
+    
+
+
+电影:
+  阿甘正传, 辛德勒名单, 肖申克的救赎, 勇敢的心, 角斗士, 拯救大兵瑞恩, 美国丽人, 教父, 指环王, 钢琴师,
+  西雅图不眠夜, 廊桥遗梦, 可可西里的美丽传说, 放牛班的春天, 血钻, 战争之王, 上帝之城, 中央车站, 猜火车
+  低俗小说, 华尔街之狼, 末代独裁, 杀戮战场
+书:
+  三体, 消费者行为学, 失控, 必然, 数学之美, 浪潮之巅, 百年孤独 
+
+
+
+tmux
+  一个server(tmux)可以跑多个session, 一个session上可以跑多个窗口, 一个窗口上可分隔成多个窗格
+
+pip install paramiko  
+  说明: paramiko是一个SSHv2的Python实现, 提供server和client端的功能. 利用python C扩展做底层加密. 
+  安装: pip install paramiko
+  API:
+    class paramiko.client.SSHClient
+      __init__()              # 创建一个新的SSHClient
+      close()                 # 关闭该SSHClient及其之下的Transport
+      connect(hostname, port=22, username=None, password=None, pkey=None, key_filename=None, timeout=None, allow_agent=True, look_for_keys=True,\
+            compress=False, sock=None, gss_auth=False, gss_kex=False, gss_deleg_creds=True, gss_host=None, banner_timeout=None, auth_timeout=None,\
+            gss_trust_dns=True, passphrase=None)    # 连接一个SSH server并做认证
+      exec_command(command, bufsize=-1, timeout=None, get_pty=False, environment=None)    # 在连接的ssh serever上执行command, 返回stdin, stdout, stderr三个元组
+      get_host_keys()         # 获取本地的host key
+      get_transport()         # 返回下面的transport
+      invoke_shell(term='vt100', width=80, height=24, width_pixels=0, height_pixels=0, environment=None)
+                              # 开启一个交互式shell, 使用channel
+      load_host_keys(filename)        # 从filename中加载host key
+      load_system_host_keys(filename)
+      open_sftp()                     # 在ssh server端打开一个sftp的session
+      save_host_keys(filename)        # 将host key保存到filename
+      set_log_channel(name)           # 
+      set_missing_key_policy(policy)  # 当连接没有记录host key的主机时的策略(RejectPolicy, AutoAddPolicy, WarningPolicy)
+
+    class paramiko.channel.Channel(chanid)        # 一个SSH Transport的安全通道
+      __inti__(chanid)
+      close()                                     # 关闭channel, 所有在channel上的读写都将失败
+      exec_command(*args, **kwargs)
+      exit_status())
+
+
+    transport   多个channelkk
+
+pip install psutil
+  说明: python的跨平台进程和系统监控的库
+      
+
+
+import configparser
+  说明: Python自带处理ini文件类型的库
+
+  1.section中的key名称是不区分大小写的, 且存储以小写显示
+  2.读取的数据一律被认为是字符串(有需要则自己转换)
+import pyyaml
+
+
+
+前端:
+  html: 浏览器认识的规则
+    1.服务端返回请求的信息永远都是字符串
+    2.该字符串由浏览器来解析显示
+
+    本地测试: 直接用浏览器打开文件
+    注释: <!--      -->
+
+
+    提交方式有两种: get post
+      get方式将提交的信息写在url中, post将提交的信息写入提交的请求中
+
+
+      
+    标签, 标签内部的属性
+      分类:
+        1.自闭合标签 <meta> <link>  <meta /> <link />  相同
+        2.自动闭合标签
+
+        1.块级标签: 该标签占据一行
+          <p> <h>
+        2.行内标签: 内联标签, 
+          <span>
+      不区分大小写, 可以嵌套, 主要用于定位操作
+    结构:
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">    <!--指定编码-->
+          <!-- <meta http-equiv="Refresh", Content="3"> -->                             网页自定义刷新频率(秒)
+          <!-- <meta http-equiv="Refresh", Content="3; Url=http://www.baidu.com"> -->   网页自定义刷新频率(秒), 若有Url则刷新后跳转
+          <!-- <meta name="keywords" content="该网页关键字"> -->                    
+          <!-- <meta name="descprption" content="该网页描述信息"> -->
+          <!-- <meta http-equiv="X-UA-Compatible" content="IE=IE9;IE=IE8;"> -->               专为IE定义, 指定以IEN模式打开该网页
+          <title>Title</title>
+          <link rel="shortcut icon" href="images/favicon.ico"/>                       头部标题的图标 
+          <link rel="sytlesheet" type="text/css" href="css/common.css">
+          <style>
+          <script>
+        </head>
+        <body>
+          &nbsp;   表示空格
+          &gt;     表示 >
+          &lt;     表示 <
+
+          <p></p>             表示段落(两个段落之间有空行)
+          <br />              表示换行
+          <h1> </h1>          表示字号, 加大加粗
+          <h6> </h6>
+          <span> </span>      内联 白板
+          <div> </div>        块级 白板
+          <a></a>
+
+          <input type="text" name="" />
+            
+        </body>
+        </html>
+  css: 在标签上设置style属性
+    编写css样式: 
+      1.标签中的style属性
+      2.可以写到单独的文件中
+        css文件引入: 将css样式写入commons.css文件中, 在其它html中的head中 <link rel="stylesheet" href="commons.css" />
+        其本质即为将文件内容存放在此处, 优先级同理
+      3.写在head中的style标签中(css选择器)
+        - id选择器:
+          #i1{
+              ...
+            }
+          <标签 id="i1"> </标签>
+        - class选择器:  ******************8
+          .name{
+              ...
+            }
+          <标签 class="name"> </标签>
+        - 标签选择器:
+          div{
+              ...
+            }
+          所有div都应用该样式
+        - 层级选择器(空格)
+          .c1 .c2 div{
+            }
+        - 组合选择器(逗号)
+          .c1,.c2,.c3{
+            }
+        - 属性选择器:
+          对选择到的标签再通过属性进行再一次筛选 
+
+        css优先级: 标签上的style优先, 其它按照head中的style的编写顺序, 越往下越优先
+          
+    注释:
+      /* */
+
+    边框:
+      border
+    height, width, text-align, line-height, color, font-size, font-weight
+    背景:
+    float:
+      让块级标签可以堆叠
+    display:
+      display: inline;   将块级标签转为行内标签
+      display: block;
+      display: inline-block; 具有inline(默认自己有多少则占据多少)和block的特性(可以设置高度, 宽度, padding和margin)
+      display: none;         让标签消失
+
+      行内标签无法设置高度, 宽度, padding和margin
+    padding margin
+      内边距, 外边距
+    颜色
+      rgb颜色对照表
+    位置
+  js:
+
+   
+  
+          
+
+
+

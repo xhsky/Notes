@@ -1,0 +1,104 @@
+简介
+	时间，作者，定义
+		与HDFS交互的API和命令行工具
+	官网：
+		https://hdfscli.readthedocs.io/
+	版本
+适用性
+开发
+	安装
+		# pip install hdfs
+	命令
+		配置：
+			说明：使用alias来指定需要连接的HDFS集群，默认配置文件为"~/.hdfscli.cfg"(或由HDFSCLI_CONFIG环境变量定义)
+				1.每个alias部分至少定义一个url参数来连接namenode
+				2.default.alias作为默认定义的alias部分
+			示例：
+				[global]
+				default.alias = dev
+
+				[dev.alias]
+				url = http://dev.namenode:port
+				user = ann
+
+				[prod.alias]
+				url = http://prod.namenode:port
+				root = /jobs/
+		命令：
+			hdfs.cli 
+				download：从hdfs上下载一个文件或目录，"-"可以被指定为标准读取的本地路径
+				upload：从本地上传一个文件或目录，"-"可以被指定为标准写入的本地路径
+				interactive：开启一个交互式接口
+				
+				-A：追加数据到一个已存在的文件。只支持upload
+				-L：显示日志文件
+				-a ALISA：指定配置文件中的Alisa
+				-f：覆盖文件
+				-s：不显示状态
+				-t：并行度，默认0
+				
+				
+	函数：
+		说明：
+		示例:
+			# 实例化客户端：
+				1.导入客户端类并直接调用它的构造函数,不允重用配置的别名
+					from hdfs import InsecureClient
+					client = InsecureClient('http://host:port', user='ann')
+				2.加载现有的配置文件（默认为与CLI相同的配置文件），并从现有别名创建客户端：
+					from hdfs import Config
+					client = Config().get_client('dev')
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+			

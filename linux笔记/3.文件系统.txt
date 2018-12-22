@@ -1,0 +1,570 @@
+
+一.FHS - Filesystem Hierarchy Standard(文件系统层次标准)
+	实质上是定义了在/目录的各个子目录下应放置的文件种类，可用man hier（yum install man-pages）查看
+	FHS定义了两层规范
+		第一层规范了/目录下的各个目录所放置的文件数据
+		第二层针对/usr/和/var/两个目录的子目录来定义。例如：/var/log/放日志文件，/usr/share/放置共享数据等
+		
+	根目录下的各目录：
+		家目录：			/root	/home/user_name
+		用户可执行：		/bin	/usr/bin	/usr/local/bin
+		系统可执行：		/sbin  /usr/sbin	/usr/local/sbin
+		配置文件：			/etc
+		临时文件目录：		/tmp	/var/tmp
+		内核引导目录：		/boot
+		服务器数据：		/var	/srv
+		系统信息： 			/proc	:内核映射文件
+							/sys	:和硬件设备相关的属性映射文件
+		共享库：			/lib	/usr/lib	/usr/local/lib
+		不便归类的文件的目录： 		/misc
+		挂载点目录： 		/media：移动设备(eg：U盘)		
+							/mnt：额外的临时文件系统(eg：第二块硬盘)
+		可选目录(option)： 	/opt：早期用于第三方程序的安装目录
+		第三方软件安装目录：/usr/local 
+		全局共享的只读文件(universal share read-only)：	/usr
+		/lost+found：任何一分区都存在的目录，当主机断电时，尚未来得及保存的文件，用于丢失并重新找回
+		 
+		/bin /sbin：自身启动相关的命令
+		/usr/bin /usr/sbin：系统启动后为了提供一些基本功能所使用的命令
+		
+		/lib		开机时用到的函数库，以及/bin /sbin下调用的函数库
+		/usr/lib	各类应用软件的函数库
+		/var/lib	程序本身执行过程使用到的数据文件放置目录
+		
+		/var/run	进程PID放置目录
+		/var/lock	锁文件目录
+		
+		/selinux	SElinux的执行目录，不占硬盘容量保存在内存中
+		
+		/src		网络服务所提供的数据放置目录
+		Linux系统中，实际文件系统从操作系统和系统服务中分离出来，它们之间通过一个接口层(即虚拟文件系统 VFS)来进行
+		通信。VFS使得Linux可以支持多个不同的操作系统
+		
+二.EXT索引式文件系统
+
+	ext文件系统一开始究竟inode和block规划好了，在格式化时会分为多个块组，每个块组都有独立的inode/block/superblock系统
+	每个文件系统的最前面有一个启动扇区(boot sector),该启动扇区(1024B)可以安装装载程序
+		即：
+								文件系统
+		启动扇区	block group1	block group2	block group....
+		
+				每个block group都包含以下六种数据
+		
+		
+	1.data block(数据块)
+		保存实际数据，且支持的block大小有三种(1KB,2KB,4KB)
+			若block太小，而保存的单个文件太大，则inode记录太多，影响读写性能
+			若block太大，而保存的单个文件太小，则浪费存储空间
+		每个block只能放置一个文件的数据
+	2.inodetable(inode表格)
+		inode：记录文件属性、权限信息及其所在的data block号码
+				每个inode大小均为128B
+				每个文件都只占用一个inode
+	3.superblock(超级块)
+		记录文件系统的整体信息
+	4.file system description(文件系统描述说明)
+		描述其所在的block group的开始与结束的block号码
+		并说明每个区段(super block,bitmap,inodemap,data block)的block范围
+	5.block bitmpa(块对照表)
+		管理datablock的使用，
+	6.inode bitmap(inode对照表)
+		管理inode的使用
+
+		
+	虚拟文件系统:
+		/proc
+			cmdline：加载kernel时所执行的相关参数
+			cpuinfo：本机CPU的相关信息
+			devices：记录了系统各个主要设备的设备代号
+			filesystems：目前系统加载的文件系统
+			interrupts：目前系统上的IRQ分配状态
+			ioports：各设备所配的I/O地址
+			kcore：内存大小
+			loadavg：1,5,15分的平均负载
+			meminfo：free的信息
+			modules：已加载的模块列表
+			mounts：已挂载的数据
+			swaps：加载的内存分区记录
+			partitions：fdisk -l的信息
+			pci：在pci总线上每个设备的详细情况
+			uptime：uptime
+			version：uname -a
+			bus/*：总线的设备记录
+		
+	日志文件系统
+		1.预备：	当系统要写入一个文件时，会先在日志记录块中记录某个文件准备要写入的信息
+		2.实际写入：开始写入文件的权限与数据；开始更新meta data的数据
+		3.结束：	当完成数据与meta data的更新后，在日志记录块里完成该文件的记录
+		
+		若数据记录过程发生问题，系统只需检查日志记录块即可，而不必针对整个文件系统，可以快速恢复文件西宫
+		
+	目录分配一个inode和block。Inode记录其属性和block号码，block则记录其目录下的文件名与其占用的inode号码
+	每个文件系统所在的最顶层目录的inode号一般为2
+	每建立一个目录，其链接数为2(.)，其上层目录链接数加1(..)
+	
+	
+	常见的文件系统
+		- 传统文件系统
+			ext2、minix、MS-DOS、FAT(vfat)、iso9660
+		- 日志文件系统
+			ext3、ReiserFS、NTFS、IBM's JFS、SGI's XFS
+		- 网络文件系统
+			NFS、SMB
+			
+	Linux VFS
+		linux由VFS(Virtual Filesystem Switch)管理文件系统，由其调用各种文件系统实现读写功能
+	
+	目录管理
+		ls、cd、pwd、mkdir、rmdir、tree、basename、dirname
+	文件管理	
+		touch、stat、file、rm、cp、mv、vim、which
+	日期时间
+		data、clock、hwclock、cal
+	查看文本
+		cat、tac、nl、more、less、haed、tail、od
+		
+	# pwd -P 显示当前路径，而非link路径
+	# ls				total：仅显示当前目录下的总大小
+		-a			列出隐藏文件
+		-A			列出隐藏文件(但不包括.与..)
+		-F			列出信息结构
+		-h			易读的文件容量
+		-i			列出inode号码
+		-n			列出UID和GID
+		-r			反向列出
+		-R			连同子目录内容一起列出
+		--color=	列出颜色
+	# cp 源文件	目标文件				必须对该文件有read权限
+		-d			只复制链接文件
+		-l			硬链接
+		-s			软连接
+		-p			保留原属性(备份常用)
+		-r			复制目录
+		-a			相当于pdr
+		
+	# cat 
+		-n			列出行号
+		-b			列出非空白行行号
+		-E			将结尾$显示出来
+		-T			将[Tab]以^I显示
+		-v			列出一些看不出来的特殊字符
+		-A			相当于-vET
+	# od
+		-t	
+			a		后接默认的字符来输出 
+			c		使用ASCII字符输出
+	# touch file						将文件日期修改为当前日期(mtime和atime)
+		-a			仅修改atime
+		-c			仅修改ctime
+		-m			仅修改mtime
+
+		
+	cp：1.申请节点号  2.拷贝数据
+		cp -r   复制目录
+		cp -p   保留原属性
+	mv：
+		1.跨文件系统
+			- 申请节点号
+			- 拷贝数据
+			- 删除原数据
+		2.在一个文件系统
+			- 仅改动目录中的数据而已
+	rm：1.消除inode表里和目录里的信息 
+		2.将data区标记为可用
+	文件粉碎：
+			1.# shred file			其作用为重写文件，覆盖原信息
+			2.# rm -rf file
+	
+	
+	创建文件系统 
+		# mkfs -t 文件系统类型 /dev/sdaN
+			eg：# mkfs -t ext4 == mkfs.ext4
+	本机Linux支持的文件系统
+		# cat /lib/modules/$(uname -r)/kernel/fs
+	目前已加载到内存的文件系统
+		# cat /proc/filesystems
+		
+	专门管理ext系列文件
+		
+		# make2fs /dev/sda2	
+			-j					创建ext3文件系统
+			-b block_size		指定块大小，默认4096，可用取值1024、2048、4096
+			-L LABEL			指定分区卷标
+			-m #				指定预留给超级用户的块数百分比
+			-i #				指定为多少字节的空间创建一个inode，默认为8192
+			-N #				指定inode个数
+			-F #				强制创建文件系统
+			-E					用户指定额外文件系统属性
+			
+		blkid：	查询磁盘设备的相关属性
+				UUID	TYPE	LABEL
+			# blkid
+			
+		# e2abel：	用于查看或定义卷标
+			# e2abel 设备文件 卷标名
+			
+		tune2fs		调整文件系统的相关属性
+			-j					不损害原有数据，将ext2升级为ext3
+			-L LABEL			设定或修改卷标
+			-m #				调整预留百分比
+			-r #				指定预留块数
+			-o					设定默认挂载选项
+			-c #				指定挂载次数到达#此后进行自检，0或-1表示关闭此功能
+			-i #				每挂载使用多少天后进行自检，0或-1表示关闭此功能
+			-l					显示超级块中的信息
+			
+		# dumpe2fs /dev/sda1	显示文件系统的信息
+			-h					只显示超级块中的信息
+			
+		# fsck /dev/sda1		检查并修复未挂载linux文件系统
+			-t fstype			指定文件系统类型
+			-a					自动修复，不用按y
+			-C					使用直方图显示进度
+				若出现问题，则会将有问题的数据放置到lost+found
+				
+		e2fsck		专用于修复ext2/ext3文件系统
+			-f					强制检查
+			-p					自动修复
+			
+三.文件系统管理
+	权限是由根目录一级一级往下延伸
+	权限管理
+		
+		1.rwx		
+			文件：										目录：
+				r：可读（cat）								r：可查看目录内的所有文件信息(ls)
+				w：可写（vi，rm）							w：可在此目录创建文件
+				x：可执行（提交给内核运行）					x：可用cd切换进此目录，穿越此目录
+			
+			chmod
+				# chmod mode file,....
+					--reference=/path/file   file1,file2,......
+					-R mode dir
+				·根据数字改
+					# chmod 755 file,.....
+				·根据用户改	u,g,o,a
+					# chmod 类别=rwx file,...
+					# chmod 类别+/-rwx file,....
+					# chmod 类别=	file,....
+		2.SUID SGID Sticky-bit 
+								文件						  			目录
+			SUID：		允许用户以文件的用户身份运行					无			
+			SGID：		允许用户以文件的用户组的身份运行		使该目录内所建的文件的用户组与其目录的用户组相同
+			Sticky：			无						 		每个用户只能删除自己建立的文件
+			
+			suid和sgid仅对二进制程序有效，对shell脚本无效
+			
+			
+			# chmod u+s file			4
+			# chmod g+s file/dir		2
+			# chmod o+t dir				1
+				
+			umask: 可在profile里定义umask
+				文件默认权限：666
+				目录默认权限：777
+				·显示：# umask	或  # umask -S
+				·设置：# umask 数字
+				
+		3.chown  chgrp 
+		
+			# chown user:group file,....							:group 	.group
+				-R user:group dir
+				--reference=/path/file 	file1,file2,.....  			user和group一起改
+			# chgrp group file
+				-R group dir
+				--reference=file1 file2,file3,.....  				只改group
+		
+		4.隐藏属性(只对ext文件系统有效)
+			# chattr 文件/目录
+				+/-/=
+					A		若访问此文件，则其atime不会被修改(可避免I/O较慢的机器过度访问磁盘)
+					S		一般文件是以异步方式写入磁盘，S会改为同步写入
+					a		此文件只能被追加
+					c		会自动将此文件压缩，在读取时自动解压，存储时先压缩再存储(针对大文件)
+					d		当dump程序被执行时，d可使该文件不会被dump备份
+					i		不能被删除、改名、修改内容
+					s		当此文件被删除，则完全从硬盘删除
+					u		与s相反，数据还保存在磁盘，可用来找回该文件
+			# lsattr 文件/目录
+				-a			将隐藏文件的属性也列出
+				-d			仅列出目录本身属性
+				-R			列出子目录的属性
+	
+		5.ACL		Access Control List主机的具体权限规划
+			目的：提供传统的owner group other的read write execute权限之外的具体权限设置,利用文件扩展属性保存额外的访问			控制权限
+			作用：对单一文件或目录进行r w x的设置
+			
+			查看文件系统是否支持ACL：
+				# mount  -- 看默认值
+					或 #dumpe2fs -h /dev/sda1  -- 查看default mount options
+				若系统没有默认支持ACL：
+					 # mount -o remount,acl 挂载点并写入/etc/fstab
+
+			- ACL可以针对用户、用户组、默认属性   +
+				setfacl [-Rdb] -m [u|g|m]:用户/组:权限 file/dir
+					-m：	设定ACL
+					-x：	取消ACL
+						u:		UID
+						g:		GID
+					-R：	设置目录时递归，具体设置不对当前目录及已存在子目录及文件生效，须另外设置
+					-d：	设置默认ACL参数(目录)，在该目录新建的数据均引用此默认值
+					
+					1.针对单一用户的设置：
+							# setfacl -m u:用户:权限 file
+							# setfacl -m d:u:用户:权限 dir
+					2.针对特定用户组方式：
+							# setfacl -m g:用户组:权限 file
+					3.针对有效权限mask的设置： -- 1和2的设置的权限必须在mask内，取交集，才生效
+							# setfacl -m m:权限 file
+					4.查看文件或目录：    	# getfacl file
+					5.删除ACL的所有属性：  	# setfacl -b file
+		6.SELinux
+				
+		
+		经验：
+			- 看自己对一个文件的权限时，可用id一一对比
+			- 在文件权限中 均为rw-   r-x  ---   必须有r的权限
+			- 在o(其它人)的权限中 最好不要加w权限
+			- 权限值由大到小   
+			- 目录权限--x  不可读，可穿越
+			
+	
+	
+	文件管理
+		查看文件状态：stat file
+		目录容量：du             磁盘容量：df
+				# du -sh				# df -PTh
+		du：
+			说明：du命令会对待统计文件逐个调用fstat这个系统调用，获取文件大小。它的数据是基于文件获取的，
+				所以有很大的灵活性，不一定非要针对一个分区，可以跨越多个分区操作。如果针对的目录中文件很
+				多，du速度就会很慢了
+		df：
+			说明：df命令使用的事statfs这个系统调用，直接读取分区的超级块信息获取分区使用情况。它的数据是
+				基于分区元数据的，所以只能针对整个分区。由于df直接读取超级块，所以运行速度不受文件多少影响
+		du和df不一致情况：
+			常见的df和du不一致情况就是文件删除的问题。当一个文件被删除后，在文件系统目录中已经不可见了，所
+			以du就不会再统计它了。然而如果此时还有运行的进程持有这个已经被删除了的文件的句柄，那么这个文件
+			就不会真正在磁盘中被删除，分区超级块中的信息也就不会更改。这样df仍旧会统计这个被删除了的文件
+				
+		/dev/shm：
+			此目录是利用内存虚拟出来的磁盘空间，可在其中进行读写操作，速度很快(在内存中)，但重启消失
+		link：  ln [-s] filename linkname
+			1)硬链接 -- 为data添加多个入口。删除入口而已
+				两个文件的节点号相同。在目录表中添加记录，使其指向同一个inode
+			
+			2)软连接 -- 为文件添加快捷方式
+				两个文件的节点号不同，连接文件记录的是原文件的路径
+				
+			硬链接：
+				1.只能对文件创建，不能应用于目录
+				2.不能跨文件系统
+				3.磁盘空间与inode数目一般不会变化
+				4.创建硬链接会增加被链接的次数
+			软连接
+				1.可应用于目录
+				2.可跨文件系统
+				3.不会增加链接文件的链接次数
+				4.其大小为指定的路径所包含的字符个数
+				
+		时间戳：	ls默认显示mtime
+			atime：access
+			mtime：modify(内容)
+			ctime：change(元数据)
+			
+			若文件被修改的时间距离现在太久远，则只显示年份
+			目录属性中只有r，可读其目录文件列表，却无法读到期详细信息
+			目录下的total为该目录下所有数据所占用的block数量*block大小
+			ll -s  查询每个文件所使用掉的block大小
+			
+			
+	文件种类为"-"的文件
+		1.纯文本文件
+		2.二进制文件
+		3.数据文件
+		
+			
+			
+	简单磁盘管理
+		分区：  fdisk    parted			/proc/partitons
+				fdisk对STAT只能支持15个分区，无法处理2TB以上的硬盘分区
+			1.识别分区		# fdisk -l
+			2.分区			# fdisk 	或 # parted
+			3.重读分区表	# partprobe
+			3.格式化		# mkfs.ext4 /dev/sd**
+			4.挂载			# mount	/dev/sd** /path/dir
+		
+			分区后必须重读分区表
+			在进行分区时，若该硬盘的某个分区还在使用中，则内核很可能无法重载硬盘分区表，须将该分区卸载重读
+			
+			# parted [设备] [命令 [参数]]			可处理2T以上的硬盘
+				
+				显示某设备的分区
+					# parted /dev/sda print
+				建立分区
+					# parted /dev/sdb mkpart 分区类型 文件系统类型 开始 结束
+						分区类型
+							primary
+							logical
+							extended
+				删除分区
+					# parted /dev/sdb rm 分区号码
+			
+		卷标	
+			查看设备卷标：	# e2label /dev/sd**
+			设置卷标		# e2label /dev/sd**  name
+			格式化时设置卷标：	
+				磁盘		# mkfs.ext4 -L name /dev/sd**
+				swap		# mkswap -L name /dev/sd**
+			挂载			# mount -L name /path/dir
+								亦可将卷标写入/etc/fstab当作设备名来用,挂载点和文件系统均写swap		eg：LABEL=name
+			发现名为**的设备
+							# findfs LABEL=**
+							# blkid
+							
+		Swap		/proc/swaps		
+			当开始使用swap时，主机硬盘灯就开始闪烁不停
+			swap的功能
+				1.当物理内存不够时，将其中暂时不用的程序移到swap中，让内存可以被需要的程序来使用
+				2.若主机支持电源管理模式，则主机进入休眠模式的话，运行中的程序状态会被记录到swap中，以作为唤醒主机的状态依据
+				3.某些程序在运行时，会利用swap的特性来存放一些数据段
+			swap的限制
+				1.最多能创建32个swap
+				2.目前x86_64最大内存寻址到64GB，则swap总量最大也仅能达64GB
+			建立交换分区
+				分区
+					1.分区				# fdisk			82	
+					2.格式化			# mkswap /dev/sd**	
+					3.写入/etc/fstab	
+					4.启用交换分区		# swapon -s/a
+				文件
+					1.分区				dd(/dev/zero)产生文件
+					2.格式化			# mkswap /path/file
+					3.写入/etc/fstab
+					4.启用				# swapon /path/file
+			检查内存及swap
+				# free -m
+			关闭swap
+				# swapoff /dev/sd**
+			刷新：
+				关闭再重启
+		
+		
+		磁盘检查	# fsck -y /dev/sd**	（已卸载的磁盘）
+		重新加载分区表	# partx -a /dev/sd*
+		
+		
+		挂载		-- 将新的文件系统关联到当前根文件系统
+			mount device /path
+				-a：挂载/etc/fstab文件中的所有文件系统
+				-n：挂载该设备时，不将信息写入/etc/mtab文件(单用户模式下)
+				-r：只读挂载
+				-w：读写挂载，默认
+				-L：加卷标名
+				-l:	显示卷标名
+				-o：指定额外的挂载选项
+						默认选项：rw、suid、dev、exec、async
+					remount,：重新挂载当前文件系统
+					ro，rw：
+					async，sync：	同步(sync)异步(async)
+					auto，noauto：	允许此分区被以mount -a自动挂载(auto)
+					dev，nodev：	允许在此分区上创建设备文件(dev)
+					suid，nosuid：	允许在此分区上有suid/sgid的文件格式
+					exec，noexec：	允许在此分区上有可执行的二进制文件
+					user，nouser：	允许此分区让任何用户执行mount
+					usrquota:		支持用户磁盘配额
+					grpquota：		支持用户组磁盘配额
+					defaults：		rw,suid,dev,exec,auto,nouser,async
+	
+			挂载方法：
+				- 设备文件
+				- LABEL
+				- UUID
+			
+			磁盘应挂载于空目录。若目录非空，挂载后原内容被隐藏，分区卸载后重现
+			系统指定的测试挂载文件系统类型
+				/etc/filesystem
+			挂载本地资源
+				光盘挂载：将光盘装入主机后，默认关联在/dev/cdrom文件
+					# mount /dev/cdrom /media		-t iso9660可以不写
+				镜像挂载：镜像已在当前文件系统
+					# mount -o loop /path/file.iso /media
+					挂载大文件当作分区使用
+						# dd
+						# 格式化
+						# mount -o loop
+				NTFS挂载：内核中没有ntfs的模块，普遍的方法是利用ntfs-3g来实现
+					# yum install ntfs-3g（epel）
+					# mount /dev/sdb1 /mnt
+					
+						注：# 或编译方法：
+							# wget http://tuxera.com/opensource/ntfs-3g_ntfsprogs-2011.4.12.tgz
+							# tar zxvf ntfs-3g_ntfsprogs-2011.4.12.tgz
+							# cd ntfs-3g_ntfsprogs-2011.4.12
+							# ./configure
+							# make
+							# make install
+					
+				将某个目录挂载到另一个目录(可用软连接)
+					# mount --bind /home /mnt/home
+						在某些不支持符号链接的程序中可用，卸载时要使用挂载点
+			挂载网络资源
+				- NFS
+					1.查看服务器资源	# showmount -e ip			
+					2.挂载				# mount ip:/path   /path
+				- SMB
+					1.查看服务器资源	# smbclient -L ip -N
+					2.挂载				# mount //ip/path  /path  -o username=account%passwd
+			自动挂载：  
+				- 自动挂载本地资源：/etc/fstab  autofs(写在/etc/auto.misc中)
+				- 自动挂载网络资源： autofs服务  service autofs restart       
+						1.在/etc/auto.master中写入
+							/data/nfs	/etc/auto.nfs			--- /etc/nfs目录不要建立，auto会自动建立
+						2.在/etc/auto.nfs中写入
+							本地端目录	-挂载参数	服务器目录
+							test1		-rw,bg,soft  ip:/home/test1
+							test2		-rw,bg,soft  ip:/home/test2
+							
+
+			卸载 	-- 将某文件系统与当前根文件系统的关联关系予以移除
+				# umount device/path
+					-f：	强制卸载(类似NFS无法读取到的情况)
+					-n：	不更新/etc/mtab的情况下卸载
+				当卸载设备而显示资源忙时，卸载方法：
+					1.# fuser -av  mount_point ；# kill -9 pid
+							-v：查看
+					2.# fuser -mk mount_point 
+				
+				只写mount mount_point 则其挂载信息已写入/etc/fstab了
+	
+			/etc/fstab文件的作用 
+				记录了计算机上硬盘分区的相关信息，启动 Linux 的时候，检查分区的fsck命令，和挂载分区的 mount 命令，
+				都需要 fstab 中的信息，来正确的检查和挂载硬盘。修改完/etc/fstab文件后务必测试一下(# umont /home ; #mount -a)。
+				发生错误尚来得及纠正。否则会发生无法开机完全的情况。切记切记！
+				/etc/fstab只有添加新的一行后，mount -a才会执行
+					第五列：能否被dump备份命令作用
+						0：	不要做dump备份
+						1：	每台进行dump备份
+						2：	不定日期的dump备份
+					第六列：是否已fsck检查扇区
+						0：	不检验
+						1：	最早检验(一般只有/目录设置1)
+						2：	在1后检验，其它要检验的文件系统可设置为2
+
+			/etc/mtab文件的作用： 
+				这个不断变化的文件是/proc/mount变化。换句话说,当文件系统的安装和卸载,变化是立即反映在这个文件中。它记载的是
+				现在系统已经装载的文件系统，包括操作系统建立的虚拟文件等；而/etc/fstab是系统准备装载的。 每当 mount 挂载分区、
+				umount 卸载分区，都会动态更新 mtab，mtab总是保持着当前系统中已挂载的分区信息，fdisk、df 这类程序，必须要读取 
+				mtab 文件，才能获得当前系统中的分区挂载情况。当然我们自己还可以通过读取/proc/mount也可以来获取当前挂载信息 
+	
+			/prc/mounts
+			
+			
+			缓存：
+				在做某些测试时，不希望cache干扰，可以通过下面的方法来进行清理，即执行两条命令。
+					# sync 
+					# echo 3 > /proc/sys/vm/drop_caches
+	
+	
+			系统页大小：
+				# getconf PAGESIZE
+	

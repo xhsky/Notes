@@ -1,0 +1,259 @@
+简介
+	时间，作者，开发语言，定义
+		flink是一个分布式的、高性能的、高可用的数据准确的开源流处理框架。主要有java实现
+		从2010年开始在德国一所大学里发起，2014年来借鉴了社区其它一些项目的理念，快速发展并且进入了Apache顶级孵化器
+	官网：
+		http://flink.apache.org
+	版本
+	协议
+适用性(优缺)
+	1.支持流计算和批处理
+	2.Flink的核心是一个提供数据分布，通信和容错的流处理引擎，用于在流数据上进行分布式计算
+	3.Flink在流式引擎之上构建批处理程序，原生支持了迭代计算、内存管理和程序优化
+架构
+	模块
+	安装
+		1.安装jdk
+		2.安装hadoop
+		3.安装flink
+			# wget http://mirrors.hust.edu.cn/apache/flink/flink-1.4.1/flink-1.4.1-bin-hadoop28-scala_2.11.tgz
+			# tar
+		4.启动
+			# 
+
+	结构
+		目录结构
+			源码目录
+			安装目录
+				bin  
+				conf:配置文件目录
+					flink-conf.yaml：
+						说明：key-value的配置文件，所有参数均在此配置。如有改动，需要重启JobManager和TaskManagers。每个TaskMangaers的配置可以是不同的
+						参数：
+							env.java.home：							jdk安装目录，默认值为系统目录
+							env.java.opts：							设置自定义jvm选项。适用于JobManager,TaskManager和YARN client。
+							env.java.opts.jobmanager：				jobmanager的jvm变量设置
+							env.java.opts.taskmanager：				taskmanager的jvm变量设置
+							jobmanager.rpc.address：				jobmanager的监听地址，默认localhost
+							jobmanager.rpc.port：					jobmanager的监听端口，默认6123
+							jobmanager.heap.mb：					jobmanager的jvm heap大小(m)
+							taskmanager.heap.mb：					taskmanager的jvm heap大小(m)
+							taskmanager.numberOfTaskSlots:			一个taskmanager能并行操作或用户函数实例的数量，默认为1。该值一般设为物CPU理核心数(或其一半)
+							parallelism.default:					用于设置没有指定并行性的项目，默认值为1。
+							fs.default-scheme：						默认使用的文件系统方案。默认设置为file:///。也可以指定为hdfs://ip:9000/。在未明确指定文件系统时使用该参数值代替
+							fs.hdfs.hadoopconf：					指定hadoop的配置文件目录。若指定该目录，则flink会参考hdfs文件，不再写host和port而只使用hdfs://path/file这样的简短路径替代。
+																	若无该参数，则访问hdfs文件需要指定全路径才可。文件写写入也会需要block size和replication，它会从指定目录下找core-site.xml
+																	和hdfs-site.xml文件
+							classloader.resolve-order
+							
+							# 计算
+							taskmanager.compute.numa
+							# 托管内存：默认情况下，flink分配空闲内存的70%(通过taskmanager.heap.mb配置的总内存减去已使用的network buffers)用来作为托管内存。
+								托管内存使fink可以高效地运行批处理操作，且flink知道执行操作能够使用多少内存，从而防止OutOfMemoryExceptions。如果flink使用超
+								过了托管内存，它将利用磁盘空间。使用托管内存可使一些操作能够直接在原始数据执行而不必序列化数据转为java对象。总之，托管内存
+								提高了系统速度和健壮性
+							
+							taskmanager.memory.size：				taskmanager用于排序、hash表和缓存中间结果而存储的on-heap或off-heap(取决于taskmanager.memory.off-heap)
+																	的总量，单位m。若未指定，则会选取一个基于task manager JVM的固定值(即taskmanager.memory.fraction)，默认-1
+							taskmanager.memory.fraction：			
+							taskmanager.memory.off-heap：			若设置为true，task manager将会分配jvm heap之外的内存用于排序、hash表和缓存中间结果。这个可以提高内存执行的效率。默认false
+							taskmanager.memory.segment-size：		托管内存和网络堆栈的缓冲大小，单位B。默认32768(32kb)
+							taskmanager.memory.preallocate：		默认为false。当启动时task manager是否分配所有的托管内存。当taskmanager.memory.off-heap设置为true时，则该值也建议设为true
+							# 内存和性能调试，用于内存和GC的debug
+							taskmanager.debug.memory.startLogThread：使task manager周期性的收集内存和GC信息，包括当前heap，off-heap和其它内存池利用
+							taskmanager.debug.memory.logIntervalMs：周期收集的间隔，单位毫秒。
+							
+							# 基于kerberos的安全
+							security.kerberos.login.use-ticket-cache
+							security.kerberos.login.keytab
+							security.kerberos.login.principal
+							
+							
+							
+							taskmanager.tmp.dirs：					临时目录(或一列以系统分隔符(:)分隔的目录列表)，若为列表，则以轮询方式写入
+							taskmanager.log.path：					定义taskmanager日志文件路径
+							jobmanager.web.address：				jobmanager的web监听地址，默认所有
+							jobmanager.web.port：					jobmanager的web监听端口，默认8081
+							jobmanager.web.tmpdir：					
+							jobmanager.web.upload.dir：				定义上传job jar的目录。若未指定，则默认使用jobmanager.web.tmpdir的值
+							fs.overwrite-files：					设置文件输出是否覆盖已存在的文件。默认false
+							fs.output.always-create-directory：		
+							taskmanager.network.memory.fraction：	用于网络缓冲区的jvm内存部分。它决定了一个taskmanager能够在同一时间处理数据交换和缓冲通道。若一个job被拒绝或得到一个没有足够
+																	的buffers可用的的系统警告。则需要加大该值或min/max的的值。默认为0.1
+							taskmanager.network.memory.min：		network buffer的最小大小，单位B，默认64M
+							taskmanager.network.memory.max：		network buffer的最大大小，单位B，默认1G
+							state.backend：							若启用checkpointing，则后端将用于存储操作状态的检查点
+																	支持的backend：
+																		jobmanager：内存状态，备份jobmanager/zookeeper的内存。只被使用于最小状态(kafka offsets)或测试和本地排错
+																		filesystem：taskmanager的内存状态和文件系统的镜像状态，支持所有的文件系统(hdfs,S3...)
+							state.backend.fs.checkpointdir：		存储监测点的目录(支持flink支持的文件系统)。后端状态必须被jobmanager访问到，使用file://只用于本地设置
+							state.backend.rocksdb.checkpointdir：	存储RocksDB文件的本地目录，默认taskmanager.tmp.dirs
+							state.checkpoints.dir：					检查点的元数据目录
+							state.checkpoints.num-retained：		保留完成检查点实例的数量。若最新的检查点有误，则允许回退到一个较早的检查点。默认值为1
+							high-availability.zookeeper.storageDir：用于HA。存储jobmanager元数据的目录。
+							blob.storage.directory：				在taskmanager上存储blobs(例如用户jar)的目录
+							blob.service.cleanup.interval：			
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+								
+							
+							
+					masters  
+					slaves
+					zoo.cfg					
+					log4j-console.properties  
+					log4j-yarn-session.properties  
+					logback.xml       
+					log4j-cli.properties  
+					log4j.properties          
+					logback-console.xml            
+					logback-yarn.xml 
+					
+
+				examples  
+				lib
+				log
+				opt
+				resources
+				tools
+		进程/端口
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全：
+		flink支持kerberos认证，应用于以下服务：
+			1.hadoop组件：例如hdfs，yarn，hbase
+			2.Kafka Connectors
+			3.Zookeeper
+	集群
+		说明：以完全分布式运行
+		部署：
+			1.安装jdk
+			2.安装hadoop
+			3.确保免密码登录且所有目录结构相同
+			4.安装flink
+				# wget http://mirrors.hust.edu.cn/apache/flink/flink-1.4.1/flink-1.4.1-bin-hadoop28-scala_2.11.tgz
+			5.更改配置
+				# vim ./conf/flink-conf.yaml
+					env.java.home: /data/jdk					# 定义jdk目录
+					jobmanager.rpc.address: db1.sky.org			# 指定主节点
+					jobmanager.heap.mb: 1024	
+					taskmanager.heap.mb: 2048
+					taskmanager.numberOfTaskSlots: 4
+				# vim ./conf/slaves
+					db1
+					db2
+					db3
+			6.更改同步至其它节点
+			7.启动
+				# bin/start-cluster.sh
+			8.关闭
+				# bin/stop-cluster.sh
+具体服务相关
+	概念:
+		数据流编程模型：
+			抽象层次：
+				说明：flink提供不同的抽象级别来开发流/批处理应用程序
+							
+									SQL				-- 高级别语言
+								Table API			-- declarative DSL
+							DataStream/DataSet API	-- 核心API
+						Stateful Stream Processing	-- 底层建筑块(流，状态，事件时间)	
+
+						注：
+							1.最低级别的抽象只提供了有状态的流，它通过process function嵌入到DataStream API中，允许用户自由处理来自
+							  一个或多个流的事件，且使用一直的容错状态。除此之外，用户也可以注册事件时间和处理时间回调，允许程序实
+							  现复杂的计算
+							2.但大多数的应用程序不需要上述的低级抽象，而是针对Core API进行编程。这些API提供了用于数据处理的通用建筑
+							  块(各种转换、连接、聚集、窗口、状态等)。在这些API中处理的数据类型在各自的编程语言中表现为类
+							  
+							  低级别的Process Function与DataStream API结合在一起可以对某些操作进行较低级别的抽象，而DataSet API则提
+							  供有限数据集的其它原语(循环/迭代)
+							3.Table API是处于中心表的声明性DSL，它可被动态地更改表(当表现为流时)。它遵循以下关系模型：Tables有一个依
+							  附的schema(类似于关系数据库中的表)，API提供了相应的操作：select，project，join，group-by，aggregate等
+							  API定义了什么样的逻辑操作应该做而非确切地指定如何操作代码。虽然API是由各种用户自定义函数扩展而来，但它
+							  比核心API定义的更少，使用起来更简洁(编写代码更少)。此外，API程序在执行前会进行优化器优化
+							4.fink提供的最高级别的抽象是SQL。这种抽象在语义和表现力方面和Table API类似。但将程序表现为SQL查询表达式
+			程序和数据流：
+				fink程序的基本构建块是流和转换。从概念上讲，流是数据记录的流动，而转换是将一个或多个流作为输入，并产生一个或多个的流
+			并行数据流：
+				flink程序的本质是分布和并行的。在执行过程中，流有一个或多个流分区，操作也有一个或多个子操作。每个子操作任务彼此独立，
+				且在不同的线程中运行，甚至可能在不同的机器或容器中运行。子操作的数量即为操作的并行度，同一程序的不同操作可能有不同级
+				别的并行
+				
+				在两个操作之间流的传输模式：
+					1.一对一：
+					2.重新分配：
+			视窗：
+				聚合事件(计数，总和)在流上的工作方式与批处理不同。如不可能统计流中所有的元素，因为流一般是无限的，相反，汇总在流上的范围是视窗(最近5分钟
+				计数或最后100个元素的总和)。视窗可以是时间驱动的(每30秒)或数据驱动(每100个元素)
+			时间：
+				在流程序中的时间可分为以下概念：
+					Event time：	事件被创立时的时间，由时间戳表示
+					Ingestion time:	事件进入到流中的时间
+					Processing Time:执行基于时间操作的本地时间
+			Stateful Operations：
+			容错检查点
+			Batch on Streaming
+				
+		分布式运行环境：
+			flink运行包含两种类型的程序
+				Job Managers：亦称masters，用来协调分布式执行。安排任务、协调检查点、协调任务恢复等。至少总有一个jobmamnagers，
+					高可用设置包括多个jobmanager，其中一个是主节点，其它为备节点
+				Task Managers：亦称workers，用来执行包含数据流、缓冲、交换数据的任务或子任务。必须至少有一个taskmanager
+				
+				注：jobmanager和taskmanager可以各种方式启动：直接在机器上作为独立集群启动，在容器或在类似yarn或mesos的框架中启动。taskmanager连接到
+					jobmanager后宣布自己可用，然后被分配工作
+				Clients：并不是flink的一部分，它用来准备和发送流数据给jobmanager。之后client可以断开连接，或保持连接以接收进度报告。
+			
+	内部命令
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

@@ -1,0 +1,219 @@
+
+说明：
+	Hue是一个开源的Apache Hadoop UI系统，最早是由Cloudera Desktop演化而来，由Cloudera贡献给开源社区，基于Python Web框
+	架Django实现。通过使用Hue我们可以在浏览器端的Web控制台上与Hadoop集群进行交互来分析处理数据，例如操作HDFS上的数据，
+	运行MapReduce Job等
+	
+	官网：http://gethue.com/
+	文档：http://cloudera.github.io/hue/docs-3.9.0/
+	在线的HUE Demo：http://demo.gethue.com/
+	
+Hue的功能特性：
+	默认基于轻量级sqlite数据库管理会话数据，用户认证和授权，可以自定义为MySQL、Postgresql，以及Oracle
+	基于文件浏览器（File Browser）访问HDFS
+	基于Hive编辑器来开发和运行Hive查询
+	支持基于Solr进行搜索的应用，并提供可视化的数据视图，以及仪表板（Dashboard）
+	支持基于Impala的应用进行交互式查询
+	支持Spark编辑器和仪表板（Dashboard）
+	支持Pig编辑器，并能够提交脚本任务
+	支持Oozie编辑器，可以通过仪表板提交和监控Workflow、Coordinator和Bundle
+	支持HBase浏览器，能够可视化数据、查询数据、修改HBase表
+	支持Metastore浏览器，可以访问Hive的元数据，以及HCatalog
+	支持Job浏览器，能够访问MapReduce Job（MR1/MR2-YARN）
+	支持Job设计器，能够创建MapReduce/Streaming/Java Job
+	支持Sqoop 2编辑器和仪表板（Dashboard）
+	支持ZooKeeper浏览器和编辑器
+	支持MySql、PostGresql、Sqlite和Oracle数据库查询编辑器
+	
+	
+	
+	
+	
+	编译安装：
+		# useradd hue
+		# echo hue | passwd  --stdin hue
+		# yum install ant asciidoc cyrus-sasl-devel cyrus-sasl-gssapi gcc gcc-c++ krb5-devel libxml2-devel \
+		libxslt-devel make mysql mysql-devel openldap-devel python-devel sqlite-devel openssl-devel gmp-devel \
+		libtidy python-setuptools libffi-devel
+		# 安装maven
+		# 安装oracle JDK
+		# mkdir /usr/local/hue
+		# chown hue:hue /usr/local/hue
+		# su - hue
+		# tar -xf cdh5.5.1-release.tar.gz 
+		# cd hue*
+		# make install 								# 默认安装在/usr/local/hue    # PREFIX=/paht/to/ make install
+		# cd /usr/local/hue
+		# build/env/bin/hue runserver				# 测试，开发模式
+		# build/env/bin/supervisor 					# 生产模式
+		
+		# 配置Hadoop
+			# HDFS
+				# 开启WebHDFS			/etc/hadoop/conf
+					# vim hdfs-site.xml
+						<property>
+						  <name>dfs.webhdfs.enabled</name>
+						  <value>true</value>
+						</property>
+					# vim core-site.html
+						<property>
+						  <name>hadoop.proxyuser.hue.hosts</name>
+						  <value>*</value>
+						</property>
+						<property>
+						  <name>hadoop.proxyuser.hue.groups</name>
+						  <value>*</value>
+						</property>
+				# 开启HttpFS			/etc/hadoop-httpfs/conf
+					# vim httpfs-site.xml
+						<property>
+						  <name>httpfs.proxyuser.hue.hosts</name>
+						  <value>*</value>
+						</property>
+						<property>
+						  <name>httpfs.proxyuser.hue.groups</name>
+						  <value>*</value>
+						</property>
+				# 重启HDFS集群
+			# MapReduce
+				# 配置MR1
+					# Hue与JobTracker在同一台主机
+						# cp hue/desktop/libs/hadoop/java-lib/hue-plugins-*.jar /usr/lib/hadoop-0.20-mapreduce/lib
+					# Hue与JobTracker在不同主机
+						# 通过scp将该插件拷贝至JobTracker的库目录
+						# vim mapred-site.xml				/etc/hadoop/conf
+							<property>
+							  <name>jobtracker.thrift.address</name>
+							  <value>0.0.0.0:9290</value>
+							</property>
+							<property>
+							  <name>mapred.jobtracker.plugins</name>
+							  <value>org.apache.hadoop.thriftfs.ThriftJobTrackerPlugin</value>
+							  <description>Comma-separated list of jobtracker plug-ins to be activated.</description>
+							</property>
+				# 配置MR2
+					Yarn只使用标准Hadoop APIs，无须特别配置
+				# 重启JobTracker
+			# 高级配置
+				# vim hadoop-env.sh
+					HADOOP_CLASSPATH=<your_additions>:$HADOOP_CLASSPATH
+				# vim core-site.xml	
+					<property>
+					  <name>hadoop.tmp.dir</name>
+					  <value>/tmp/hadoop-${user.name}${hue.suffix}</value>
+					</property>
+				
+		# 配置Oozie
+			# vim oozie-site.xml
+				<property>
+					<name>oozie.service.ProxyUserService.proxyuser.hue.hosts</name>
+					<value>*</value>
+				</property>
+				<property>
+					<name>oozie.service.ProxyUserService.proxyuser.hue.groups</name>
+					<value>*</value>
+				</property>
+		# 配置Hive
+			说明：Hive的数据存储在HDFS上(/user/hive/warehouse)，路径可由hive-site.xml中的hive.metastore.warehouse.dir指定
+			# vim hue.ini
+				hive_conf_dir=/path/hive-site.xml
+		# 配置Hue
+			说明：配置文件/etc/hue/hue.ini或desktop/conf/pseudo-distributed.ini，属于分段式
+			命令：
+				# hue/build/env/bin/hue config_help | less
+					列出所有的配置选项
+			配置：
+				# 配置核心桌面特性
+					[desktop]
+						send_dbug_messages=1
+						secret_key=jFE93j;2[290-eiw.KEiwN2s3['d;/.q[eIW^y#e=+Iei*@Mn<qW5o		#　指定会话存储中的hash秘钥
+						# secret_key_script=
+			
+						http_host=0.0.0.0														# 指定Hue http 监听地址
+						http_port=8000															# 和端口
+	
+						ssl_certificate=/path/to/certificate									# 使Hue使用HTTPS协议，须安装pyOpenSSL
+						ssl_private_key=/path/to/key											#　./build/env/bin/easy_install pyOpenSSL
+				＃ 配置Hadoop
+					default					-- HDFS集群
+						fs_defaultfs=hdfs://localhost:8020										# 与Hadoop配置中的fs_defaultfs相同
+						# webhdfs_url=http://localhost:50070/webhdfs/v1
+						
+					
+					
+					
+		# 访问
+			http://hue_ip:port
+				默认情况下，第一个登录的用户会自动成为管理员，用户信息存储在Django database数据库中
+		注：
+			编译的时候出现两种错误，一是找不到某些文件，这种情况下，需要检查一下是否是少了某一依赖没有安装；二是下
+			载jar包失败，这种情况下，重新make apps，多试几次
+	移动：
+		说明：将编译好的hue移动至其它位置时不能运行，因为在编译时将绝对路径写入了Python包中 
+		配置：
+			# cd hue
+			# rm app.reg
+			# rm -r build
+			# make apps
+	
+
+	Hue组件：
+		HDFS Core, Filebrowser	HDFS access through WebHdfs or HttpFS
+		MR1 JobBrowser, JobDesigner, Beeswax	Job information access through hue-plugins
+		MR2/YARN JobBrowser, JobDesigner, Beeswax	Job information access through hue-plugins
+		Oozie JobDesigner, Oozie	Oozie access through REST API
+		Hive Beeswax	Requires HiveServer2
+		HBase HBase Browser	Requires Thrift 1 service
+		Pig Pig Editor	Requires Oozie
+		Sqoop2 Sqoop Editor	Requires Sqoop2 server
+		Search Search	Requires Solr server
+		Impala Impala Editor	Requires an Impalad
+		ZooKeeper ZooKeeper Browser	Requires ZooKeeper server and REST server
+		Spark Spark Editor	Requires Spark Jobserver
+	进程：
+		supervisor：		孵化和监控其它进程
+		runcherrypyserver：	一个基于CherryPy(提供hue的核心web功能)的web服务器，该进程无论因何种状态失败会自动重启
+	日志：
+		access.log：		访问hue web服务器的访问日志
+		supervisor.log：	包含supervisor进程的信息
+		
+		在线日志：
+			http://myserver:8888/logs
+				记录在内存中，小
+				
+	数据库：
+		说明：hue需要SQL数据库存储少量的数据，默认情况下，使用嵌入式数据库SQLite，推荐使用mysql
+		SQLite：
+			数据库路径：hue/desktop/desktop.db
+			备份：直接将desktop.db文件备份即可
+		MySql：
+			迁移：
+				说明：将数据库从SQLite迁移至MySql
+				配置：
+					1.创建数据库并授权
+						# create database dreamweb default character set utf8 default collate utf8_general_ci;
+						# grant all on hue.* to 'hue'@'localhost' identified by 'hue';
+					2.关闭hue
+					3.导出数据库到一个文本文件(使用.json作扩展名)
+						# hue/build/env/bin/hue dumpdata > tmp.json
+					4.更改hue配置文件(hue.ini)
+						# 在[[database]]下添加：
+							host=localhost
+							port=3306
+							engine=mysql
+							user=hue
+							password=hue
+							name=hue
+					5.hue加载数据并创建数据库表
+						# hue/build/env/bin/hue syncdb --noinput
+						# mysql -uhue -phue -e "DELETE FROM hue.django_content_type;"
+						# hue/build/env/bin/hue loaddata tmp.json
+						
+					或：
+					  直接初始化：
+						# ./build/env/bin/hue syncdb
+						# ./build/env/bin/hue migrate
+					6.正常启动hue
+
+
+

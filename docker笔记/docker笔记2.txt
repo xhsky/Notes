@@ -1,0 +1,329 @@
+
+简介
+	docker由Docker Inc(dotCloud)诞生于2013年初，基于Go语言实现，遵从Apache2.0协议，代码在GitHub上进行维护
+
+	目的：实现轻量级的操作系统虚拟化解决方案
+	基础：linux容器(LXC)技术
+
+	特性：
+		1.docker容器的启动可以在秒级实现，对系统资源利用率高，一台主机上可同时运行数千个docker容器
+		2.内核级的虚拟化
+		3.可在任意平台上运行
+
+
+
+Docker包含三个基本概念
+	镜像(Image)			：一个只读的模板，用来创建容器。(镜像是只读的，容器在启动的时候创建一层可写层作为最上层)
+						  每个镜像都由很多层次构成，Docker使用Union FS将这些不同的层结合到一个镜像中去。通常Union 
+						  FS有两个用途
+							1.可以实现不借助LVM，RAID将多个disk挂载到同一目录下
+							2.将一个只读的分支和一个可写的分支联合在一起，在镜像不变的基础上允许用户在其上进行一些写操作
+	
+	容器(Container)		：docker利用容器来运行应用，是镜像创建的实例，是相互隔离、保证安全的平台
+						  容器的核心为所执行的应用程序，所需要的资源都是该程序运行所必需的。除此之外，并没有其它的资源
+	
+	仓库(Repository)	：存放镜像文件的场所。
+		一般仓库注册服务器上存放着多个仓库，每个仓库中包含多个镜像，每个镜像有不同的标签
+		仓库的两种形式
+			公开仓库：
+				eg：Docker Hub(最大的公开仓库)、Docker Pool(国内公开的仓库)
+			私有仓库：
+				可在本地网络自己建立
+		
+	命令
+		安装
+			# yum install docker
+			# service docker start
+			# chkconfig docker on
+		信息：
+			docker版本信息
+				# docker version
+			docker系统信息
+				# docker info
+		
+		镜像：
+			搜索镜像
+				# docker search [option] ***
+							默认从Docker Hub中搜索
+					--atuomated			只列出automated build类型的镜像
+					--no-trunc			可显示完整的镜像描述
+					-s 40				列出收藏数不小于40的镜像
+					
+			下载
+				# docker pull 注册服务器/仓库:标记
+					-a 					下载所有tagged镜像
+			上传
+				# docker push 注册服务器/仓库:标记
+					默认为Docker Hub
+					
+			导出
+				# docker save -o name repo:tag
+			导入
+				# docker load --input name			或 # docker load < name
+			
+			
+			列出本地镜像
+				# docker images
+					-a					含过程镜像
+					-f 	dangling=true	列出满足的镜像
+					--no-trunc			可显示完整的镜像ID
+					-q					仅列出镜像ID
+					--tree				以树状结构列出镜像的所有提交历史
+			删除镜像
+				# docker rmi 仓库:标记 仓库:标记 ...
+					-f					强行删除，即使其真被使用
+					--no-prune 			不删除该镜像的过程镜像(默认是删除的)
+			查看镜像创建历史
+				# docker history iamge
+					--no-trunc			显示完整的提交记录
+					-q					仅列出提交记录ID 
+			标记镜像
+				# docker tag repo:tag new_repo:new_tag
+					标记本地镜像，将其归入某一仓库
+					-f					覆盖已有标记
+			检查镜像
+				# docker inspect image
+			创建镜像
+				1.通过修改已有镜像
+					# 将某个镜像运行并做了修改				保存为本地镜像
+					# docker commit  docker_id repo/user:tag
+						-m 					指定说明信息
+						-a					作者
+				2.利用Dockerfile来创建
+					1.在/dir里建立dockerfile文件
+					2.写入指令
+						from 仓库:标记			# 说明依据哪个镜像作为基础
+						maintainer *****		# 维护者信息
+						run	command				# run指令在创建中运行
+						run command
+					3.生成镜像
+						# docker build -t="仓库:标记" /dir
+							/dir		表明dockerfile的路径
+				3.从本地文件导入
+					# cat ***-miniaml.tar.gz | docker import - repo:tag
+							
+						
+					
+					
+		容器：
+			启动一个容器，在其中运行指定命令
+				# docker run repo:tag command
+					eg：# docker run -t -i 仓库:标记  /bin/bash
+						若不指定具体的标记，则默认使用latest标记
+						若镜像不在本地，会从Docker Hub公共注册服务器的仓库中下载
+					-a stdin			指定标准输入输出内容类型，可选stdin/stdout/stderr三项
+					-d 					后台运行容器，并返回容器ID
+					-i					以交互式模式运行容器
+					-t					为容器分配一个伪终端，-i -t常同时使用
+					--name="d_name"		为容器指定名称
+					--dns 8.8.8.8		指定容器使用的DNS，默认和宿主一致
+					--dns-search example.com		指定容器DNS搜索域，默认和宿主一致
+					-h "hostname"		指定容器的hostname
+					-e username=""		设置环境变量
+					--cpuset="0-2/0,1,2"			绑定容器到指定CPU运行
+					-c
+					-m
+					--net="bridge"		指定容器的网络连接类型，支持bridge/host/none
+					container:<name/id>	四种类型
+					--link=[]
+					--expose=[]
+					
+					Docker在后台运行的标准操作
+						1.检查本地是否存在指定的镜像，不存在就从公有仓库下载
+						2.利用镜像创建并启动一个容器
+						3.分配一个文件系统，并在只读的镜像层外面挂载一层可写层
+						4.从宿主主机配置的网路接口中桥接一个虚拟接口到容器中
+						5.从地址池分配一个ip给容器
+						6.执行用户指定的命令
+						7.执行完毕后容器被终止
+			
+			列出运行中的容器
+				# docker ps
+					-a					含沉睡镜像
+					--before="***"		列出在某一容器之前创建的容器，接受名称和ID作为参数
+					--since="***"		列出在某一容器之后创建的容器，接受名称和ID作为参数
+					-f exited=<int>		列出满足exited=<int>条件的容器
+					-l					仅列出最新创建的一个容器
+					-n=4				列出最新创建的4个容器
+					-q					仅列出容器ID
+					-s					显示容器大小
+			
+			删除容器
+				# docker rm d_name
+					-f					强行删除该容器，即使其正在运行
+					-l					删除容器间的网络连接，而非容器本身
+					-v					删除与容器关联的空间
+			容器开关
+				# docker start/stop/restart d_name
+					-a					待完成
+					-i					启动后进入交互模式
+					-t N				停止或重启的超时时间(秒)，超时后系统将杀死进程
+			
+					用户通过exit命令或Ctrl+d来退出终端时，所创建的容器立刻终止
+			
+			杀死容器
+				# docker kill d_name
+					-s "KILL"			自定义发送至容器的信号
+			
+			进入容器
+				方法一：	使用docker自带的命令
+					# docker attach d_name
+						当多个窗口同时attach到同一个容器式，所有窗口都会同步显示，当某个窗口因命令阻塞时，其它窗口也无法执行操作
+				方法二：	nsenter命令(包含在util-linux 2.23后的版本中)
+					# docker inspect --format "{{.State.Pid}}" d_id			-- PID
+					# nsenter --target $PID --mount --uts --ipc --net --pid
+			
+			从服务器拉取个人动态
+				docker events
+					--since=
+					--until=
+					
+						可选择时间区间
+						
+						
+						
+			保存容器
+				# docker save -o "centos.tar"		或	# docker save > "centos.tar"
+					将指定镜像保存成tar归档文件，保存后再加载的镜像不会丢失提交历史和层，可以回滚
+			加载容器
+				# docker load -i "centos.tar"   	或	# docker laod < "centos.tar"
+					从tar归档文件中载入镜像，保存后再加载的镜像不会丢失提交历史和层，可以回滚
+			导出容器
+				# docker export d_name > export.tar
+					将指定的容器保存为tar归档文件(快照)，导出后导入的容器会丢失所有的提交历史，无法回滚
+			导入容器
+				# docker import http://ip/export.tar
+					从归档文件(支持远程)中导出镜像，可为导入镜像打上标签。导出后导入的容器会丢失所有的提交历史，无法回滚。
+			
+			
+			查看运行的docker
+				# docker top d_name
+				
+			
+			检查镜像或容器的参数
+				# docker instpect d_name/image
+					默认返回JSON格式
+					-f				指定返回值的模板文件
+			暂停容器
+				# docker pause d_name
+			恢复容器			
+				# docker unpause d_name
+			
+			查看在容器中的操作
+				# docker logs d_name 
+					-f	 			跟踪容器日志
+					-t 				显示容器日志的时间戳
+					--tail="10"		仅列出最新10条容器日志
+				
+		仓库
+			公共仓库：
+				docker登录
+					# docker login
+						-- login credentials saved in /root/.dockercfg.
+				docker登出
+					# docker logout
+						-- Remove login credentials for https://index.docker.io/v1/
+			
+				自动创建
+				
+			私有仓库：
+				通过官方镜像来建立
+				通过源安装
+			
+				
+	数据管理
+		Docker内部及容器之间的数据管理
+		两种方式
+			1.数据卷：绕过UFS，可供一个或多个容器使用的特殊目录
+				特性
+					1.数据卷可在容器之间共享和重用
+					2.对数据卷的修改会立即生效
+					3.对数据卷的更新不会影响镜像
+					4.卷会一直存在，知道无容器使用它
+				
+			2.数据卷容器
+			
+			
+			
+			
+			
+			
+			
+			
+		
+传统虚拟化技术
+	纯软件的虚拟化：	通过硬件层的模拟从而实现允许运行多个操作系统
+	硬件辅助的虚拟化：	需要硬件层面对于虚拟化的支持，类似Inter-VT技术等，具有更高的运行效率
+	
+	解决方案：
+		商业：	VMware VSphere，VMware Fusion
+		开源：	Openstack，KVM
+		
+		
+system-level virtualization
+	服务器虚拟化方法，其中的内核允许多个相互隔离的用户空间实例
+	不需要模拟硬件层
+	共享一个Host OS的Kernel
+	user space instance == Container
+	
+	解决方案
+		LXC				Ubuntu提供的一个标准的linux Container技术
+		OpenVZ
+		Docker
+		Imctfy			Google开源的容器虚拟化的实现，全称为Let Me Contain That For You
+		
+		
+传统虚拟化与容器虚拟化的区别
+	
+					传统虚拟化							容器虚拟化
+	创建速度	     分钟级									秒级
+	硬盘使用		 一般为GB							  一般为MB
+	性能影响	通过对于硬件层的模拟，增加			共享Kernel，几乎没有性能损耗
+				了系统调用的环节，有性能损耗		接近原生
+	资源消耗		很大							很小，一台机器就可以轻松创建多个Container
+	系统支持量	 一般几十个							单机支持上千个容器
+	操作系统	 linux Windows Mac					仅仅kernel支持的OS
+	
+	
+Container的核心技术
+	- CGroups限制容器的资源使用
+		linux内核提供的限制，记录和隔离进程组所使用的资源(由Google工程师提出，后被整合到kernel)
+		通过不同的子系统(blkio,cpu,cpuacct等)来实现对不同资源使用的控制和记录
+	
+	- Namespace机制，实现容器间的隔离
+		pid			容器有自己独立的进程表和1号进程
+		net			容器有自己独立的network info
+		ipc			在ipc通信时，需要加入额外信息来标识进程
+		mnt			每个容器有自己唯一的目录挂载
+		utc			每个容器有独立的hostname和domain
+	
+	- chroot，文件系统的隔离
+		
+	
+参考资料
+	Docker 官网 		https://www.docker.com
+	Docker 中文社区		http://dockboard.org
+	Docker@Github 		https://github.com/docker/docker/issues
+	Docker Hub			https://hub.docker.com/
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

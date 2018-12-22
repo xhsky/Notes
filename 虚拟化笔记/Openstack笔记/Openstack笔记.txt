@@ -1,0 +1,116 @@
+
+
+说明：
+	1.是由Rackspace和NASA共同开发的云计算平台，帮助服务商和企业内部实现类似于Amazon EC2和S3的云基础架构服务，是亚马逊EC2的山寨品
+	2.包含两个主要模块：Nova和Swift，前者是NASA开发的虚拟服务器部署和业务计算模块；后者是Rackspack开发的分布
+	  式云存储模块。主要采用Python编写源代码，使用Twisted软件框架
+	3.旨在为公共及私有云的建设与管理提供软件的开源项目，使用Apache许可证
+	
+		Openstack官网：www.openstack.org
+		Rackspace官网：www.rackspace.com
+		
+		源：http://mirrors.ustc.edu.cn/centos/7/cloud/x86_64/
+		
+组件：
+	Horizon：
+		说明：通过Web来操作、管理、运维OpenStack的一些功能。最新的功能一般先开发Shell命令行，再移到Dashboard上
+		Horizon一般装在Nova API的管理节点上，便于访问
+		
+	keystone：
+		说明：
+		概念：
+			User：			住宾馆的人 
+			Credentials：	开启房间的钥匙 
+			Authentication：宾馆为了拒绝不必要的人进出宾馆，专门设置的机制，只有拥有钥匙的人才能进出 
+			Token：			也是一种钥匙，有点特别 
+			Tenant：		宾馆 
+			Service：		宾馆可以提供的服务类别，比如，饮食类，娱乐类 
+			Endpoint：		具体的一种服务，比如吃烧烤，打羽毛球 
+			Role：			VIP 等级，VIP越高，享有越高的权限 
+		安装：
+			1.rpm包安装
+			2.源码安装
+			
+
+
+
+	
+外：
+	Openstack的版本演变：
+		Series		Status
+		Ocata		Future
+		Newton		Future
+		Mitaka		Under Development
+		Liberty		Current stable release, security-supported (EOL: 2016-11-17)
+		Kilo		Security-supported (EOL: 2016-05-02)
+		Juno		EOL: 2015-12-07
+		Icehouse	EOL: 2015-07-02
+		Havana		EOL: 2014-09-30
+		Grizzly		EOL: 2014-03-29
+		Folsom		EOL: 2013-11-19
+		Essex		EOL: 2013-05-06
+		Diablo		EOL: 2013-05-06
+		Cactus		Deprecated
+		Bexar		Deprecated
+		Austin		Deprecated
+		
+	OpenStack组件：	
+		说明：
+			1.每个服务都有单独的开发人员和设计团队
+			2.每个服务都具有公共API(基于RESTful，同时支持JSON和XML)
+			3.每个服务都可以单独部署，对外提供服务，也可协同完成工作
+			4.每个服务都有单独的数据库和隔离的持久层
+			5.每个服务都有各自的后端驱动，所有的驱动都可以以plugin方式加载
+			6.每个服务都有各自的client项目
+		核心服务：
+			Nova：		计算，部署与管理虚拟机
+			Neutron：	虚拟网络，提供Nova网络支持
+			Swift：		可扩展的分布式存储平台，对象存储
+			Cinder：	块存储，提供云硬盘给Nova，同时备份到Swift
+		公共服务：
+			Glance：	镜像服务，提供给Nova镜像
+			Keystone：	身份、令牌、分类及策略服务
+			Horizon：	用户界面，提供web界面
+		OpenStack依赖库：
+			Oslo基础设施代码共享依赖库
+		孵化项目：
+			Ceilometer：监控cinder、neutron、Nova、glance。用于计费、基准测试及数据统计等功能
+			Heat：		与AWS cloud兼容。使用自带的HOT模板或AWS的CloudFormation模板，通过OpenStack中各服务的REST API，将各组件的资源组织形成云应用
+			Ironic：	物理设备服务
+			Marconi：	消息队列服务
+			Savanna：	大数据处理
+			Trove：		数据库服务
+		其它项目：
+			Infrastructure OpenStack社区建设项目
+			Documention OpenStack文档管理项目
+			TripleO OpenStack部署项目
+			DevStack OpenStack开发者项目
+			QA Openstack质量管理项目
+			Release Cycle Management版本控制项目
+	
+		
+	Openstack七大功能套件介绍：
+		运算套件Nova：			部署与管理虚拟机，与Amazon AWS的EC2相似
+		对象存储套件Swift：		可扩展的分布式存储平台，以防止单点故障，可存放非结构化数据。S3
+		区域存储套件Cinder：	整合了运算套件，可让IT人员查看存储设备的容量使用状态，具有快照功能。EBS
+		网络套件Quantum：		可扩展，随插即用，通过API管理的网络架构系统，以确保在部署云端服务时网络不会出现瓶颈
+		身份识别套件Keystone：	具有中央目录，能查看哪些使用者可存取哪些目录，并且提供了多种验证方式
+		镜像管理套件Glance：	硬盘或服务器的镜像文件寻找、注册以及服务交付等功能
+		仪表盘套件Horizon：		图形化的网页接口，可以查看云端服务目前的规模与状态，并能统一存取、部署与管理所有云端服务
+								所能使用到的资源
+	Openstack的功能：
+		1.分配和管理VM
+		2.卷管理
+		3.VM映像和文件对象的管理
+		4.快照
+		5.用户验证、限额和租用管理
+		
+	Openstack的同类
+		CloudStack：CloudStack的前身是Cloud.com。2011年7月，Citrix收购Cloud.com，并将CloudStack100%开源。2012年4月5日，
+					  Citrix又宣布将CloudStack开源软件交给Apache软件基金会管理。目前已是Apache的顶级项目
+		Eucalyptus：最初是美国加利福尼亚大学Santa Barbara计算机科学学院的一个研究项目，现已商业化，发展成为Eucalyptus SystemsInc，
+					  分开源版与企业版，后者还提供支持服务
+	
+	安装参考文档
+		·https://github.com/mseknibilel/OpenStack-Grizzly-Install-Guide
+		·官方文档 http://docs.openstack.org/

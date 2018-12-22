@@ -1,0 +1,9 @@
+http://www.cloudera.com/content/cloudera/zh-CN/documentation/core/v5-3-x/topics/impala_partitioning.html
+
+http://blog.csdn.net/xiaoxiaorenky/article/details/6122532
+http://369369.blog.51cto.com/319630/790921
+
+
+
+
+http://cloud.centos.org/		openstack镜像

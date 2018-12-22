@@ -1,0 +1,545 @@
+
+简介
+	时间，作者，开发语言，定义
+		Sqoop(SQL to Hadoop)项目开始于2009年,
+		是一款开源的工具，主要用于在Hadoop(Hive)与传统的数据库(mysql、postgresql等)间进行数据的传递，
+		可以将一个关系型数据库(例如:MySQL ,Oracle ,Postgres等)中的数据导进到Hadoop的HDFS中，也可以将
+		HDFS的数据导进到关系型数据库中。Sqoop使用MapReduce来导入和导出数据，这样既可以提供并行化操作
+		又可以提高容错能力。 
+	官网：http://sqoop.apache.org/
+	版本：
+		Sqoop分为两个版本，完全不兼容。 
+		版本号：Apache：1.4.x~ ，1.99.x~
+		区别：
+            Sqoop1是一个客户端程序，用户只需在客户端添加驱动或者连接器到Sqoop中即可使用
+            Sqoop2是一个基于服务的模型，新一代Sqoop，所有配置以及驱动都必须在服务端配置
+            好。从MapReduce的观点看，Sqoop1仅仅提交Map程序给集群，而Sqoop2会提交MR任务，
+            另一个主要区别是安全层面。管理员设置好来源和目标的连接，用户无需也不能获取到
+            该连接的信息，只能使用它。这可以进一步做权限控制。Sqoop2也会提供Web UI。但
+            Sqoop2目前还是一个半成品亟待完善，且不支持Hadoop1。
+
+			推荐使用sqoop2
+	协议：Apache Software License v2.		
+			
+适用性(优缺)
+    1.利用Mapreduce分布式批处理，加快了数据传输速度，保证了容错性
+    
+    1.但
+	
+架构
+	安装：
+		1.安装hadoop
+            # hadoop和sqoop必须在一台机器上
+        2.配置hadoop依赖：
+            # sqoop启动需要$HADOOP_HOME变量
+            # 配置hadoop的代理访问，一般使用*
+                # vim hadoop/etc/hadoop/core.site.xml
+                    <property>
+                      <name>hadoop.proxyuser.sqoop.hosts</name>    # hadoop.proxyuser.$SERVER_USER.hosts 
+                      <value>*</value>
+                    </property>
+                    <property>
+                      <name>hadoop.proxyuser.sqoop.groups</name>   # hadoop.proxyuser.$SERVER_USER.groups
+                      <value>*</value>
+                    </property>                                    # 注：SERVER_USER是运行sqoop server的用户
+        
+                # vim hadoop/etc/hadoop/container-executor.cfg     # 该文件禁止uid小于1000的运行运行sqoop job
+                    allowed.system.users=sqoop                     # 添加例外，运行sqoop的用户
+                
+        3.安装sqoop2   
+            # wget http://apache.fayea.com/sqoop/1.99.7/sqoop-1.99.7-bin-hadoop200.tar.gz
+            # tar -xf 
+            # ln -sv sqoop-1.99.7-bin-hadoop200 sqoop
+            # cd sqoop
+            # vim conf/sqoop.properties
+                将@LOGDIR@和@BASEDIR@替换成相应目录
+                org.apache.sqoop.submission.engine.mapreduce.configuration.directory=/path/
+            # vim .bash_profile
+                export SQOOP_HOME=/home/sqoop
+                export SQOOP_SERVER_EXTRA_LIB=$SQOOP_HOME/extra 	#  设置第三方jdbc驱动目录，需要将mysql，postgresql的驱动下载至该目录
+                export PATH=$SQOOP_HOME/bin:$PATH
+            # . bash_profile
+            # mkdir ./extra
+            # sqoop2-tool upgrade									# 初始化metadata repository 
+            # sqoop2-tool verify									# 检查配置文件
+            # sqoop2-server start									# 启动sqoop服务
+            # sqoop2-shell											# 连接
+    
+    升级：
+        说明：针对sqoop2升级为更高版本
+        实施：
+            服务器：
+                手动：
+                    1.必须关闭sqoop服务
+                        # sqoop2-server stop
+                    2.备份repo
+                    3.# sqoop2-tool upgrade
+                    4.# sqoop2-server start
+                 自动：默认禁用，以避免意外更改库
+                    1.关闭sqoop服务
+                    2.备份repo
+                    3.设置启动时自动更新
+                        # vim conf/sqoop.properties 
+                            org.apache.sqoop.repository.schema.immutable=false
+                            org.apache.sqoop.connector.autoupgrade=true
+                            org.apache.sqoop.driver.autoupgrade=true
+                    4.sqoop2-server start    
+                        
+            客户端：
+                直接替换最新的二进制文件即可
+		
+	结构
+		目录结构
+			安装目录
+				bin：可执行脚本
+                    sqoop2-server
+                    sqoop2-shell
+                    sqoop2-tool
+                    sqoop.sh
+                    sqoop-sys.sh
+				conf：配置文件
+                    sqoop_bootstrap.properties：配置config支持类，采取默认值
+                    sqoop.properties：sqoop server配置属性
+				log：由sqoop2-tool upgrade产生
+					audit.log
+					derbyrepo.log
+					sqoop.log
+				repository：由sqoop2-tool upgrade产生
+					db:
+						log
+						seg0
+						service.properties
+				shell：
+                    lib/*.jar
+				docs：
+				server：
+                    lib/*.jar
+				tools
+                    lib/*.jar
+				
+				
+		进程结构
+            一个java进程：SqoopJettyServer(jps)
+			端口:tcp/12000
+		编程接口
+		管理软件
+	命令
+		服务器：
+			sqoop2-server：
+				说明：sqoop服务器控制脚本
+				参数：
+					start：启动sqoop2
+					stop：关闭sqoop2
+            sqoop2-tool：
+				说明：sqoop服务的工具脚本，须在sqoop服务不运行时使用，否则可能会导致数据损坏和服务中断
+				参数：
+					upgrade：初始化metadata repository 
+					verify：开启servlet子系统检查sqoop的配置文件
+
+            sqoop.sh：
+                说明：其它脚本的总控脚本
+                参数：
+                    server start/stop/run               # run - 在前台运行
+                    client [script]                     # 运行sqoop的客户端
+                    tool
+            sqoop-sys.sh：
+                说明：sqoop.sh的一个source文件
+		客户端：   
+            sqoop2-shell：
+                说明：连接sqoop服务器的工具，有两种交互方式：
+                        1.交互式：
+                            ./sqoop2-shell
+                        2.批处理：
+                            ./sqoop2-shell /path/script.sqoop           # 该文件中以'#'开头为注释
+                            
+                
+	日志
+	优化
+	安全
+	集群
+		说明：sqoop2是一个C/S的结构，server安装在一台机器上，client可以安装在多台机器上
+            服务器：
+                sqoop必须装在hadoop节点，必须能够找到以下变量路径：
+                    $HADOOP_COMMON_HOME
+                    $HADOOP_HDFS_HOME
+                    $HADOOP_MAPRED_HOME
+                    $HADOOP_YARN_HOME
+                sqoop会自动依据$HADOOP_HOME设定以上变量路径：
+                    $HADOOP_HOME/share/hadoop/common
+                    $HADOOP_HOME/share/hadoop/hdfs
+                    $HADOOP_HOME/share/hadoop/mapreduce
+                    $HADOOP_HOME/share/hadoop/yarn
+                    
+                    sqoop服务需要一个数据库来存储sqoop的各种实体，例如：
+                        连接器，驱动，库的模式，服务器升级的链接和工作，此外
+                        还有各种配置和各种链接和驱动的描述
+            客户端：
+                1.客户端不依赖hadoop，可随意拷贝至一台机器，使用# sqoop2-shell 连接即可
+                2.在启动sqoop2-shell之后，会自动加载~/.sqoop2rc文件(若文件存在，其中的指令首先被执行)
+		
+具体服务相关
+	概念:
+		原理
+        连接器：
+            
+	内部命令
+        1.辅助命令：改善用户体验，只运行在客户端
+            # :x                                    # 退出命令行
+            # :H                                    # 显示命令历史
+            # \h                                    # 显示帮助信息
+        2.set命令：设置客户端的各种属性
+            # set server args                       # 配置连接sqoop服务信息
+                args：
+                    -h [host]：                     # 设置sqoop服务运行的主机，默认值localhost
+                    -p [port]：                     # 设置sqoop服务运行的端口，默认值12000
+                    -w [sqoop]：                    # 设置Jetty的web应用的名称，默认值sqoop
+                    -u [http://ip:port/name]        # 以url的方式设置sqoop服务连接，当使用-u参数时，以上3个参数被忽略
+            # set option --name verbose/poll-timeout  --value true/2000
+                # 固定参数：--name指定内部属性名称，--value指定要重新设置的新值
+                # 固定value：
+                    verbose：true/false             # 客户端是否打印额外信息，默认为false
+                    poll-timeout：10000             # server poll的超时时间，默认10000ms 
+        3.show命令：显示各种属性和配置信息
+            # show args 
+                args：
+                    server -h/-p/-w/--ll            # 显示服务器连接信息
+                    option                          # 
+                    version -c/-s/-p/--all          # 显示sqoop客户端版本，-all参数显示服务器版本和支持的API版本
+                    connector                       # 显示连接器配置及其相关配置
+                    driver                          # 显示驱动配置及其相关配置
+                    link                            # 显示在sqoop中的link
+                    job                             # 显示在sqoop中的job
+                    submission -j [job_name] -d     # 显示job提交对象，-d 详细显示
+                    role
+                    principal
+                    privilege
+            
+        4.create命令：
+            # create link/job/role [args]
+                link：
+                    -c connect_name                 # org.postgresql.Driver/com.mysql.jdbc.Driver
+                job：
+                    -f from_link_name
+                    -t to_link_name
+                role：
+        5.update命令：用于更改link和job
+            # update link/job
+                link：
+                    -n link_name                    # 指定存在的link名称                    
+                job：
+                    -n job_nmae                     # 指定存在的job名称
+        6.delete命令：删除server上的link/job/role
+            # delete link/job/role args
+                link -n link_name
+                job -n job_name
+                role -n role_name
+        7.clone命令：
+            # clone link/job args
+                link -n line_name
+                job -n job_name
+        8.start命令：
+            # start job -n job_name [-s]            # -s，同步
+        9.stop命令：
+            # stop job -n job_name                  # 中断一个job
+        10.status命令：
+            # status job -n job_name                # 返回该job的状态
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+架构
+	安装：
+		# wget -c http://apache.fayea.com/sqoop/1.4.6/sqoop-1.4.6.bin__hadoop-2.0.4-alpha.tar.gz
+		# tar -xf sqoop-1.4.6.bin__hadoop-2.0.4-alpha.tar.gz
+		# 
+		# vim .bash_profile
+			export SQOOP_HOME=/opt/bigdata/sqoop
+			export PATH=$SQOOP_HOME/bin:$PATH
+		# . .bash_profile
+		# 将相应关系型数据库的驱动拷贝至${SQOOP_HOME}/lib/目录下
+        # 
+
+	结构
+		目录结构
+			源码目录
+			安装目录
+				bin:
+				conf:
+					oraoop-site.xml      
+					sqoop-site.xml
+					sqoop-env.sh：
+						定义各种组件的路径变量，若在全局中定义过，可不进行配置
+				lib:
+				src:
+				docs:
+				testdata:
+				ivy:
+				sqoop-1.4.6.jar:
+				sqoop-test-1.4.6.jar
+				
+				
+		进程结构
+			端口
+		编程接口
+		管理软件
+	命令
+		说明：在Sqoop命令下，实际上只有一个命令，即为sqoop，其它命令均为sqoop命令集成
+		命令：
+			sqoop：
+				codegen：生成与数据库记录交互的代码
+				create-hive-table：将表定义导入到hive中
+				eval：在一个数据库上执行sql语句并生成结果    
+                    
+				export：导出一系列hdfs文件追加至数据表中，该文件必须由用户指定分隔符，且数据库中表必须已存在，
+                    导出参数：
+                        --batch                         # 表明之后的语句在batch下能执行
+                        --call <arg>                    # 使用存储过程
+                        
+                        
+                        --direct                        # 使用direct方式导出
+                        --export-dir <dir>              # 指定导出的路径
+                        -m <n>                          # 导出时并行job的数量
+                        --mapreduce-job-name <name>     # 设置生成的job的名称
+                        
+                        --staging-table <table-name>    # 临时表表名
+                        --clear-staging-table           # 清除临时表表内数据
+                        
+                        --table <table-name>            # 指定导入表的名称
+                        --columns <col,col,col...>      # 指定导入表中的字段
+                        
+                        --update-key <key>              # 指定更新的字段，多个字段使用","分隔
+                                                        # sqoop依据指定的字段，对数据表进行update操作
+                                                        # (# update tb_name set col1=val1,col2=val2 where col3=key1 and col4=key2)
+                        --update-mode <mode>            # 更新模式
+                                                        # updateonly(默认)：默认只进行更新操作，若没有匹配到的记录，直接忽略，不进行插入
+                                                        # allowinsert：允许插入操作，若发现有没有匹配到的记录，则进行插入
+                        
+                    验证参数：
+                        验证数据传输，通过比较原始数据和传输后数据的总数量
+                        --validate                      # 使用配置的验证器验证拷贝
+                        --validation-failurehandler <validation-failurehandler>
+                        --validation-threshold <validation-threshold>
+                        --validator <validator>
+                    默认字段参数：
+                        --input-null-string <null-string>       #
+                        --input-null-non-string <null-string>   # 
+                        
+                        
+                        
+				import：将数据库表导入到hdfs中
+                    导入参数：
+                        --append                        # 以追加方式导入数据。默认情况下，若导入目录以存在，
+                                                        # sqoop拒绝导入覆盖该目录
+                        --as-avrodatafile               # 将数据导入到Avro文件中
+                        --as-parquetfile                # 将数据导入到parquet文件中
+                        --as-sequencefile               # 将数据导入到SequenceFile
+                        --as-textfile                   # 将数据导入到text文件中(默认)
+                        --autoreset-to-one-mapper       # 若没有指定split，则重置mapper数为1
+                        --boundary-query <statement>    # 设置主键最值的范围查询
+                        --columns <col,col,col...>      # 从一个表中导出某些字段
+                        --compression-codec <codec>     # 导入的压缩编译码器
+                        --delete-target-dir             # 以delete模式导入数据
+                        --direct                        # 使用direct导入。该模式下，可以将该参数之后的参
+                                                        # 数传递给隐含的工具。eg：# sqoop import --connect * \
+                                                        # --table * -dircet -- --default-character-set=utf8 
+                                                        # 实则使用mysqldump，且系统需安装
+                                                        
+                        --direct-split-size <n>         # 当以direct方式导入时，每n字节分割输入流
+                        -e <statement>                  # 将sql(statement)的结果导入。该方式可以替代(--table,--columns,--where)
+                                                        # 该方式下，必须指定参数--target-dir、--split-by。且在-e的where参数中加入
+                                                        # "where a=b and \$CONDITIONS"(单引号不需要\)
+                        --fetch-size <n>                # 设置从数据库中提取的行数n
+                        --inline-lob-limit <n>          # 设置内联lob的最大数
+                        -m <n>                          # 使用n个map工作来平行导入
+                        --mapreduce-job-name <name>     # 设置生成MR job的名称
+                        --merge-key <column>            # 
+                        --split-by <column-name>        # 根据表的某个字段来切分工作单元
+                        --table <table-name>            # 指定导入的表
+                        --target-dir <dir>              # 指定导入数据的目录，该目录下即为数据文件
+                        --warehouse-dir <dir>           # 指定导入数据的根目录，该目录下为表同名目录
+                        --where <where clause>          # 导入中使用的where从句
+                        -z                              # 将导入的数据用gzip压缩(默认数据不进行压缩)
+                    验证参数：
+                        --validate                      # 使用配置的验证器验证拷贝
+                        --validation-failurehandler <validation-failurehandler>
+                        --validation-threshold <validation-threshold>
+                        --validator <validator>
+                        
+                    增量导入参数：使用增量导入时，三个参数必须同时使用。针对字段做增量导入，实则是将大于该字段的所有记录导入
+                        --incremental <import-type>     # 指定一个增量导入类型(append/lastmodified)
+                                                        # append：以下两个参数值均为整型
+                                                        # lastmodified：以下两个参数值为时间类型
+                        --check-column <column>         # 检查指定的列，根据此列判断哪些记录是新数据且需要导入的，
+                                                        # 列不能是字符相关类型（CHAR/NCHAR/VARCHAR/VARNCHAR/ LONGVARCHAR/LONGNVARCHAR）
+                        
+                        --last-value <value>            # 指定某个值，将大于(!=)该值的检查列记录导入，以确定仅将新的或者更新后的记录导入新
+                                                        # 的文件系统
+                    输出格式控制参数：
+                        --enclosed-by <char>            # 设置一个字段封闭字符
+                        --escaped-by <char>             # 设置逃离字符
+                        --fields-terminated-by <char>   # 设置字段分隔字符
+                        --lines-terminated-by <char>    # 设置换行符
+                        --mysql-delimiters              # 使用mysql默认的分隔符(fields: , lines: \n escaped-by: \)
+                        --optionally-enclosed-by <char> # 设置字段的封闭字符
+                    输入解析参数：
+                        --input-enclosed-by <char>
+                        --input-escaped-by <char>
+                        --input-fields-terminated-by <char>
+                        --input-lines-terminated-by <char>
+                        --input-optionally-enclosed-by <char>
+                    hive参数：
+                        --create-hive-table
+                        --hive-database <database-name>
+                        --hive-delims-replacement <arg>
+                        --hive-drop-import-delims
+                        --hive-home <dir>
+                        --hive-import
+                        --hive-overwrite
+                        --hive-partition-key <partition-key>
+                        --hive-partition-value <partition-value>
+                        --hive-table <table-name>
+                        --map-column-hive <arg>
+                    hbase参数：
+                        --column-family <family>
+                        --hbase-bulkload
+                        --hbase-create-table
+                        --hbase-row-key <col>
+                        --hbase-table <table>
+                    hcatalog参数：
+                    accumulo参数：
+                    代码生成参数：
+                    hadoop命令行参数：
+                    
+				import-all-tables：将数据库所有表导入到hdfs中
+                    # 每张表都会在hdfs上建立相应的目录
+                    # 每张表都要有一个字段主键或者添加--autoreset-to-one-mapper/-m参数
+                    # 当表中没有主键是，使用-m 1是导库的最佳方式
+				list-databases：列出所有的数据库
+                    # 该方式只能列出HSQLDB，MySql和Oracle的数据库，且当使用为oracle是，该用户必须有DBA的权限
+				list-tables：列出数据库中的所有表
+                    # 若是pg，则只会列出"public"中所有表，自定义：-- --schema schema_name
+				job：将sqoop命令定义为save jobs，从而实现重复调用。该信息记录在$HOME/.sqoop/目录中
+                    --create <job-id> -- args               # 创建一个job
+                    --delete <job-id>                       # 删除一个已保存的job
+                    --exec <job-id> [-- args]               # 运行一个已保存的job，该参数可通过后面的参数进行参数覆盖
+                    --list                                  # 列出所有已保存的job
+                    --show <job-id>                         # 显示job的参数
+                    --meta-connect <jdbc-uri>               # 指定连接metastore的jdbc连接串(jdbc:hsqldb:hsql://ip:16000/sqoop)
+                    
+				merge：合并增量导入的结果
+                    说明：该参数运行一个MR job，指定新旧两个数据集的目录，
+                    --class-name <name>     指定要加载的class文件
+                    --jar-file <file>       指定要加载的jar文件
+                    --merge-key <column>    指定要对比的key字段
+                    --new-data <path>       较新数据路径
+                    --onto <path>           旧数据路径
+                    --target-dir <path>     合并结果路径
+                    
+
+				metastore：运行一个独立的sqoop metastore
+                    --shutdown：关闭本地的metastore服务器
+                        
+				version：显示版本信息
+				help：列出所有命令
+                    tool_name：                              # 显示该工具的帮助命令
+
+                    一般参数：所有命令均可使用
+                        --connect <jdbc-uri>                        # 指定jdbc连接串(jdbc:mysql://ip:port/db_name)
+                                                                    # 当使用一个分布式的hadoop集群时，每个MR节点都会使用
+                                                                    # 这个连接串连接数据库(若使用localhost会出错)，故推荐
+                                                                    # 使用ip或host
+                        --connection-manager <class-name>           # 指定连接管理器名称
+                        --connection-param-file <properties-file>   # 指定连接参数文件
+                        --driver <class-name>                       # 手动指定jdbc驱动类
+                        --hadoop-home <hdir>                        # 手动指定$HADOOP_COMMON_HOME
+                        --hadoop-mapred-home <dir>                  # 手动指定$HADOOP_MAPRED_HOME
+                        --help                                      # 打印帮助信息
+                        --username <username>                       # 手动输入用户名
+                        --password <password>                       # 明文指定密码
+                        --password-alias <password-alias>           # 
+                        --password-file <password-file>             # 指定密码文件(必须在hdfs上)，文件中不能有其它符号(可使
+                                                                    # 用# echo -n "str" > passwd 输入)
+                        -P                                          # 手动输入密码。这两种是安全方式，不会将密码暴露在job的配置中
+                        --relaxed-isolation                         # 设置每个job的在导入过程中的事务隔离级别为read-uncommitted，默
+                                                                    # 认到隔离级别为read-committed(不支持所有的数据库(oracle))
+                        --skip-dist-cache                           # 与oozie有关 
+                        --verbose                                   # 打印更多的信息
+			start-metastore.sh：
+                ./start-metastore.sh -p p.pid -l dir_log
+			stop-metastore.sh
+                ./stop-metastore.sh -p p.pid
+
+			
+	日志
+	优化
+	安全
+	集群
+		sqoop-metastore：该工具可以使sqoop成为一台可以分享save jobs的服务器
+            启动：
+                # ./start-metastore.sh -p p.pid -l dir_log          # dir_log目录须存在
+			关闭：
+                # ./stop-metastore.sh -p p.pid      /  sqoop-metastore --shutdown
+            
+            port：16000
+                
+具体服务相关
+	概念:
+		原理：
+			1.工作原理：
+            2.并行原理：
+                sqoop向hdfs导入数据时，默认使用4个job(可通过-m指定，数量最好不要超过MR集群的范围)并行
+                工作。它使用单独主键字段来切分工作负载，对该字段最值之间的范围进行数值平均切割(N/jobs)
+                如果表中没有主键，则需要手动指定切割字段(--split-by)，若不指定该参数，也没有-m/--autoreset-to-one-mapper 
+                参数划分工作负载，则导入报错。同时，手动指定切割字段时需要注意，若该字段分布不均匀，则
+                每个job负载不同
+            3.sqoop导入到hdfs时，会在hdfs上生成一个job同名目录当做临时文件夹
+            4.临时表：
+                sqoop从hdfs中导出文件至数据库中时，由于并行启用job，很可能因某一个job失败而导致数据查询
+                有误，故使用临时表(--staging-table)来存储导入的数据，job完成后会启用一个独立的传输移动
+                至目的表中。临时表须提前创建且与目的表完全一致，且不可存有数据，否则报错，可通过--clear-staging-table
+                参数在导出前自动清除临时表数据
+            5.export
+                export参数默认以追加方式导入数据表(该表须存在)中，将hdfs中的每条记录转换成insert语句插入
+                。若有字段不符合，则会导致该条记录插入失败，且命令报错，若有临时表，则报错前的记录都会插
+                入到临时表中，目的表中无数据。只要报错，已插入数据不准确，须重新导出
+           
+                export采用并行导入，每个连接相互独立。使用多行插入方式，每条语句插入100条记录，每100条记录
+                提交数据库一次，所以，每次提交一万条记录。因此，该提交方式不是原子性的，在导出完成之前数据
+                库中就可以查到相应记录
+                
+        
+        
+        sqoop导入的数据分为两类：
+            1.delimited text(默认)
+            2.SequenceFiles
+           
+				
+	内部命令

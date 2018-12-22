@@ -1,0 +1,301 @@
+
+简介
+	时间，作者，开发语言，定义
+	2001年初发布，Keepalived是用C写的一个路由软件。最初是为ipvs提供高可用服务的。现在主要提供
+	简单强大的负载均衡功能和高可用功能
+		
+		负载均衡：
+			依赖于IPVS(Linux Virtual Server)，由内核提供的第四层负载。简单实现了一
+			个动态自适应维护和管理的负载均衡
+		高可用：通过VRRP协议实现。
+	协议：GPL
+	官网：http://www.keepalived.org/
+	版本
+适用性(优缺)
+架构
+	安装：
+		说明：keepalived官网只提供源码包和源码库，不提供任何发行版
+		安装：
+			编译安装：
+				# yum install openssl-devel
+				# tar -xf keepalived-1.2.19.tar.gz -C /usr/local/src/
+				# cd /usr/local/src/keepalived-1.2.19/
+				# ./configure --bindir=/usr/bin/ --sbindir=/usr/sbin \
+					--sysconfdir=/etc --libdir=/usr/lib --mandir=/usr/share/man/
+				# make
+				# make install
+				
+				# /etc/init.d/keepalived start
+			yum安装：
+				# yum install keepalived
+				# 修改配置文件
+				# 添加日志
+				# /etc/init.d/keepalived start
+	结构
+		目录结构
+			源码目录
+			安装目录
+				说明：根据编译时指定目录
+				/usr/bin/genhash：
+					说明：一个用于生成哈希值的工具
+					语法：
+				/usr/sbin/keepalived：
+					说明：负载均衡和高可用的服务
+					语法：
+				/etc/sysconfig/keepalived
+					说明：keepalived的参数配置文件
+				/etc/init.d/keepalived：
+					说明：keepalived服务的控制文件
+				/usr/share/man/man{1,5,8}
+					说明：keepalived的man文件
+				/etc/keepalived/keepalived.conf
+					说明：keepalived的所有配置都在一个配置文件中设置。可通过# man keepalived.conf查看帮助。
+						内容总体分为三类：
+							1.全局配置：		对整个keepalived生效
+							2.VRRPD配置：		不论是否使用LVS，VRRPD都是keepalived的核心)
+							3.LVS配置：			若只使用keepalived做HA，LVS的配置完全不需要)
+						配置文件都是以块(block)形式组织的，每个block都在{}中，#和!开头的都是注释
+					示例：
+						! Configuration File for keepalived			# 注释
+						# 全局配置(包含两个子配置)
+							# 全局定义：主要设置keepalived的通知机制和标识
+								global_defs {								# 全局定义
+								   notification_email {						# 指定keepalived发生事件时(如切换)，
+									 1922843550@qq.com						# 需要发送邮件到的对象，可以有多个，
+									 failover@firewall.loc					# 一行一个 
+									 root@localhost
+								   }
+								   notification_email_from HA1_keepalived@localhsot	# 指明邮件来源
+								   smtp_server 127.0.0.1	 	 				# 指定发送邮件的smtp服务器
+								   smtp_connect_timeout 30					# 连接smtp超时时间(单位秒)
+								   router_id HA1							# 运行keepalived的机器的一个标识
+								   vrrp_skip_check_adv_addr
+								   vrrp_strict
+								   vrrp_garp_interval 0
+								   vrrp_gna_interval 0
+								}
+							# 静态地址路由：给服务器配置静态的的IP地址和路由(实则为服务器配置真实ip和路由。一般不会使用这个配置
+								且以下ip和路由字段都是通过ip addr/route命令设置，故注意书写语法)
+								static_ipaddress {							# 静态ip地址
+									# ip/mask brd <ip> dev <eth0> scope <SCOPE>
+									192.168.200.16 dev eth0 scope global
+									192.168.200.17 dev eth1 scope link
+									192.168.200.18 dev eth2
+								}
+								static_routes {								# 静态路由
+									src 192.168.100.1 192.168.209.0/24 via 192.168.200.254 dev eth0
+									192.168.210.0/24 via 192.168.200.254 dev eth0
+									192.168.211.0/24 via 192.168.200.254 dev eth0
+									192.168.212.0/24 dev eth3 scope site
+									192.168.213.0/24 dev eth1 scope link
+								}
+
+						# VRRPD配置(包含VRRP同步组，VRRP实例和VRRP脚本)
+							# VRRP脚本：定义脚本实现切换
+								vrrp_script chk_run {
+									   script "/path/to/check_running.sh"	# 脚本的存放路径或直接写入命令
+									   interval 2                     	 	# 每隔多少秒运行此脚本
+									   weight -4                      		# 脚本结果导致的优先级变更(-254:254)
+									   fall 2                          		# 失效多少次后进行切换
+									   rise 2                          		# 
+								}
+								vrrp_instance nginx{			
+									...
+									track_script {
+										chk_run weight 20
+									}
+									...
+								}
+
+							# VRRP同步组：将多个ip实现共同转移
+								vrrp_sync_group G1 {								# 定义组名
+								  group {		
+									VI_1											# 实例名
+									VI_2											# 一行一个	
+								  }
+								  notify_master "/path/to/to_master.sh arg1 arg2"	# 当切换到master状态时，要执行的脚本
+								  notify_backup "/path/to/to_backup.sh arg1 arg2"	# 当切换到backup状态时，要执行的脚本
+								  notify_fault "/path/to/to_fault arg1 arg2"		# 当变为fault状态时，要执行的脚本
+								  notify "/path/to/notify.sh arg1 arg2"
+								  smtp_alter										# 表示当状态切换时给global defs中定义的邮件发通知
+								}
+
+							# VRRP实例：开启VRRP协议，说明VRRP的特性
+								vrrp_instance VI_1 {					# 定义实例
+									use_vmac							# 使用虚拟mac
+									vmac_xmit_base						# 代替vmac接收/发送VRRP的网卡接口
+									
+									native_ipv6							# ipv4和ipv6混合时，强制使用ipv6
+									
+									state MASTER|BACKUP					# 指定实例的初始状态。但并不作为依据。在两台router都启动后，
+																		# 马上发生竞选，高priority的会成为Master(当优先级指定为255
+																		# 则启动后直接变为master，若优先级小于255，则启动后进入backup
+																		# 然后与其它主机竞选，产生master)
+																			
+									interface eth0						# 实例绑定的网卡，通知机制的网卡
+									dont_track_primary					# 忽略VRRP的interface错误(默认不设置)
+									track_interfact {					# 设定额外的监控，里面的任意一个网卡出现问题，都会进入fault状态
+										eth0
+										eth1
+									}
+									track_script {						# 引入状态监听脚本
+										chk_run weight 20
+									}
+									mcast_src_ip IP						# 发送多播数据包的地址，即通过该ip发送VRRP通告，相当于hearthbeat的心跳端口
+																		# 默认使用interface的primary IP
+									grap_master_delay 10				# 在切换到master状态后，延迟进行gratuitous ARP请求
+									virtual_router_id 51				# 设置VRID，相同的VRID为一个组，范围0:255
+									priority 100						# 高优先级竞选为master，数值越大优先级越高(0:255)
+									advert_int 1						# 心跳检查间隔(单位秒)
+									authentication {					# 认证设置
+										auth_type PASS					# 认证方式，支持PASS(明文)和HA
+										auth_pass 1111					# 认证密码
+									}   
+									virtual_ipaddress {					# 指定漂移地址(VIP)，当切换到master时，这些ip会被添加
+									# ip/mask brd <ip> dev <eth0> scope <SCOPE> label <LABEL>
+										192.168.200.16					# 切换到backup时，这些IP会被删除，可用ip addr命令查看
+										192.168.200.17
+										192.168.200.18
+									}   
+									virtual_routes{						# 与virtual_ipaddress相同，发生切换时添加/删除路由
+									# 
+									}
+									lvs_sync_daemon_interface eth0		# lvs syncd绑定的网卡
+									nopreempt							# 设置为不抢占。只在state为backup且priority比其它高的节点上
+									preemtp_delay 300					# 延迟抢占
+									debug								# 调试级别
+									
+									notify_master "/path/to/to_master.sh arg1 arg2"	# 当切换到master状态时，要执行的脚本
+									notify_backup "/path/to/to_backup.sh arg1 arg2"	# 当切换到backup状态时，要执行的脚本
+									notify_fault "/path/to/to_fault arg1 arg2"		# 当变为fault状态时，要执行的脚本
+									notify_stop "/path/to/to_stop.sh arg1 arg2" 	# 当关闭vrrp是，要执行的脚本
+									notify "/path/to/notify.sh arg1 arg2"
+									smtp_alter										# 表示当状态切换时给global defs中定义的邮件发通知		
+									
+									
+								}  
+						# LVS配置(包含虚拟主机组，虚拟主机)
+							# 虚拟主机组
+							# 虚拟主机
+
+		进程结构
+			说明：keepalived启动后会有三个进程
+				1.父进程：内存管理，子进程管理等
+				2.子进程：VRRP子进程
+				3.子进程：healthchecker子进程
+			端口：无
+	命令
+		服务器：
+			
+		客户端：无
+	日志:
+		说明：keepalived的默认日志在/var/log/messages，但该文件日志较多，不易查看
+		自定义日志文件：
+			1.修改keepalived启动参数
+				# vim /etc/sysconfig/keepalived
+					KEEPALIVED_OPTIONS="-D -S 0"
+			2.修改日志服务配置
+				# vim /etc/rsyslog.d/keepalived.conf
+					# keepalived -S 0 
+					local0.*                        /var/log/keepalived.log
+			3.重新启动服务(注意顺序)：
+				# /etc/init.d/rsyslog restart
+				# /etc/init.d/keepalived restart
+	优化
+	安全
+	集群：
+		1.HA
+			·master/backup
+				说明：高可用模式多为一主一备，
+			·master/master
+				说明：
+					可使keepalived双主模型，实质为分别一主一备。在两台主机分别定义两组虚拟路由id，各自
+					master绑定自己的ip，前端依赖DNS解析A记录，分发至不同的ip。当发生故障时，两个ip会同
+					时在一台主机上，压力较大，故要设置keepalived为抢占方式，及时恢复
+		2.loadblance
+		
+具体服务相关
+	概念：
+		VRRP：
+			虚拟冗余路由协议
+			工作机制：
+				VRRP通过竞选协议来实现虚拟路由器的功能，所有的协议报文都是通过IP多播(multicast)包(多播
+				地址224.0.0.18)形式发送的。虚拟路由器有VRID(0-255)和一组ip地址组成，对外表现为一个
+		Gratuitous ARP:
+			定义：也称为免费ARP，无故ARP。不同于一般的ARP请求，它并非期待得到ip对应的mac地址，而是当
+				主机启动的时候，将发送一个Gratuitous arp请求，即请求自己的ip地址的mac地址
+			应用：
+				主要用于双机热备系统。
+					情况：
+						两台主机有各自的ip和mac地址，提供一个虚拟ip以供访问。当客户机访问虚拟ip时，
+						会将虚拟ip和主服务器的mac放入ARP缓存。若主服务器宕机，备机接管虚拟ip。客户
+						机依据ARP缓存发送信息给主服务的mac，但不会有回应
+					方案：
+						1.使用热备系统时，生成一个虚拟ip和一个不依赖与任何主机的虚拟mac。接管ip的
+						  同时也接管虚拟mac。
+						2.使用免费ARP技术。接管的服务器对外广播一个ARP报文给所有主机(报文中源ip是
+						  虚拟ip，源mac是备机mac，目的ip也是虚拟ip，目的mac也是备机mac，报文的目的
+						  地址是FFFF-FFFF-FFFF。则所有主机都能接收该报文并更新自己的ARP缓存表)
+							
+						注：第二种方案有漏洞：
+							局域网上没有安全的认证系统，任何主机都可发送这样的免费ARP广播，则会出
+							现MAC地址欺骗。在局域网内，服务器向客户机A发送信息，客户机B向局域网发送
+							了一个免费ARP广播(其源IP是服务器ip，源mac是客户机B的mac)客户机A收到该报
+							文后会更新内部的ARP缓存。将发送给服务器ip的信息发送给客户机B的mac。形成
+							mac地址欺骗。
+							针对该攻击没有很好的防范手段，当前使用的方法：
+								1.设定mac地址和ip地址绑定
+								2.将交换机上某些端口设置为信任端口，其它的不转发
+						
+				
+		服务启动流程：
+			1.keepalived主进程开启
+			2.healtcheckers主进程开启
+			3.vrrp子进程开启
+		服务关闭流程：
+			1.keepalived主进程通知子进程关闭服务
+			2.VRRP子进程发送0优先级，接着移除VIPs
+			3.然后healtcheckers子进程关闭
+			4.VRRP子进程关闭
+			5.keepalived主进程关闭
+			
+		当主机使用VIPs时，使用的mac是本机网卡的mac
+	内部命令
+
+
+
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

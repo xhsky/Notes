@@ -1,0 +1,597 @@
+简介
+	时间，作者，开发语言，定义
+		Sun公司创建了一个演示性的java服务器JWS(Java Web Server)，而ASF(Apache Software Foundation)创建了Jserv项目(可与apache整合的servlet容器)。
+		1999年，两者合并，即为Tomcat的前身。2001年发布Tomcat4.0(重新设计和实现)，其代码项目被命名为Catalina。而其项目是Tomcat。它使用java编写，
+		不完整实现，仅提供了Servlet和JSP两个API。
+	官网：
+		https://tomcat.apache.org
+	版本
+		tomcat7：
+		tomcat8.0：过渡版本，2018年6月截止
+		tomcat8.5：
+		tomcat9
+	协议
+适用性(优缺)
+架构
+	模块
+	安装：
+		1.安装JDK
+			# wget -c http://download.oracle.com/otn-pub/java/jdk/8u151-b12/e758a0de34e24606bca991d704f6dcbf/jdk-8u151-linux-x64.tar.gz
+			# tar -xf ; ln -sv
+		2.安装Tomcat
+			# wget -c http://mirrors.shuosc.org/apache/tomcat/tomcat-8/v8.5.24/bin/apache-tomcat-8.5.24.tar.gz
+			# tar -xf ; ln -sv 
+		3.配置环境变量
+			# vim ~/.bashrc
+				export JAVA_HOME=/path/to/jdk
+				export CATALINA_HOME=/path/to/tomcat
+				export PATH=$JAVA_HOME/bin:$CATALINA_HOME/bin:$PATH
+		4.启动
+			# catalina.sh start|stop
+			
+		
+		
+		
+		注：
+			1.JDK修改随机数
+				# vim $JAVA_HOME/jre/lib/security/java.security
+					将 securerandom.source=file:/dev/random 更改为 securerandom.source=file:/dev/./urandom ("/dev/urandom"仍会使用random)
+			2.更改图形化参数，随机数参数
+				# vim $CATALINA_HOME/bin/setenv.sh
+					#!/bin/bash
+					# sky
+					JAVA_OPTS="-Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true"
+					CATALINA_PID=$CATALINA_HOME/bin/CATALINA_PID
+					
+
+	结构
+		目录结构
+			bin：配置文件
+				
+			lib：lib和class文件   
+			logs：日志和输出文件目录 
+			temp：jvm使用的临时文件目录
+			work：web应用的临时工作目录
+			conf：配置文件
+			webapps：应用目录
+				
+		进程/端口
+		编程接口
+		管理软件
+	命令
+		catalina.sh commands
+			debug             以debug模式运行tomcat
+			debug -security   Debug Catalina with a security manager
+			jpda start        Start Catalina under JPDA debugger
+			run               前台运行tomcat
+			run -security     Start in the current window with security manager
+			start             后台运行tomcat
+			start -security   Start in a separate window with security manager
+			stop              关闭tomcat，默认等候5s
+			stop n            n秒后关闭tomcat
+			stop -force       5秒后关闭tomcat，若仍然运行则使用kill -9(使用force需要$CATALINA_PID被定义)
+			stop n -force     n秒后关闭tomcat，若仍然运行则使用kill -9
+			configtest        对server.xml进行一个基本的语法检查(tomcat必须是关闭状态)
+			version           显示版本
+		
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		原理
+	内部命令
+
+
+
+
+
+
+
+
+
+
+Java：可跨平台运行的语言
+	1995年，java1.0面世,1999年，Hotsport发布。2009年，Oracle以74亿美元收购Sun
+	最大特点：Once for all，一次编译，到处运行(Write once,Run anywhere)
+	用于编写动态程序
+	
+	4项技术：
+		1.java程序设计语言
+		2.java API(java库)
+		3.java class文件格式(由java语言编译而来的bytecode)
+		4.JVM：java虚拟机(用来解释运行bytecode字节码并实现跨平台)
+			JVM实现方式
+				1.一次性解释器(解释字节码并执行，多次解释)
+				2.即时编译器(将解释的结果缓存到内存中，耗内存)
+				3.自适应编译器(自动缓存执行频率较高的代码)
+				
+			JVM的种类
+				sun公司：Hotspot JVM
+							JRE：java运行环境，只能运行，无法编译
+							JKD：java开发组件，可以编译，运行
+				开源界： OpenJKD
+							可以编译，运行
+							
+				
+				安装jdk
+					一般商业公司的生产环境都使用sun的jdk，其有三种安装方式，rpm，bin，源码，但sun一般不开放源码
+						rpm：openjdk是jre，openjdk-devel是jdk
+							默认安装在/usr/lib/jvm下
+							环境配置
+								# vim /etc/profile
+									export JAVA_HOME=/usr/lib/jvm/java-verson-openjdk-**
+									export PATH=$PATH:$JAVA_HOME/bin
+								# . /etc/profile
+						通用二进制安装
+							# tar -xvf jdk-version-linux-64.tar.gz -C /usr/local
+							# ln -sv /usr/local/jdkversion jdk
+							# vim /etc/profile.d/jdk.sh
+								export JAVA_HOME=/usr/local/jdk
+								export PATH=$JAVA_HOME/bin:$PATH
+							# . /etc/profile.d/jdk.sh
+				java配置参数
+					# java
+							-XX:+<option>			开启此参数指定的功能
+							-XX:-<option>			关闭功能
+							-XX:<option>=<value>	给option指定的选项赋值
+							-D<name>=<avlue>		设置一个系统属性
+							
+							eg：显示所有参数
+								# java -XX:PrintFlagsPinal
+				Sun jdk监控和故障处理工具
+					# jps			显示系统内所有的HotSpot虚拟机进程列表
+					# jstat			收集并显示HotSpot虚拟机各方面的运行数据
+					# jinfo	id		显示正在运行的某HotSpot虚拟机配置信息
+					# jmap			生成某Hotspot虚拟机的内存转储快照
+				可视化工具
+					# jconsole		java的监控与管理控制台
+					# jvisualvm		可视化的VM
+				
+					
+					
+				类的生命周期：从被类加载器加载开始到从内存中被清理
+					loading：			加载
+					verification：		验证
+					preparation：		准备
+					resolution：		解析
+					initialization：	初始化
+					using：				使用
+					unloading：			卸载
+				
+					
+	根据应用领域的不同，java可分为三类
+		1.JAVA SE：Standard Edtion，用于中小型应用
+		2.JAVA EE：Enterprise Edtion，企业版
+		3.JAVA ME：Mobile Edtion，移动开发
+		
+			Java EE的API：包含Java SE的API
+				Servlet
+				JSP
+				EJB(Enterprise JavaBean)：		Java相关的诸多高级功能的实现
+				JMS(Java Message Service)：			高性能异步消息服务，实现Java EE应用程序与非Java程序的"透明"通信
+				JMX(Java Management Extensions)：	在程序运行时对其进行交互式监控和管理的机制
+				JTA(Java Transaction API)；			允许应用程序在自身的一个或多个组件中平滑处理错误的机制
+				JavaMail：							通过工业标准的POP/SMTP、IMAP协议接发邮件的机制
+	
+			Java SE的API
+				JNDI(Java Naming and Directory Interface)：	用于与LDAP服务交互的API
+				JAXP(Java API for XML Processing):			用于分析与转换XML(基于XSLT实现)
+				JDK
+				
+			Java EE应用程序服务器：提供了所有Java EE的API
+				Websphere：最著名，全球第一，IBM研发，商业收费
+				Weblogic：全球第二大，属于BEA公司，后被oracle收购，商业收费
+				oc4j：oracle，商业收费
+				JBoss(核心为tomcat)：RedHat，开源
+				
+				
+				
+	开发在不同状态下的应用程序
+		applet类：开发运行在客户端的程序，基于web技术
+			客户端在浏览器上安装了jre插件，就可以在本地运行来自服务器端的嵌入到html的applet小程序，有安全隐患
+			
+		Servlet类：开发运行在服务器上的程序，基于CGI技术
+			以java语言实现的CGI技术(增加进了对http的处理能力),使java开发动态页面，并通过CGI的方式和前端web服务器进行通信
+			
+			CGI：通用网关接口，协议
+				使web服务器来调用其他程序解析该代码
+		
+		
+		JSP：简化Servlet开发，直接嵌入html，基于Servlet类。
+			Java Server Page，实现直接在html中嵌入java，从而实现基于就java技术的动态网页开发
+				
+				  jasper		  javac
+			.jsp --------> .java -------> .class(JVM)
+			
+			开发JSP的框架：
+				SSH：Structs，Spring，Hebernate
+		
+	Servlet Container：包含了jdk和使servlet工作的组件
+		作用：和前端web服务器交互，使.java程序在jdk上编译运行并返回web，监控.java程序的改变
+	Web Container：包含Servlet Container和jps
+		在Servlet Container的基础上添加了使java嵌入到html中并监控源码页面改变并相应将.jsp转换为.java的技术
+				
+	
+			
+	
+	JVM运行时数据区域（会产生内存溢出）
+		线程私有内存区：
+			程序计数器
+			java虚拟机栈：	存储本地变量，方法出口，动态链接，指针，操作数栈
+		线程共享内存区：
+			方法区：存放java方法
+			堆：最大的内存区，存放对象			
+				java自动内存回收，GC(Gargage Collector)
+			本地方法栈：存放外部(非java)方法
+		
+	垃圾回收算法
+		1.标记-清除
+		2.复制
+		3.标记-整理
+	垃圾回收器
+		Serial，ParNew，Parallel Scavenge，Serial Old，Parallel Old，CMS
+		
+
+	
+Tomcat:
+	简介：
+			
+	官网：tomcat.apache.org
+		
+	安装：一般使用通用二进制包直接解压即可
+		1.添加用户
+			# useradd tomcat
+			# echo tomcat | passwd --stdin tomcat
+		2.安装JDK
+		2.解压
+			# tar xvf apache-tomcat-version.tar.gz -C /usr/local
+			# ln -sv /usr/local/apache-tomcat-version /usr/local/tomcat
+			# chown -R tomcat:tomcat /usr/local/jdk
+			# chown -R tomcat:tomcat /usr/local/tomcat
+		3.写入环境变量
+			# vim .bash_profile
+				export CATALINEA_HOME=/usr/local/tomcat
+				export PATH=$PATH:$CATALINA_HOME/bin
+			# . /etc/profile.d/tomcat.sh	
+		4.启动
+			# catalina.sh start
+		5.查看
+			# jps(Bootstrap)	或 # netstat -tlunp(8080和8009)
+			
+		开机自启
+			# vim /etc/rc.local		添加：
+				export JAVA_HOME=/usr/local/jdk
+				/usr/local/tomcat/bin/catalina.sh start
+			# chmod u+x /etc/rc.d/rc.local
+	架构：	
+		目录：
+			bin：			一些可执行文件		
+			conf：			配置文件
+				server.xml				Tomcat全局配置文件
+				tomcat-users.xml		用户认证配置文件
+				web.xml					默认的应用程序部署描述文件(部署：将一个web应用程序所依赖到的类装载进JVM)
+										常有两个存放位置，$CATALINA_BASE/conf和每个Web应用程序（通常是WEB-INF/web.xml）。
+										Tomcat在deploy一个应用程序时(包括重启或重新载入)，它首先读取conf/web.xml，而后读
+										取WEB-INF/web.xml
+				context.xml				默认的host配置文件
+				catalina.properties		tomcat的属性配置
+				logging.properties		日志配置
+				catalina.policy			tomcat的安全属性
+			lib：			库文件
+			LICENSE：
+			logs：			日志目录	
+				catalina.out						tomcat当前的输出
+				catalina.date.log					out的滚动文件
+				localhost_access_log.date.txt		localhost主机的访问日志
+				localhost.date.log					localhost主机的错误和其它日志
+				host-manager.date.log				和主机管理器相关日志
+				manager.date.log					管理日志
+			NOTICE
+			RELEASE-NOTES
+			RUNNING.txt
+			temp			临时文件目录
+			webapps			应用程序目录
+				默认访问ROOT
+				每个应用程序下都会有一个WEB-INF目录，存放其私有资源(无法通过url来访问)
+			work			工作目录(.jsp --> .java --> .class)
+			
+		组件
+			tomcat各组件的关系
+				<Server>
+					<Service>
+						<Connector />
+						<Engine>
+							<host>
+								<Context> </Context>
+							</host>
+						</Engine>
+					</Service>
+				</Server>
+				
+			Server：	<Server port="8005" shutdown="SHUTDOWN">
+				Tomcat的实例(即一个JVM)，监听在8005端口以接受shutdown命令。一般只有一个
+					className：用于实现此Server容器的完全限定类的名称
+					port：		接收shutdown指令的端口，默认仅允许通过本机访问，默认为8005
+					shutdown：	发往此Server用于实现关闭tomcat实例的命令字符串，默认为SHUTDOWN
+			Service：	<Service name="Catalina">
+				Service主要用于关联一个引擎和与此引擎相关的连接器，每个连接器通过一个特定的端口和协议接收入站请求交将其转发
+				至关联的引擎进行处理。因此，Service要包含一个引擎、一个或多个连接器。
+					calssName：用于实现service的类名
+					name：此服务的名称，默认为Catalina，此名称也会记录在日志文件当中
+			Connect：
+				正确接收来自于客户端的请求，并将这些请求转换成Servlet规范中所定义的Request,再转给相应引擎处理，最后将Engine返回的Response返回给客户端
+					常见连接器有四种：
+						1.Http连接器	2.SSL连接器		3.AJP 1.3连接器		4.proxy连接器
+						http连接器
+							<Connector port="8080" protocol="HTTP/1.1"
+							  maxThreads="150" connectionTimeout="20000"
+							  redirectPort="8443"/>
+						属性：
+							address：指定连接器监听的地址，默认为所有地址，即0.0.0.0
+							maxThreads：支持的最大并发连接数，默认为200
+							port：监听的端口，默认为0
+							protocol：连接器使用的协议，默认为HTTP/1.1，定义AJP协议时通常为AJP/1.3
+							connectionTimeout：等待客户端发送请求的超时时间，单位为毫秒，默认为60000，即1分钟
+							enableLookups：是否通过request.getRemoteHost()进行DNS查询以获取客户端的主机名；默认为true
+							acceptCount：设置等待队列的最大长度；通常在tomcat所有处理线程均处于繁忙状态时，新发来的请求将被放置于等待队列中
+			Engine：	<Engine name="Catalina" defaultHost="localhost">
+				Servlet处理器的一个实例，即servlet引擎，决定从Connecter过来的请求应该交给哪一个Host来处理 
+				属性：
+					defaultHost：默认发往的虚拟主机名。当此引擎的连接器收到一个发往非明确定义虚拟主机的请求时则需要将此
+								请求发往一个默认的虚拟主机进行处理
+					name：Engine组件的名称，用于日志和错误信息记录时区别不同的引擎
+				Engine容器中可以包含Realm、Host、Listener和Valve子容器
+			Host：
+				位于Engine容器中用于接收请求并进行相应处理的主机或虚拟主机
+				属性：
+					appBase：此Host的webapps目录，即存放非归档的web应用程序的目录或归档后的WAR文件的目录路径，可以使用基于$CATALINA_HOME的相对路径；
+					autoDeploy：在Tomcat处于运行状态时放置于appBase目录中的应用程序文件是否自动进行deploy；默认为true；
+					unpackWars：在启用此webapps时是否对WAR格式的归档文件先进行展开；默认为true
+			Context：	<Context path="/bbs" docBase="haha" reloadable="true"></Context>
+				用来定义url路径别名，可以写在单独的xml文件中，其目录$CATALINA_HOME/conf/<engine name>/<host name>
+				属性：
+					path：相对于Web服务器根路径而言的URI；如果为空""，则表示为此webapp的根路径
+					docBase：相应的Web应用程序的存放目录或war文件路径；也可以使用相对路径(在其所属的host中appBase定义的路径)，切记，
+							docBase的路径名不能与相应的Host中appBase中定义的路径名有包含关系，比如，如果appBase为deploy，而docBase绝不能为deploy-bbs类的名字
+					reloadable：是否允许重新加载此context相关的Web应用程序的类，默认为false
+			Realm：
+				一个Realm表示一个安全上下文，它是一个授权访问某个给定Context的用户列表和某用户所允许切换的角色相关定义的列表
+				属性：
+					JAASRealm：基于Java Authintication and Authorization Service实现用户认证
+					JDBCRealm：通过JDBC访问某关系型数据库表实现用户认证
+					JNDIRealm：基于JNDI使用目录服务实现认证信息的获取
+					MemoryRealm：查找tomcat-user.xml文件实现用户信息的获取
+					UserDatabaseRealm：基于UserDatabase文件(通常是tomcat-user.xml)实现用户认证，它实现是一个完全可更新和持久
+									有效的MemoryRealm，因此能够跟标准的MemoryRealm兼容；它通过JNDI实现
+			
+			Value：
+				Valve类似于过滤器，它可以工作于Engine和Host/Context之间、Host和Context之间以及Context和Web应用程序的某资源之间。
+				一个容器内可以建立多个Valve，而且Valve定义的次序也决定了它们生效的次序
+			
+				属性：
+					AccessLogValve：访问日志Valve
+					ExtendedAccessValve：扩展功能的访问日志Valve
+					JDBCAccessLogValve：通过JDBC将访问日志信息发送到数据库中；
+					RequestDumperValve：请求转储Valve；
+					RemoteAddrValve：基于远程地址的访问控制；
+					RemoteHostValve：基于远程主机名称的访问控制；
+					SemaphoreValve：用于控制Tomcat主机上任何容器上的并发访问数量
+					JvmRouteBinderValve：在配置多个Tomcat为以Apache通过mod_proxy或mod_jk作为前端的集群架构中，当期望停止某节点时，可以通过此Valve将用记请求定向至备用节点；使用此Valve，必须使用JvmRouteSessionIDBinderListener；
+					ReplicationValve：专用于Tomcat集群架构中，可以在某个请求的session信息发生更改时触发session数据在各节点间进行复制；
+					SingleSignOn：将两个或多个需要对用户进行认证webapp在认证用户时连接在一起，即一次认证即可访问所有连接在一起的webapp；
+					ClusterSingleSingOn：对SingleSignOn的扩展，专用于Tomcat集群当中，需要结合ClusterSingleSignOnListener进行工作；
+					RemoteHostValve和RemoteAddrValve可以分别用来实现基于主机名称和基于IP地址的访问控制，控制本身可以通过allow或deny来进行定义
+										
+			GlobalNamingResources：
+				应用于整个服务器的JNDI映射，此可以避免每个Web应用程序都需要在各自的web.xml创建，这在web应用程序以WAR的形式存在时尤为有用。它通常可以包含三个子元素：
+					Environment;
+					Resource;
+					ResourceEnvRef;
+			WatchedResource
+				WatchedResource可以用于Context中监视指定的webapp程序文件的改变，并且能够在监视到文件内容发生改变时重新装载此文件
+			Listener
+				Listener用于创建和配置LifecycleListener对象，而LifecycleListener通常被开发人员用来创建和删除容器		
+			Loader
+				Java的动态装载功能是其语言功能强大表现之一，Servlet容器使用此功能在运行时动态装载servlet和它们所依赖的类。Loader可以用于Context中控制java类的加载		
+			Manager
+				Manger对象用于实现HTTP会话管理的功能，Tomcat中有5种Manger的实现：
+					1.StandardManager
+						Tomcat的默认会话管理器，用于非集群环境中对单个处于运行状态的Tomcat实例会话进行管理。当Tomcat关闭时，这些会话相关的数据会被写入磁盘上的一个名叫SESSION.ser的文件，并在Tomcat下次启动时读取此文件。
+					2.PersistentManager
+						当一个会话长时间处于空闲状态时会被写入到swap会话对象，这对于内存资源比较吃紧的应用环境来说比较有用。
+					3.DeltaManager
+						用于Tomcat集群的会话管理器，它通过将改变了会话数据同步给集群中的其它节点实现会话复制。这种实现会将所有会话的改变同步给集群中的每一个节点，也是在集群环境中用得最多的一种实现方式。
+					4.BackupManager
+						用于Tomcat集群的会话管理器，与DeltaManager不同的是，某节点会话的改变只会同步给集群中的另一个而非所有节点。
+					5.SimpleTcpReplicationManager
+						Tomcat4时用到的版本，过于老旧了		
+			Stores
+				PersistentManager必须包含一个Store元素以指定将会话数据存储至何处。这通常有两种实现方式：FileStore和JDBCStore
+			Resources
+				经常用于实现在Context中指定需要装载的但不在Tomcat本地磁盘上的应用资源，如Java类，HTML页面，JSP文件等
+			Cluster
+				专用于配置Tomcat集群的元素，可用于Engine和Host容器中。在用于Engine容器中时，Engine中的所有Host均支持集群功能。在Cluster元素中，需要直接定义一个Manager元素，这个Manager元素有一个其值为org.apache.catalina.ha.session.DeltaManager或org.apache.catalina.ha.session.BackupManager的className属性。同时，Cluster中还需要分别定义一个Channel和ClusterListener元素。
+				
+				Channel 用于Cluster中给集群中同一组中的节点定义通信“信道”。Channel中需要至少定义Membership、Receiver和Sender三个元素，此外还有一个可选元素Interceptor。
+				Membership 用于Channel中配置同一通信信道上节点集群组中的成员情况，即监控加入当前集群组中的节点并在各节点间传递心跳信息，而且可以在接收不到某成员的心跳信息时将其从集群节点中移除。Tomcat中Membership的实现是org.apache.catalina.tribes.membership.McastService。
+				Sender 用于Channel中配置“复制信息”的发送器，实现发送需要同步给其它节点的数据至集群中的其它节点。发送器不需要属性的定义，但可以在其内部定义一个Transport元素。
+				Transport 用于Sender内部，配置数据如何发送至集群中的其它节点。Tomcat有两种Transport的实现： 
+					1) PooledMultiSender 
+						基于Java阻塞式IO，可以将一次将多个信息并发发送至其它节点，但一次只能传送给一个节点。 
+					2)PooledParallelSener 
+						基于Java非阻塞式IO，即NIO，可以一次发送多个信息至一个或多个节点。
+				Receiver 用于Channel定义某节点如何从其它节点的Sender接收复制数据，Tomcat中实现的接收方式有两种BioReceiver和NioReceiver
+							
+			
+			定义主机别名：
+				更改server.xml文件并重新启动
+					<Host name="www.test.com" appBase="webapps" unpackWARs="true">
+					 <Alias>test.com</Alias>
+					</Host>
+				
+			
+			Tomcat一般有两种工作模式
+				1.作为应用程序服务器：请求来自前端的web服务器，可能是Apache，IIS或Nginx
+				2.作为独立服务器：请求来自Web浏览器
+				
+			Tomcat支持基于FQDN的虚拟主机，这些虚拟主机可以通过在Engine容器中定义多个不同的Host组件来实现；
+
+		
+
+
+	
+
+
+
+
+	配置：
+		说明：tomcat可以作为独立的web服务器与servlet container。tomcat内嵌的web服务器是
+			一个高性能的http服务器，且具有web服务器的全部功能
+		多实例：
+			说明：catalina.home和catalina.base这两个属性仅在你需要安装多个Tomcat实例而不想安装
+				多个软件备份的时候使用，这样能节省磁盘空间。catalina.home指向公用信息的位置，就
+				是bin和lib的父目录。catalina.base指向每个Tomcat目录私有信息的位置，就是conf、
+				logs、temp、webapps和work的父目录。仅运行一个Tomcat实例时，这两个属性指向的位置
+				是相同的。
+			配置：
+				1.采用多用户(同用户组)设定相同的catalina_home，不同的catalina_base
+				2.将conf、logs、temp、webapps和work目录复制到CATALINA_BASE下
+				3.更改CATALINA_BASE下的配置文件：
+					
+				4.在不同用户下分别启动即可
+			同一用户下部署tomcat多实例：
+				1.安装jdk
+				2.解压多个tomcat
+				3.在每个tomcat/conf/server.xml中更改所有port值
+				4.在每个tomcat/bin/catalina.sh添加
+					CATALINA_HOME=/path/tomcat
+					JAVA_HOME=/path/jdk
+				5.每次启动和关闭到相应tomcat目录下运行catalina.sh脚本
+				
+				# 若使用多实例共享webapps，则多个tomcat中的server.xml中更改appBase值，其余照上即可
+					
+		更改80端口：
+			说明：tomcat默认端口为8080端口，若更改为80端口，需用root启动才可。
+				注：若不使用root而访问80端口，可使用iptable转换
+			配置：
+				1.在conf/server.xml中将port改为80，重启即可
+					<Connector port="80" protocol="HTTP/1.1"
+				   connectionTimeout="20000"
+				   redirectPort="8443" />
+				2.使用root重启
+		更改程序目录：
+			说明：
+				更改appBase
+			配置：
+				<Host name="localhost"  appBase="/data/webapps" unpackWARs="true" autoDeploy="true">
+				host下配置虚拟目录
+				<Context path="" docBase="D:/eclipse3.3/jb51.net/tomcat/" debug="0"/>
+		JVM配置：
+			说明：tomcat的运行方式部分取决于所运行的java虚拟机的配置信息
+			内存设置：
+				-Xms1024m：		设置jvm启动时堆栈内存的大小,默认是系统内存的1/64
+				-Xmx1024m：		设置jvm可扩展的最大堆栈内存，默认是系统内存的1/4。建议两者设置相同
+			调试安全：
+				-Djava.security.debug=all： 出于安全性，打开所有调试输出
+				-enableassertions： 启用assertion检查
+				-verbose:class：启用verbose class加载调试输出
+				-verbose:gc：	启用verbose garbage collection调试输出
+			图形显示：
+				-DJava.awt.headless=true： 允许在没图形显示所安装的软件下运行jvm
+			本地化：
+				-Duser.language=en: 设置tomcat使用的绑定语言
+				-Dfile.encoding=UTF-8： 设置tomcat使用的默认编码
+			网络：
+				-Djava.net.preferIPv4Stack=true： 设置jvm使用ipv4
+		应用程序：
+			说明：默认在webapps下放置应用程序，为安全起见，将原生的应用程序目录全部删除
+		
+			
+	命令：
+		
+	tomcat变量:
+		CATALINA_BASE:??tomcat?????,?CATALINA_HOME???				????tomcat?????
+		CATALINA_HOME:
+		CATALINA_OPTS:?tomcat?????????java??						????
+		CATALINA_TMPDIR:??tomcat???????								???CATALINA_HOME/temp
+		JAVA_HOME:		 tomcat??????jdk???							????
+		JRE_HOME:		 JAVA_HOME???										????
+		JAVA_OPTS:		 java?????											????
+		JPDA_TRANSPORT: ??JPDA????????????						???dt_socket
+		JPDA_ADDRESS:	 ???catalian jpda start???????JPDA??		???8000
+		JSSE_HOME:		 ????HTTPS???Java Secure SocketsExtentsion???	????
+		CATALINA_PID:	 ??tomcat?????????pid????				????
+	
+	端口:
+		8080:	tomcat默认端口
+		8005:	tomcat停止服务器默认端口
+		
+	领域，角色，用户：
+		说明：用于Tomcat的容器管理的安全防护机制，领域(Reaml)只是用户，密码及角色的集合
+			领域是可插入式的，领域实现：
+				1.UserDatabaseRealm：
+					说明：是从静态问文件加载到内存，直到tomcat停止后才从内存中清除
+						即Tomcat所使用的用户，密码及角色只存在内存中，其默认分配权
+						限文件为conf/tomcat-users.xml
+				2.JDBCRealm：
+					说明：能够动态得访问数据，是一个使用关系型数据库的领域
+					示例：
+						JDBC Realm：
+						<Realm calssName="org.apache.catalina.realm.JDBCRealm">
+							driverName="org.postgresql.Driver"
+							connectionURL="jdbc:postgresql:jabadot"
+				3.JNDIRealm
+				4.JAASRealm
+	Servlet自动重载：
+		说明：默认情况下，当Tomcat发现servlet的类文件已被修改时，会自动重载此servlet。
+			但此功能使得tocmat必须周期性地检查servlet的修改时间，会消耗大量系统资源
+		配置：
+			取消此功能：
+			在web.xml中的Context元素中设置reloadable属性，并重启tomcat
+	优化:
+		1.以不同的堆栈内存配置tomcat的jvm。则会引发网页响应时间超出jvm堆栈的最大值的某种问题
+			此时，若需要则堆栈会随之增长。此时tomcat会占用大量的时间重新分配内存，性能有损耗
+			故可使-Xms和-Xmx设置相同，则JVM在操作过程中则不需要重新分配
+			
+		一般默认写在$CATALINA_HOME/bin/setenv.sh文件中,例如：JAVA_HOME，JAVA_OPTS
+		在catalina.sh脚本中会自动查询是否有改文件，若有，则引入该文件
+		
+		
+		JAVA_OPTS="-server -Xms3072m -Xmx3072m  -XX:PermSize=1024m -XX:MaxPermSize=1024m -XX:MaxNewSize=256m"        catalina.sh
+	更改编码：
+		<Connector port="8080" 
+		　　URIEncoding="utf-8" 
+		　　protocol="HTTP/1.1" 
+		　　connectionTimeout="20000" 
+		　　redirectPort="8443" />
+		
+		
+
+	JSS:Java Servlet Specification
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		

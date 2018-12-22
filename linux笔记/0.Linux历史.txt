@@ -1,0 +1,129 @@
+
+													Linux 历史
+
+UNIX History
+	1969年，诞生于Bell实验室(汇编语言)
+	1973年，UNIX正式诞生(C语言)
+		然后UNIX与学术界合作进行移植
+			1977年,伯克利的BSD诞生
+				分支
+					- FreeBSD：				伯克利产品，面向x86平台
+					- NetBSD：				多平台移植，适用于嵌入式系统
+					- OpenBSD：				NetBSD分支，为最大化的安全性设计
+						以上三个得到了BSD的授权
+					- DragonFly BSD			提供一个运行在多线程环境中的操作系统 —— 例如，计算机集群
+					- Darwin/Mac OS	X:		Mac OS X实际上基于Darwin操作系统，而Darwin系统基于BSD。它与其他的 BSD 有点不同，
+											虽然底层内核和其他的软件是开源代码(BSD代码)，但操作系统的大部分是闭源的Mac OS代码。
+											苹果在BSD基础上开发了Mac OS X和iOS，这样他们就不必写操作系统底层，就像谷歌在Linux 
+											基础上开发android系统一样。
+			1979年，AT&T发布system V(支持x86)
+	70年代末，出现商业化的UNIX版本
+		- SUN  -- SUN OS
+		- Microsoft and SCO  --- XENIX
+		- 之后出现IBM -- AIX
+		- HP  -- SCO UNIX
+		- SUN -- Solaris
+			目前只剩下了IBM的AIX和SUN的Solaris
+
+UNIX Features
+	1.可靠性强   -- 安全、不间断运行
+	2.伸缩性强   -- 支持多处理器和Cluster技术
+	3.网络功能强 -- TCP/IP是在UNIX上开发出来的
+	4.强大的数据库支持能力
+
+	
+	1976.1.31，Microsoft的Bill Gates给Homebrew社区写了一份公开信。开启了人们软件所有权的概念。MIT的Richard Stallman也
+	因此创建了自由软件基金会(Free Software Foundation，FSF)
+	1984年，Richard Stallman发起GUN项目，致力于免费的UNIX系统的开发	-- GNU = GNU's not UNIX
+	1990年，建立了一套比较完备的系统。其中有gcc和eamc。创造了GNU通用公共许可证GPL。Open Source软件由此发展。
+	1991.10芬兰赫尔辛基大学的Linus Torvalds公布了linux kernel，之后Linus遇到了Richard，成功合并了GNU和linux，发布
+	了GNU/Linux：linux kernel + GUN utilities = complete,open source,UNIX-like OS
+  
+	Open Source Initiative   OSI认证
+	自由软件运动(将源码连同软件程序一起发布)
+	POSIX：可便携式操作系统接口
+		美国IEEE发布，在于规范内核与应用程序之间的接口
+
+linux在企业中的定位
+	1.基础架构
+		- 虚拟化
+		- 高可用性
+		- 高性能计算
+		- 负载均衡
+	2.网络服务
+  		- Web DNS FTP Mail Server
+		- Proxy Firewall Gateway
+		- DHCP SMB
+	3.软件开发
+		- C Java C++ Perl PHP Python
+	4.桌面环境开发
+		- 桌面软件开发 
+Windows应用场景
+	1.个人桌面
+	2.比较低端的IDC机房
+		
+
+Linux Distributions
+	- Red Hat Enterprise Linux	 Redora	Centos	-与rhel有%10的差异
+	- Oracle Unbreakable Linux 
+	- SUSE Enterprise Linux	
+	- Ubuntu  linuxmint(基于Ubuntu的二次发行版)
+	- Debian（高级用户）
+
+Linux版本有两种分法：
+	1.内核版本(www.kernel.org)			各个版本的内核并行发展
+	2.发行版本
+
+目前的操作系统
+	- Windows
+	- Linux/GNU
+	- Unix
+
+LINUX的官方网站
+	www.gnu.org
+	www.linux.org
+	www.kernel.org
+	
+	这是linux的核心官网
+
+	其他的都是各个发行版的官网
+
+	www.ubuntu.com
+	www.fedoraproject.org
+	www.redhat.com
+	www.redflag-linux.com
+	www.debian.org
+	www.gentoo.org
+	http://www.novell.com/linux/
+
+	针对常用的 ubuntu fedora redhat 红旗 debian gentoo Suse
+
+开源软件协定
+	- BSD
+		1.代码中必须有原BSD协议声明
+		2.不可用源代码的作者做市场推销
+	- Apache
+		1.代码中必须有原Apache协议声明
+		2.不可用源代码的作者做市场推销
+	- GPL
+		只要含有GPL的代码，则必须开源并免费其产品
+	- LGPL
+		不用将商业代码开源
+	- MIT
+		包含原协议声明
+
+软件按提供方式和是否盈利分三种模式
+	 1 商业软件
+	 2 共享软件
+	 3 自由软件
+		
+三种主流计算机
+  桌面机   服务器  嵌入式机
+  
+  
+Linux操作系统的基本结构
+	 Kernel
+	 Modules
+	 Lib
+	 Shell
+	 Tools

@@ -1,0 +1,235 @@
+
+说明：
+	Apache Maven，是一个软件（特别是Java软件）项目管理及自动构建工具，由Apache软件基金会所提供。
+	基于项目对象模型（POM）概念，Maven利用一个中央信息片断能管理一个项目的构建、报告和文档等步
+	骤。曾是Jakarta项目的子项目，现为独立Apache项目
+	
+	Maven主要服务于基于Java平台的项目构建、依赖管理和项目信息管理
+	
+	官网：http://maven.apache.org/
+
+	
+
+	注：在用Maven编译一些Apache项目的时候，因为GFW的原因，如果不翻墙经常是编译到一半就有个文件Download不下来了
+		翻墙软件：
+			赛风官网：https://s3.amazonaws.com/57wj-4j1q-wa7e/zh/index.html
+			
+构建方案：
+	IDE：
+		1.大大提高开发效率
+		2.依赖大量的手工操作
+		3.很难在项目中统一所有IDE的配置
+	Make：
+		1.Make通过一系列目标和依赖将整个构建过程串联起来，同时利用本地命令
+		  完成每个目标的实际行为
+		2.Make很难实现跨平台的构建
+		3.Make语法复杂
+	Ant：(Another Neat Tool,另一个整洁的工具)
+		1.ant是跨平台的
+	Maven：
+Maven的目录结构：
+	源码结构：
+		MAVEN_HOME：
+			bin：			包含mvn运行的脚本，这些脚本用来配置Java命令并执行
+			boot：			值包含一个文件，plexus-classworlds-2.5.2.jar。它是一个类加载器框架，
+							提供了更丰富的语法以方便配置。Maven使用该框架加载自己的类库
+			conf:
+				settings.xml：全局配置文件，倾向于放到~/.m2/目录下在用户范围内定制
+			lib：			包含所有Maven运行时需要的Java类库
+			LICENSE：		记录Mavne使用的软件许可证
+			NOTICE：		记录Maven包含的第三方软件
+			README.txt：	简要介绍
+		~/.m2/
+			repository：	Maven本地仓库，存储Maven构件，以方便重用
+			settings.xml：	默认无，可自行复制到用户下进行配置
+	项目结构：
+		说明：maven使用惯例优于配置的原则。它要求在没有定制之前，所有的项目都有如下结构物：		
+		编译前结构：
+			${basedir}：							存放pom.xml和所有的子目录
+			${basedir}/src/main/java：				项目的java源代码
+			${basedir}/src/main/resources：			项目的资源文件，例如property文件
+			${basedir}/src/test/java：				项目的测试类，例如JUnit代码
+			${basedir}/src/test/resources：			测试使用的资源文件
+		
+	编译后结构：
+		${basedir}/target：						编译后的输出目录
+		${basedir}/target/classes：				编译后的class文件
+									
+POM：Project Object Model，项目对象模型
+	说明：一个项目所有的配置都放置在 POM 文件中：定义项目的类型、名字，管理依赖关系，定制插件的行为等等
+	
+	注：大项目一般会分为几个子项目，每个子项目下都会有自己的pom文件，但子项目会有一个共同
+		的父项目。即只要构建父项目即可构建所有的子项目
+		
+	pom.xml:
+		<?xml version="1.0" encoding="UTF-8"?>
+		<project xmlns="http://maven.apache.org/POM/4.0.0" 
+				 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+				 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+				 http://maven.apache.org/maven-v4_0_0.xsd">
+		
+			<modelVersion>4.0.0</modelVersion>
+			<groupId>org.apache.ambari</groupId>			# 项目名称
+			<artifactId>ambari</artifactId>					# 项目中的模块名称
+			<packaging>pom</packaging>
+			<name>Ambari Main</name>
+			<version>2.2.2.1</version>						# 项目的版本
+			<description>Ambari</description>
+		
+			<dependencies>									# 依赖包
+				<dependency>								# 其中一个依赖包
+					<groupId>org.eclipse.persistence</groupId>
+					<artifactId>eclipselink</artifactId>
+					<version>2.6.2</version>
+				</dependency>
+				
+				<dependency>
+					......
+				</dependency>
+			</dependencies>
+		</project>	
+		
+Maven依赖：
+	说明：
+		1.所有的依赖都是通过坐标定位存储的(GAV,groupid artifactif version)
+		2.仓库依赖坐标的查询(http://mvnrepository.com)
+	依赖的范围：
+		示例：
+				<dependency>								# 其中一个依赖包
+					<groupId>org.eclipse.persistence</groupId>
+					<artifactId>eclipselink</artifactId>
+					<version>2.6.2</version>
+					<scope>test</scope>						# 依赖范围，不写默认为compile
+				</dependency>
+		分类：
+			test：		测试范围有效，编译和打包时都不会使用这个依赖。
+			compile：	编译范围有效，编译和打包时会将依赖存储进去
+			provided：	在测试和编译的过程有效，最后生成war包时不会加入
+			runtime：	在运行时有效，编译时不依赖
+			import：
+			system：
+			system：
+	依赖的冲突：
+		1.若多个构建依赖于某个构件的不同版本，则在pom中，哪个先写就使用哪个一依赖
+		2.若多个依赖的路径长短不一，选择最小路径依赖
+		3.若使用精确的控制依赖包，可使用排除功能控制(<exculusions>)
+	聚合：
+		说明：将所有子项目进行聚合编译
+		示例：
+			<project>
+				<modelVersion>4.0.0</modelVersion>
+				<groupId>org.apache.ambari</groupId>
+				<artifactId>ambari</artifactId>
+				<packaging>pom</packaging>					# 打包方式必须为pom
+				<name>Ambari Main</name>
+				<version>2.2.2.2</version>
+				<description>Ambari</description>
+			
+				<modules>
+					<module>./ambari-web</module>
+					<module>./ambari-project</module>
+					<module>./ambari-views</module>
+				</modules>
+			</project>
+	集成：
+		说明：避免重复声明
+		
+Maven仓库：
+	说明：maven在执行编译或测试时，若需要使用依赖文件，会从仓库中查询并使用
+	分类：
+		本地仓库：
+			默认在每个用户下都会有一个.m2/repository/的仓库目录
+		远程仓库：
+			中央仓库：默认的远程仓库，它包含了这个世界上绝大多数流行的开源Java构件
+			          以及源码、作者信息、SCM信息，许可证等
+			私服：架设在局域网内的仓库服务，代理广域网上的远程仓库，提供给局域网内
+				  的maven用户使用
+				安装：
+					说明：使用搭建私有服务器
+						官网：http://www.sonatype.com/
+					安装：
+						
+			其它公共库：可被公开使用，常见的有Java.net Maven(http://download.java.net/maven/2/)
+						和JBoss Maven库(http://repository.jboss.com/maven2/)等
+				 
+			
+		注：Maven总是先从本地仓库中查找构件，若无，则从远程仓库中下载安装到本
+		    地仓库然后使用		
+	仓库的布局：
+		说明：任何一个构件都有其唯一的坐标，根据这个坐标可以定位其在仓库中的唯一路径
+			其坐标和目录的对应结构：
+				groupid/artifactid/version/atrifcatid-version.packaging
+	
+Maven插件：
+	说明：
+生命周期：
+	说明：
+		
+安装
+	# 安装配置JDK
+	# wget http://mirrors.hust.edu.cn/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz
+	# tar -xf apache-maven-3.3.9-bin.tar.gz
+	# mv apache-maven-3.3.9 /usr/local/maven
+	# vim /etc/profile
+		export JAVA_HOME=/usr/local/jdk
+		export MAVEN_HOME=/usr/local/maven
+		export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
+		export MAVEN_OPTS="-Xms128m -Xmx512m"
+	# . /etc/profile
+	# mvn -v
+
+
+	
+Mavne配置：
+	设置代理：
+		说明：使用通过安全认证的代理访问因特网。需要为Mavne配置http代理，才能正常访问外部仓库
+		配置：
+			<setting>
+				<proxy>										# 可有多个proxy元素，默认第一个被激活的生效
+					<id>my_proxy</id>						# 声明一个id名为my_proxy的代理
+					<active>true</active>					# true表示激活该代理
+					<protocol>http</protocol>				# 表示使用的代理协议
+					<host>202.106.179.130</host>			# 代理的主机名
+					<port>3128</port>						# 和端口
+					<!--									# 注释
+					<username>***</username>				# 代理认证时的用户名
+					<password>***</password>				# 和密码
+					<nonProxyHosts>repository.baidu.com|*.google.com</nonProxyHosts>
+					-->										# 指定不需要代理的主机
+				</proxy>
+			</setting>
+	本地仓库设置：
+		说明：设置本地仓库目录，默认在~/.m2/repository/
+		配置：
+			1.在MAVEN_HOME/conf/setting.xml中设置本地仓库路径
+				<setting>
+					<localRepository>/path/to/local/repo</localRepository>
+				</setting>
+			2.将MAVEN_HOME/conf/setting.xml文件拷贝至/path/to/local/目录下
+			3.运行maven命令
+		注：安装好maven后，若不执行任何maven命令，本地仓库目录是不存在的。当用户执行
+		    第一条maven命令后，maven才会创建本地仓库并根据配置和需要从远程仓库中下载
+			 构件
+		
+Maven命令：
+		生成骨架：
+			# mvn archetype:generate
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	
+	
+	
+	

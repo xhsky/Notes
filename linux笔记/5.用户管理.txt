@@ -1,0 +1,257 @@
+
+
+
+用户分类
+	1.本地用户
+	2.网络用户	(NIS LADP) 	/etc/nsswitch.conf
+ 
+	系统管理员(0)
+	系统账号(1-499)
+		1-99		-- 由系统自行建立的账号
+		100-499		-- 若用户有系统账号需求时，可以使用的账号
+	用户账号(500-)
+ 
+	
+	注意：
+		- 普通用户在Linux系统内的资源只有其家目录和/tmp/
+		- 用户标识符：UID  GID    ---- Linux只识别标识符
+		- 避免使用数字类型的账号：虽然新的distribution已经允许纯数字类型的账号建立，当有时候系统会无法分清那组数字是UID还是账号
+			eg：setfacl -m u:501:r-- file 
+				setfacl是支持使用UID的
+		
+
+
+用户管理
+	管理用户命令：
+		新增用户：
+			useradd [options] name
+				options:
+					-u UID 
+					-g 初始用户组 
+					-G 次要用户组 
+					-d 主文件夹(绝对路径) 
+					-s shell
+					-M 			不创建用户家目录(系统账号默认值)
+					-m			创建用户家目录(一般账号默认值)
+					
+			useradd -r name  -- 创建一个系统账号100-499系统账号默认无主文件夹
+				系统账号主要是用来进行运行系统所需服务的权限设置，默认不会主动创建主文件夹
+			
+			useradd的参考文件：（3个文件）
+				1./etc/default/useradd			使用useradd命令时的用户信息默认设置	 可用# useradd -D查看
+				2./etc/skel/*					用户主文件夹参考基准目录,若创建用户,则该目录里的所有文件都会复制过去,可在里面自行添加文件
+				3./etc/login.defs  				生成新用户时的基本参数，即login程序的配置文件				
+			
+			手动新增用户
+				检查工具：
+					# pwck		检查/etc/passwd配置文件的信息，实际的主文件夹是否存在，还可以比较/etc/passwd与/etc/shadow的文件信息是否一致
+					pwconv		将/etc/passwd内的账号与密码移动到/etc/shadow当中(未加密)
+					pwunconv	主要将/etc/shadow内的密码写回到/etc/passwd中，并且删除/etc/shadow文件。
+					chpasswd	读入未加密的密码，并经过加密后，将加密的密码写入/etc/shadow中 
+					  eg：echo “user:123456”| chpasswd -m
+
+				步骤
+					1.在/etc/group中建立用户组，再同步/etc/gshadow
+						# grpconv 
+					2.在/etc/passwd中建立用户，再同步/etc/shadow
+						# pwconv
+					3.对/etc/shadow中密码进行加密
+						# echo “用户:密码” | chpasswd -m
+					4.将/etc/skel/*的文件全部复制到用户的家目录(可自动建立)下，再更改其属性和权限(700) 
+					5.在/var/spool/mail/下建立文件,并改其属性和权限	(660)	-- 此步可不做，若有邮件发来会自动建立文件
+					
+			创建大量用户： 
+				1.使用useradd命令结合shell来实现
+				2.使用newusers pwunconv chpasswd pwconv等工具实现
+					# newusers < file(其文件格式与passwd文件相同)
+					还须将/etc/skel/.*拷入各个用户的主目录
+					
+					
+		删除用户
+			userdel -r name
+				 -r  删除家目录和邮件目录
+			用户的数据：
+				1./etc/passwd  /etc/shadow  /etc/group /etc/gshadow  
+				2./home/name    /var/spool/mail/name   /tmp
+				3.用户很可能在系统其它地方有其文件，故删除前使用find / 	-user name来查找属于该用户的文件
+		
+		
+		修改用户：
+			usermod  * user
+				-u UID	-g GID
+				-G GID：覆盖附加组
+				-a -G GID ：追加附加组
+				-c “*”
+				-d -m /path ：
+					-d：指定家目录
+					-m：将此前家目录内的内容移动到新的家目录中  
+				-s shell
+				-l name：
+				-L ：锁定用户
+				-U ： 解锁
+			chsh：更改用户的默认shell
+				# chsh 用户		# chsh -s /bin/kcsh
+			chfn：更改用户注释信息
+				# chfn 用户			
+				
+				
+	管理用户组命令：
+		新增用户组：
+			groupadd -g GID group_name
+					-r group_name		增加一个系统组
+		删除用户组：
+			groupdel group_name
+		修改用户组：
+			groupmod -g -GID -n group_name group_name
+			
+		有效与初始用户组：
+			有效用户组：用户当前有效的用户组
+			初始用户组：/etc/passwd中标明的用户组
+			# groups user
+				若显示多个，则第一个为有效用户组，其余为次要用户组
+			# newgrp group
+				- newgrp只能给自己改变，无法用root来给其它用户更改
+				- newgrp命令更改当前用户的有效用户组是在另一个shell中进行的。若要回到原来的shell环境中，须输入exit。退出后更改效果消失
+				- 通常有效用户组的作用是新建文件	
+	
+		加入用户组：
+			1.root用usermod -G group_name user
+						 (手动须在/etc/group和/etc/gshadow中写入)
+			2.用户组管理员以gpasswd加入
+
+				
+				
+	密码管理：
+		/etc/shadow中，由于固定的编码系统产生的密码长度必须一致，因此当以让这个密码的长度改变后，该密码就会失效(算不出来)。
+		因此在此字段前加上!或*来改变密码长度，就会让密码暂时失效。
+
+		红帽禁止空密码用户登陆
+		/etc/shadow中密码段为!!表示未创建密码
+		
+		忘记root密码：
+			1.重启进入维护模式，更改root密码
+			2.以Live CD开机后挂载根目录去修改/etc/shadow(清空)
+
+		明文设密码：		# echo 密码 | passwd --stdin user
+		密码的锁定与解锁： 
+			# passwd -l/-u user
+				实质是在/etc/shadow的相应密码段前加!!，去除即可解锁
+			# usermod -L/-U user
+				实质是在/etc/shadow的相应密码段前加!，去除即可解锁
+			使用shadow密码文件后，/etc/passwd文件中所有帐户的password域的内容为"x"。若其中 x 被替换为任意字符，则该账户停用
+		
+		删除user密码
+			# passwd -d user
+		列出密码信息：  
+			# passwd -S user
+				PS：pass 未加锁
+				LK：lock 已加锁
+				NP：无密码
+			# chage -l user  
+						
+		给用户组加密： 
+			# gpasswd group_name		-- 当用newgrp切换有效用户组时，须输入组密码。
+										-- 免去root的忙碌，但有了sudo后，gshadow已经很少用了
+			在/etc/gshadow中密码段，若为!，则表示无合法密码，即无用户组管理员
+
+		使用户在下一次登录时必须改密码
+			# chage -d 0 user
+			
+						
+		新的distributions使用较为严格的PAM模块来管理密码，该管理机制写在/etc/pam.d/passwd中。它代替/etc/login.defs内的PASS_MIN_LEN的设置	
+		
+		设置密码复杂度：
+			/etc/pam.d/system-auth
+				password    requisite     pam_pwquality.so try_first_pass local_users_only retry=3 
+				authtok_type= minlen=8 ucredit=-1 lcredit=-1 dcredit=-1 minclass=4
+				
+				retry：尝试3次
+				minlen：最小密码长度8
+				ucredit：最少大写字母1
+				lcredit：最少小写字母1
+				dcredit：最少数字1
+				minclass：不同类型字符4
+		登录失败锁定时间：
+			/etc/pam.d/sshd
+				auth       required     pam_tally2.so        deny=5  unlock_time=300
+	用户信息：
+		查看用户的账号属性：	# id	-u -g	-G	-n
+		查看用户账号信息：		# finger
+		显示当前登录的用户：	# whoami == id un == echo $USER
+		显示所有已登录的用户：	# who 	# w
+		
+		文件：
+			/etc/passwd  /etc/group  /etc/shadow   /etc/gshadow
+			/etc/skel/*   /etc/login.defs  /etc/default/
+			
+		UPG机制 (Use Private Group)：	当创建新用户时，系统会自动建立一个与用户同名的用户组
+		
+		用户身份验证：authconfig
+			local file：NIS LDAP  Hesiod  Winbind
+			NSS: kerberos  LDAP SMB  Winbind
+	   
+	   登录历史
+			显示用户登录历史及系统重启历史
+				# last：		/var/log/wtmp
+					-n 3：显示最近3次的相关信息
+			显示用户错误的登录尝试		
+				# lastb：		/var/log/btmp
+					-n 4：显示最近4次的相关信息
+			显示每一个用户最近一次的成功登录信息	
+				# lastlog：
+					-u username：显示特定用户最近的登录信息
+		
+		用户交谈：	用户必须在线
+				能否发送和接收信息的能力  mesg n/y
+			
+			单对单在线交流
+				# write user [用户所在终端接口]  *
+			广播
+				# wall *  
+
+			邮件
+				mail:
+					发送：# mail user@hostname
+					结束：  . 或者 ctrl+d
+					查看：mail
+				mutt:
+					查看：mutt
+
+				
+	强制踢掉用户：
+		# pkill -kill -t tty
+		
+3.用户身份变换
+	- su     	无法切换1-99账号
+		执行一次命令后返回：# su - user -c ‘Command’
+		# su -			-- 无用户默认为root
+	- sudo    
+		- 功能：
+			1.单一用户进行root切换
+			2.利用用户组及免密码功能处理
+			3.有限制的命令操作
+			4.通过别名设置visudo
+			5.sudo短时间内不需重复输入密码 - 5min
+			6.sudo搭配su 不需root密码 直接切换到root
+
+		- 执行一次后返回		可切换成1-99账号
+			·一个命令：# sudo -u user command		无引号
+			·多个命令：# sudo -u user sh -c ‘commands’
+										sh -c 可执行一连串命令
+
+		- visudo（默认只有root可以执行）  
+			# visudo /etc/sudoers
+				visudo在保存退出时会有语法检查，而vi没有	
+					
+			格式
+				账号	来源主机=(欲切换的身份)		可执行的命令
+				
+			 eg：xia	    ALL=(ALL)				  ALL			-- xia完全代替root
+			     %xia												-- % 用户组，该用户组的用户可执行
+				 xia		ALL=(root)				/bin/su -		-- sudo配合su   输入$ sudo su - 可直接进入root
+				
+				别名设置：
+				User_Alias NAME=dog,cat
+				Cmnd_Alias COMM=/usr/bin/passwd
+				NAME		ALL=(root)				COMM			-- 所有别名名称一律用大写
+		

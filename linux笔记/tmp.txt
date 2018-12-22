@@ -1,0 +1,154 @@
+
+gcc常用编译格式
+1 gcc C源程序 -o 目标文件名
+2 gcc -o 目标文件名 C源程序
+3 gcc C源程序  ----------默认使用的目标文件名 a.out 
+
+
+唯有软件才可赋予硬件灵魂
+RTOS --- real-time operating system 实时操作系统
+API -- Application Programing Interface 应用程序编程接口
+Boot Loader 引导加载程序
+IEEE  -- Institute of Electrical and Electronics Engineers 
+          美国电气与电子工程师协会
+IC -- Internal circulation  内循环厌氧反应器
+OSS --- Open Source Software
+
+嵌入式系统本质 --  计算机系统  特殊应用
+ABS ---  Anti-lock Brake System  防锁死刹车系统
+ISR --  中断处理程序
+
+
+下一个大未来 --- 智慧的地球
+网格计算-->效用计算-->软件即服务-->云计算
+一流企业定标准 二流企业做品牌 三流企业卖技术 四流企业做产品
+PC--网络---服务器---存储----云
+存储结构是面向计算机的
+计算机所能处理的最快的资源是数字
+系统管理员的重要工作之一就是修改与设置某些重要软件的配置文件。
+
+
+
+
+
+
+PDF ----- Partable Data File
+windwos的dll		- Dynamic Link Library
+直接运行services.msc可打开windows的服务
+
+
+JBOD：将多个磁盘合在一起，使应用程序看起来是一个盘
+
+冗余能力 -- 容错能力
+
+http://linux.sheup.com/  linux教程网
+http://phorum.study-area.org/ 酷学园
+www.uplooking.com --- 学习
+
+
+命令简称：
+	\n  --  new line
+	ifconfig  ------interface ipconfig
+	su   ----shift user
+	命令  cal ------calendar
+	man ------   manual
+	ls-----list
+	cwd -- current working directory
+	rc.d是runlevel control directory的缩写
+	/etc/fstab  -- file system tbale
+	inode === index node
+	wc === word count
+
+
+/sbin/nologin 也可用来制作纯pop邮件账号的数据！ 系统默认将用户目录下的~/bin(自行创建)调入$PATH中！
+
+
+
+库文件：
+	1.静态库
+		直接编译到可执行文件中，内容较多
+	2.动态库
+		共享库，在内存中被共享
+		/lib/modules：内核模块文件
+
+windows的库文件
+	dll:Dynamic Link Library
+linux的库文件
+	.so：shared object
+
+	
+	
+	
+文本处理工具
+
+grep：文本过滤器
+sed：Stream EDitor，流编辑器
+awk：报告生成器
+	# awk [option] 'script' file1 file2 ...
+	# awk [option] 'Pattern { action }' file1 file2 ....
+
+
+RHCS：RedHat Cluster Suite
+
+169.254.***.***地址段的含义：
+	169.254地址段也属私有保留地址，一般开启了dhcp服务的设备但又无法获取到dhcp的会随机使用这个网段的ip。 
+	出现此IP地址段，一般表示互联网无法通信，而此时我们可以通过手工指定的方式，正确的指定一个新的IP地址，以便于网络通讯！
+	
+	可能的4种情况：
+		1.如果采用的ADSL拨号上网，则本地连接均会是169.254 IP地址段，因为网络设备当中，客户端没有可自动获取的IP地址段，当
+		  获取到一段时间，仍然无法从DHCP服务器获取正确IP地址，系统则会默认分配169.254地址段给电脑
+		2.DHCP服务器配置错误或没有开启DHCP服务器。就目前大多数家用型路由器来说，基本上默认都自动开启了DHCP功能，也就是说，
+		  只要客户端正确连接到路由器端，路由器会自动反馈给电脑终端一个可使用的内网IP地址
+		3.网线故障导致。如网线破损，则会导致路由器与电脑之间无法连通，但破损不代表没有网络信号。双绞线一般只需4根芯，即
+		  1、2、3、6保持正常可使网络正常工作。有些情况下，可能A端1\2\3\6全亮，而B端则是2\3\4\6全亮，此时，本地连接依然是
+		  通的，但是却获取不到有效IP地址，系统则会分配169.254 地址段给终端电脑。须换网线
+		4.端口速率不匹配的原因导致169.254地址段出现。一般电脑网卡速率为10/100M自适应，而某些路由器LAN口却只支持10M，此时，
+		  我们最好能修改本地连接端口速率用于同路由器LAN口速率同步  
+		  
+文件传输协议：
+	文件传输是数据交换的主要形式。在进行文件传输时，为使文件能被正确识别和传送，我们需要在两台计算机之间建立统一的传输协议。这个协议包括了文件的识别、传送的起止时间、错误的判断与纠正等内容
+
+	常见的传输协议有ASCII、Xmodem、Ymodem、Zmodem4种。
+	（1）ASCII：这是最快的传输协议，但只能传送文本文件。 
+	（2）Xmodem：这种古老的传输协议速度较慢，但由于使用了CRC错误侦测方法，传输的准确率可高达99.6%。 
+	（3）Ymodem：这是Xmodem的改良版，使用了1024位区段传送，速度比Xmodem要快。 
+	（4）Zmodem：Zmodem采用了串流式（streaming）传输方式，传输速度较快，而且还具有自动改变区段大小和断点续传、快速错误侦测等功能。这是目前最流行的文件传输协议。 
+
+	# yum install lrzsz -y
+	
+Centos7 更新说明：
+	从该版本开始 CentOS 将采用新的版本号规则，其中 1406 表示为 2014年6月。通过使用月份作为版本号
+
+	CentOS 7 的主要变化包括：
+		内核更新至 3.10.0
+		在内核层面 支持 Linux 容器
+		Open VMware Tools 及 3D 图像能即装即用
+		OpenJDK-7 作为缺省 JDK
+		这次直接从 6.5 升级至 7.0（上文已提及）
+		ext4 及 XFS 的 LVM 快照
+		转用 systemd、firewalld 及 GRUB2
+		XFS 作为缺省文件系统
+		内核空间内的 iSCSI 及 FCoE
+		支持 PTPv2
+		支持 40G 网卡 
+	https://wiki.centos.org/zh/Manuals/ReleaseNotes/CentOS7
+	
+		CentOS-7.0-1406-x86_64-DVD.iso 标准安装版，一般下载这个就可以了 
+		CentOS-7.0-1406-x86_64-NetInstall.iso 网络安装镜像 
+		CentOS-7.0-1406-x86_64-Everything.iso 对完整版安装盘的软件进行补充，集成所有软件。 
+		CentOS-7.0-1406-x86_64-GnomeLive.iso GNOME桌面版 
+		CentOS-7.0-1406-x86_64-KdeLive.iso KDE桌面版 
+		CentOS-7.0-1406-x86_64-livecd.iso 光盘上运行的系统，类拟于winpe 
+		（1）CentOS-xxxx-LiveCD.ios 和CentOS-xxxx-bin-DVD.iso有什么区别？
+			前者只有700M，后者有3.8G。其差别不仅仅在大小上，其更本质的差别是，
+			CentOS-xxxx-LiveCD.ios只能加载到内存里运行，不能安装。CentOS-xxx-bin-DVD1.iso
+			才可以安装到硬盘上。 
+		（2）CentOS-xxx-bin-DVD1.iso，CentOS-xxx-bin-DVD2.iso分别是干什么的？
+			前者是3.8G，后者是500M。其差别是DVD1是CentOS的安装文件，DVD2是CentOS的一些软件
+			就简单实用来说，CentOS是不需要的）。
+		  
+		  
+		  
+		  
+		  
+		  

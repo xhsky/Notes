@@ -1,0 +1,361 @@
+
+
+
+分布式文件系统：通常指C/S架构或网络文件系统
+	NFS CIFS 
+集群文件系统：为系统多个节点提供高性能、高可用或负载均衡的文件系统，是分布式文件系统的子集
+	SONAS、ISILON IBRIX、NetAPP-GX、Lustre、PVFS2、ClusterFS、Google File System、LoongStore、CZSS
+并行文件系统：能够支持并行应用，可以同一时间并发读写同一文件。集群文件系统大多为并行文件系统
+	GPFS StorNext GFS BWFS Lustre Panasas
+	
+	非本地直连的、通过网络连接的为分布式文件系统
+	分布式文件系统中，服务器节点由多个组成，为集群文件系统
+	支持并行应用(eg:MPI)的，为并行文件系统
+FUSE
+	用户空间文件系统（Filesystem in Userspace，简称FUSE）是操作系统中的概念，指完全在用户态实现的文件系统。
+	Filesystem Userspace是一个可加载的内核模块，其支持非特权用户创建自己的文件系统而不需要修改内核代码。通
+	过在用户空间运行文件系统的代码通过FUSE代码与内核进行桥接。
+	
+GlusterFS
+	官网：http://www.gluster.org/
+	GlusterFS（GNU ClusterFile System）是一个开源的分布式文件系统，它的历史可以追溯到2006年，最初的目标是代替Lustre和GPFS分布式文件系统
+	
+	四大开源分布式文件系统
+		Lustre	MooseFS  CEPH  GlusterFS
+	
+	
+应用：
+	主要应用在集群系统中，具有很好的可扩展性。软件的结构设计良好，易于扩展和配置，通过各个模块的灵活搭配以得到针对性的解决方案。
+	支持数PB存储容量和处理数千客户端
+	网络存储
+	联合存储(融合多个节点上的存储空间)
+	冗余备份
+	大文件的负载均衡(分块)
+	由于缺乏一些关键特性，可靠性也未经过长时间考验，还不适合应用于需要提供 24 小时不间断服务的产品环境。目前适合应用于大数据量的离线应用。 
+
+	1.扩展性
+		近线性横向扩展，Scale-Out架构允许通过简单地增加资源来提高存储容量和性能，磁盘、计算和I/O资源都可以独立增加，获得近线性扩展。支持数PB存储容量和处理数千客户端
+	2.高性能
+		Gluster弹性哈希（Elastic Hash）解除了GlusterFS对元数据服务器的需求，元数据和数据没有分离而是一起存储。消除了单点故障和性能瓶颈，真正实现了并行化数据访问。
+	3.高可用
+		GlusterFS使用自动复制(镜像)或自我修复功能(以增量的方式在后台执行，几乎不会产生性能负载)来保证数据可靠性。
+		利用了底层EXT/ZFS等磁盘文件系统的日志功能来提供一定的数据可靠性
+		GlusterFS是无元数据服务器设计，不需要元数据的同步或者一致性维护
+		
+	4.全局统一命名空间	
+		Glusterfs采用了全局统一命名空间设计，将磁盘和内存资源聚集成一个单一的虚拟存储池进行管理，并在此命名空间中使用NFS/CIFS等标准协议来访问应用数据。
+	5.弹性存储系统
+		数据储存在逻辑卷中，逻辑卷可以从虚拟化的物理存储池进行独立逻辑划分而得到。允许动态增删数据卷、扩展或缩减数据卷、增删存储服务器等，不影响系统正常运行和业务服务
+	6.基于标准协议
+		Gluster存储服务支持NFS, CIFS, HTTP, FTP以及Gluster原生协议，完全与POSIX标准兼容。现有应用程序不需要作任何修改或使用专用API，就可以对Gluster中的数据进行访问
+			GlusterFS存储网关提供弹性卷管理和NFS/CIFS访问代理功能，其上运行Glusterd和Glusterfs进程，两者都是Glusterfsd符号链
+			接。卷管理器负责逻辑卷的创建、删除、容量扩展与缩减、容量平滑等功能，并负责向客户端提供逻辑卷信息及主动更新通知功
+			能等。对于Windows客户端或没有安装GlusterFS的客户端，需要通过NFS/CIFS代理网关来访问，这时网关被配置成NFS或Samba服
+			务器提供glusterfs资源给客户端。相对原生客户端，网关在性能上要受到NFS/Samba的制约。
+	7.完全软件实现
+		广泛支持工业标准的存储、网络和计算机设备，而非与定制化的专用硬件设备捆绑，完全独立于硬件和操作系统
+	8.用户空间实现
+		在用户空间实现起来相对要简单，运行相对安全。但在用户态实现文件系统必然会引入额外的内核态/用户态切换带来的开销，对性能会产生影响。
+	9.模块化堆栈式架构
+		采用模块化、堆栈式的架构，可通过灵活的配置支持高度定制化的应用环境。每个功能以模块形式实现，然后以积木方式进行简单的组合，即可实现复杂的功能
+	
+	1.GlusterFS通过Infiniband RDMA 或者Tcp/Ip 方式将许多廉价的x86 主机，通过网络互联成一个并行的网络文件系统
+	2.GlusterFS没有设计自己的私有数据文件格式，而是采用操作系统中主流标准的磁盘文件系统（如EXT、ZFS、XFS）来存储文件，因此数据可以使用各种标准工具进行复制和访问
+	3.
+	
+	弹性哈希算法：
+		GlusterFS独特地采用无元数据服务的设计，取而代之使用算法来定位文件，元数据和数据没有分离而是一起存储。文件元数据记录在底
+		层文件系统的inode以及扩展属性上。集群中的任何服务器和客户端只需根据路径和文件名就可以对数据进行定位和读写访问，因此文件
+		定位可独立并行化进行。
+		
+
+			glusterfs完全实现了网络附加存储的大规模扩展而没有借助其他人在处理大数据领域所使用的要素：元数据。元数据被用来描述一
+		个给定的文件或是区块在分布式文件系统中的所处位置；它同时也是网络附加存储解决方案在规模化方面的致命弱点。-- 所有节点都
+		必须不断与服务器（或服务器群组）保持联系以延持整个集群的元数据——这种做法几乎必定会带来额外的延迟并使存储硬件在等待响
+		应元数据请求的过程中处于效率低下的闲置状态。Gluster通过使用其自有的弹性Hash算法解决了这一问题。凭借这种算法，Gluster集
+		群中的每个节点都能够计算得出某个特定文件的位置，而无需联系集群内的其它节点——这基本上消除了元数据追踪及变化的必要性。
+		最终的文件数据通过统一的调度策略分布在不同的存储服务器上。它们上面运行着Glusterfsd进行，负责处理来自其他组件的数据服务
+		请求。而由于没有了元数据服务器，客户端承担了更多的功能，包括数据卷管理、I/O调度、文件定位、数据缓存等功能。客户端上运行
+		Glusterfs进程，它实际是Glusterfsd的符号链接，利用FUSE（File system in User Space）模块将GlusterFS挂载到本地文件系统之上，
+		实现POSIX兼容的方式来访问系统数据。
+			它的负面影响是，数据一致问题更加复杂，文件目录遍历操作效率低下，缺乏全局监控管理功能。同时也导致客户端承担了更多的
+		职能，负载相对传统分布式文件系统要高，包括CPU占用率和内存占用
+		
+		
+		集中式元数据服务会导致单点故障和性能瓶颈问题
+		分布式元数据服务存在性能负载和元数据同步一致性问题。特别是对于海量小文件的应用，元数据问题是个非常大的挑战。
+		
+		
+		GlusterFS中数据访问流程如下：
+
+			1、计算hash值，输入参数为文件路径和文件名；
+
+			2、根据hash值在集群中选择子卷（存储服务器），进行文件定位；
+
+			3、对所选择的子卷进行数据访问。
+		
+			GlusterFS目前使用Davies-Meyer算法计算文件名hash值，获得一个32位整数。Davies-Meyer算法具有非常好的hash分布性，
+			计算效率很高。假设逻辑卷中的存储服务器有N个，则32位整数空间被平均划分为N个连续子空间，每个空间分别映射到一个
+			存储服务器。这样，计算得到的32位hash值就会被投射到一个存储服务器
+		
+		
+		储节点加入和删除、文件改名等情况
+			GlusterFS的哈希分布是以目录为基本单位的，文件的父目录利用扩展属性记录了子卷映射信息，其下面子文件目录在父目录所
+			属存储服务器中进行分布。由于文件目录事先保存了分布信息，因此新增节点不会影响现有文件存储分布，它将从此后的新创建
+			的目录开始参与存储分布调度。这种设计，新增节点不需要移动任何文件，但是负载均衡没有平滑处理，旧节点负载较重。
+			
+				方法一：
+					GlusterFS在设计中考虑了这一问题，在新建文件时会优先考虑容量负载最轻的节点，在目标存储节点上创建文件链接指向
+					真正存储文件的节点。	？
+				方法二：
+					GlusterFS弹性卷管理工具可以在后台以人工方式来执行负载平滑，将目录重新布局，数据重新分布此后所有存储服务器都
+					会均会被调度。
+			GlusterFS目前对存储节点删除支持有限若直接删除节点，那么所在存储服务器上的文件将无法浏览和访问，创建文件目录也会失败。
+			当前人工解决方法有两个，一是将节点上的数据重新复制到GlusterFS中，二是使用新的节点来替换删除节点并保持原有数据。
+			
+			若文件被改名，则hash算法将产生不同的值，可能会发生文件被定位到不同的存储服务器上，从而导致文件访问失败。采用数据移动
+			的方法，对于大文件是很难在实时完成的。为了不影响性能和服务中断，GlusterFS采用了文件链接来解决文件重命名问题，在目标存
+			储服务器上创建一个链接指向实际的存储服务器，访问时由系统解析并进行重定向。另外，后台同时进行文件迁移，成功后文件链接
+			将被自动删除。对于文件移动也作类似处理，好处是前台操作可实时处理，物理数据迁移置于后台选择适当时机执行。
+			
+			
+不足
+	1.元数据性能
+		给定确定的文件名，查找和定位会非常快。而ls文件目录和rm删除文件目录这两个典型元数据操作会非常慢，性能会大幅下降
+		文件通过HASH算法分散到集群节点上，每个节点上的命名空间均不重叠，所有集群共同构成完整的命名空间，访问时使用HASH算
+		法进行查找定位。列文件目录时，需要查询所有节点，并对文件目录信息及属性进行聚合。这时，哈希算法根本发挥不上作用，
+		相对于有中心的元数据服务，查询效率要差很多。
+			建议合理组织文件目录，目录层次不要太深，单个目录下文件数量不要过多；增大服务器内存配置，并且增大GlusterFS目录缓
+			存参数；网络配置方面，建议采用万兆或者InfiniBand。从研发角度看，可以考虑优化方法提升元数据性能。比如，可以构建全
+			局统一的分布式元数据缓存系统；也可以将元数据与数据重新分离，每个节点上的元数据采用全内存或数据库设计，并采用SSD进
+			行元数据持久化。
+		海量小文件（LOSF，lots of small files）问题
+		
+	2.数据分布问题
+			分布式卷可以保证数据分布式的均衡性，但前提是文件数量要足够多，当文件数量较少时，难以保证分布的均衡性，导致节点之间
+		负载不均衡
+			复制卷包含多个副本，对于读请求可以实现负载均衡，但实际上负载大多集中在第一个副本上，其他副本负载很轻
+			条带卷原本是实现更高性能和超大文件，但在性能方面的表现太差强人意，远远不如哈希卷和复制卷，没有被好好实现，连官方都
+		不推荐应用		？
+	3.容量负载均衡
+		由于采用Hash算法进行数据分布，容量负载均衡需要对所有数据重新进行计算并分配存储节点。数据重新分布之后，老节点会有大量数
+		据迁入和迁出，增加负载情况(GlusterFS的容量负载均衡是通过在当前执行节点上挂载卷，然后进行文件复制、删除和改名操作实现的，
+		没有在所有集群节点上并发进行，负载均衡性能差)
+	4.数据安全		-- 私有存储格式可以保证数据的安全性
+		GlusterFS以原始数据格式（如EXT4、XFS、ZFS）存储数据，离线情形下文件也可以通过其他标准工具进行访问，因此数据是以平凡的方
+		式保存的，接触数据的人可以直接复制和查看。且本地文件系统元数据访问是一个瓶颈。
+		GlusterFS在访问文件目录时根据扩展属性判断副本是否一致，这是进行数据自动修复的前提条件。但若直接从节点系统底层对原始数据
+		进行修改或者破坏，GlusterFS大多情况下是无法判断的。
+	5.Cache一致性
+		为了简化Cache一致性，GlusterFS没有引入客户端写Cache，而采用了客户端只读Cache。GlusterFS采用简单的弱一致性，数据缓存的更
+		新规则是根据设置的失效时间进行重置的。对于缓存的数据，客户端周期性询问服务器，查询文件最后被修改的时间，如果本地缓存的数
+		据早于该时间，则让缓存数据失效，下次读取数据时就去服务器获取最新的数据。GlusterFS客户端读Cache刷新的时间缺省是1秒，可以
+		通过重新设置卷参数Performance.cache-refresh-timeout进行调整。这意味着，如果同时有多个用户在读写一个文件，一个用户更新了
+		数据，另一个用户在Cache刷新周期到来前可能读到非最新的数据，即无法保证数据的强一致性。因此实际应用时需要在性能和数据一致
+		性之间进行折中，如果需要更高的数据一致性，就得调小缓存刷新周期，甚至禁用读缓存；反之，是可以把缓存周期调大一点，以提升读
+		性能。
+	
+安装配置
+	server：# yum install glusterfs glusterfs-server glusterfs-fuse
+	client: # yum install glusterfs glusterfs-fuse
+	
+		gluster/glusterd		服务器端进程
+		glusterfs/glusterfsd	客户端进程
+		
+	1.配置/etc/hosts
+		# yum install rpcbind python-argparse
+	  下载glusterfs的yum源	
+		# wget -P /etc/yum.repos.d/ http://download.gluster.org/pub/gluster/glusterfs/LATEST/CentOS/glusterfs-epel.repo
+	  导入epel7的源
+	2.server端yum安装
+		# yum install glusterfs-server
+		# systemctl start glusterd
+	3.在node1上配置整个glusterfs集群
+		添加结点：
+			# gluster peer probe node1
+			# gluster peer probe node2
+		查看状态(不含本结点)：
+			# gluster peer status
+	4.创建数据存放目录(每个server上都做)	
+		# mkdir /data
+		# mount /dev/sd** /data
+		# mkdir /data/data{1,2,3}
+	5.在node1上创建卷
+		# gluster volume create data1 node1:/data/data1 node2:/data/data1 
+		# gluster volume create data2 node1:/data/data2 node2:/data/data2 
+	6.启动卷
+		# gluster volume start data1
+		# gluster volume start data2
+		# gluster volume info				-- 查看状态是否为started，否者可在/var/log/glusterfs/etc-glusterfs-glusterd.vol.log查看错误
+	7.客户端挂载
+		# yum安装
+		# mkdir -p /data/data{1,2,3}
+		# mount -t glusterfs node1:/data1 /data/data1
+		# df -h
+	
+	
+	语法：
+		节点管理		-- 在一个node上操作即可
+			添加
+				# gluster peer probe hostname/ip
+			删除
+				# gluster peer detach hostname/ip		-- 移除节点时先将其brick移除
+			查看
+				# gluster peer status					-- （显示时不包括本节点）
+		卷管理
+			创建
+				# gluster volume create v_name [stripe N | replica N] node1:/path/dir node2:/path/dir
+			启动
+				# gluster volume start v_name
+			停止
+				# gluster volume stop v_name [force]
+			删除
+				# gluster volume delete v_name	-- 前提是先停止卷
+			查看
+				列出集群中所有卷
+					# gluster volume list
+				查看卷信息
+					# gluster volume info [v_name]
+				查看卷状态
+					# gluster volume status [v_name]
+			配置
+				# gluster volume set v_name key value
+			重命名
+				# gluster volume rename v_name new_v_name
+				
+			扩展卷				-- 实际上是扩展存储，添加分布
+				# gluster volume add-brick v_name  node1:/path/dir node2:/path/dir
+				注：若是复制卷或条带卷，则每次添加的blick数必须是replica或stripe的整数倍
+			迁移卷
+				# volume replace-brick v_name old_brick new_brick  [ start | pause | abort | status | commit ]
+																 -- 在数据迁移结束后，执行commit命令来进行Brick替换
+																  
+			收缩卷
+				# gluster volume remove-brick v_name node1:/path/dir node2:/path/dir start|stop|commit
+				注：若是复制卷或条带卷，则每次删除的blick数必须是replica或stripe的整数倍
+				
+			均衡卷			当对卷进行了扩展或收缩后，需要对卷的数据进行重新均衡
+				# gluster volume rebalance v_name start|stop|status
+					平衡布局：
+						因为布局结构是静态的，当新的bricks加入现有卷，新创建的文件会分布到旧的bricks中，所以需
+						要平衡布局结构，使新加入的bricks生效。布局平衡只是使新布局生效，并不会在新的布局移动老
+						的数据
+						# gluster volume rebalance v_name fix-layout start
+					
+			触发副本自愈		-- 后台自动执行
+				# gluster volume heal v_name 		-- 只修复有问题的文件
+				# gluster volume heal v_name full	-- 修复所有文件
+				# gluster volume heal v_name info	-- 查看自愈详情
+				# gluster volume heal v_name healed|heal-failed|split-brain
+			
+			日志
+				# gluster volume log rotate v_name	-- 实现日志rotate
+		挂载
+			# mount -t glusterfs node1:/path/dir /path/dir
+		性能监控
+			性能profile
+				# gluster volume profile v_name start
+				# gluster volume profile v_name info
+				# gluster volume profile v_name stop
+			实时top	
+				显示当前某个brick或NFS文件打开/读/写/打开目录/读目录的计数
+					# gluster volume top v_name {open|read|write|opendir|readdir} brick node1:/exp1 list-cnt 1 
+				显示当前某个brick或NFS路径读文件或写文件数据的性能			
+					# gluster volume top v_name read-perf|write-perf bs 256 count 10 brick node1:/exp1 list-cnt 1  		
+							
+		三种基本集群的访问实现
+			分布式：
+				lookup：	访问时使用HASH算法进行查找定位
+				stat：		请求发向所有节点，如果是目录需要对属性进行聚合
+				readdir：	查询所有节点，并对文件目录信息及属性进行聚合；
+			
+			条带式：
+				lookup：	所有节点都要被查询，进行属性聚合，检查gfid并进行自修复
+				stat：		查询所有节点，进行信息聚合
+				readdir：	查询所有节点，进行信息聚合
+			复制式：
+				lookup：	请求发送到所有节点，首个成功响应即返回
+				stat：		查询选择的一个UP节点，如果失败则依次查询下一个节点
+				readdir		查询选择的一个UP节点，如果失败则依次查询下一个节点
+				
+		
+		Glusterfs支持7种Volume
+			1.分布式卷
+				文件通过hash算法分布到brick server上，通常用于扩展存储能力，不支持数据的冗余.这种卷是glusterfs的基础和最大特点；
+				eg：# gluster volume create v_name node1:/path/dir node2:/path/dir
+				
+				访问时使用HASH算法进行查找定位
+				遍历文件目录时，则要搜索所有的存储节点
+				一旦文件被定位后，读写模式相对简单
+				
+			2.条带式卷
+				类似RAID0，条带数=brick server数量，文件分成数据块(默认为128K)以Round Robin方式分布到brick server上，并发粒度是数据块，大文件性能高
+				eg：# gluster volume create v_name stripe 2 node1:/path/dir node2:/path/dir
+				
+				命令空间由所有子卷共同组成
+				查找时会将请求发送到全部节点上，属性获取需要聚合。若其中任一节点出问题，则namespace和数据将不可访问。
+				读写数据时，Stripe涉及全部分片存储节点，操作可以在多个节点之间并发执行，性能非常高
+				
+			3.镜像式卷	
+				类似RAID1，镜像数=brick server数量，所以brick server上文件数据相同，构成n-way镜像，可用性高；
+				eg：# gluster volume create v_name replica 2 node1:/path/dir node2:/path/dir
+				
+				所有节点具有相同的、全完全对等的名字空间
+				查找文件时从第一个节点开始，直到搜索成功或最后节点搜索完毕
+				读数据时，AFR会把所有请求调度到所有存储节点，进行负载均衡以提高系统性能
+				写数据时，首先需要在所有锁服务器上对文件加锁，默认第一个节点为锁服务器，可以指定多个。然后，AFR以日志事件方式对所有服务器进行写数据操作，成功后删除日志并解锁
+				
+				AFR会自动检测并修复同一文件的数据不一致性，它使用更改日志来确定好的数据副本。自动修复在文件目录首次访问时触发，如果
+				是目录将在所有子卷上复制正确数据，如果文件不存则创建，文件信息不匹配则修复，日志指示更新则进行更新。
+				
+			4.分布式条带卷		distribute-striped		存储和高并发
+				brick server数量是stripe的倍数( >=2 )，兼具distribute和stripe卷的特点；
+				eg：# gluster volume create v_name stri 2 node1:/path/dir node2:/paht/dir node3:/paht/dir node4:/path/dir node5:/path/dir node6:/path/dir
+						顺序以2个为一组条带，形成3个分布式组
+				
+			5.分布式镜像卷		distribute-replication	存储和高可用
+				brick server数量是replica的倍数( >=2 )，兼具distribute和replica卷的特点；
+				eg：# gluster volume create v_name repl 2 node1:/path/dir node2:/paht/dir node3:/paht/dir node4:/path/dir node5:/path/dir node6:/path/dir
+						顺序以2个为一组镜像，形成3个分布式组
+			6.条带式镜像卷		striped-replicated		高并发环境下并行访问
+				类似raid01，brick server数量是replica的倍数( >=2 )，兼具striped和replica卷的特点；
+				eg：# gluster volume create v_name repl 2 stri 3 node1:/path/dir node2:/paht/dir node3:/paht/dir node4:/path/dir node5:/path/dir node6:/path/dir
+						顺序以2个为一组镜像，形成3个条带组(顺序无关)
+			7.分布条带式镜像卷	Distributed-Striped-Replicate
+				eg：# gluster volume create v_name repl 2 stri 3 node1:/path/dir node2:/paht/dir node3:/paht/dir node4:/path/dir node5:/path/dir node6:/path/dir
+					# node7:/path/dir node8:/paht/dir node9:/paht/dir node10:/path/dir node11:/path/dir node12:/path/dir
+				总结：
+				按brick server书写顺序，整体先分布，再切片，最后复制
+	
+				
+	Translators是GlusterFS提供的一种强大文件系统功能扩展机制，GlusterFS中所有的功能都通过Translator机制实现，运行时以动态库方
+	式进行加载，服务端和客户端相互兼容。			
+		（1）  Cluster：存储集群分布，目前有AFR, DHT, Stripe三种方式
+		（2）  Debug：跟踪GlusterFS内部函数和系统调用
+		（3）  Encryption：简单的数据加密实现
+		（4）  Features：访问控制、锁、Mac兼容、静默、配额、只读、回收站等
+		（5）  Mgmt：弹性卷管理
+		（6）  Mount：FUSE接口实现
+		（7）  Nfs：内部NFS服务器
+		（8）  Performance：io-cache, io-threads, quick-read, read-ahead, stat-prefetch, sysmlink-cache, write-behind等性能优化
+		（9）  Protocol：服务器和客户端协议实现
+		（10）Storage：底层文件系统POSIX接口实现
+	
+raid10和raid5
+	读性能：
+		磁盘阵列读操作的关键更多的体现在cache的命中率上。所以，RAID5和RAID10在读数据上面，他们基本是没有差别的，
+		除非是读的数据能影响cache命中率，导致命中率不一样
+	连续写：raid5稍好
+		RAID5与RAID10在连续写的情况下，从缓存到磁盘的写操作速度会有较小的区别。不过，如果不是连续性的强连续写，
+		只要不达到磁盘的写极限，差别并不是太大。
+	
+	一般来说，像小I/O的数据库类型操作，建议采用RAID10，而大型文件存储，数据仓库，则从空间利用的角度，可以采用RAID5。
+	
+	
+	
+	
+	
+	
+	
+	
+

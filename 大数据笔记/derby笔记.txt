@@ -1,0 +1,75 @@
+简介
+	时间，作者，开发语言，定义
+		Derby数据库是一个纯用Java实现的内存数据库，属于Apache的一个开源项目。由于是用Java实现的，所以可以在任何平台上运行；另外一个特点是体积小，免安装，只需要几个小jar包就可以运行了
+		
+	官网：
+		http://db.apache.org/derby/
+	版本:
+		官网提供四种发行版本：
+			bin发行版：包含Derby的脚本，演示文档，文档，javadoc和jar文件
+			lib发行版：仅包含Derby的jar文件
+			lib-debug发行版：包含Derby的一个较大的jar文件，用于调试
+			src发行版：包含在构建二进制文件的源代码
+	协议
+适用性(优缺)：
+	Derby具有小的占用空间 - 对于基本引擎和嵌入式JDBC驱动程序大约为2.6 MB。
+	Derby基于Java，JDBC和 SQL 标准。
+	Derby提供了一个嵌入式JDBC驱动程序，可让您 将 Derby 嵌入任何基于Java的解决方案中。
+	Derby还支持更熟悉的客户端/服务器模式与 Derby网络客户端JDBC驱动程序和Derby网络服务器。
+	Derby确保数据完整性并提供复杂的事务支持
+	Derby易于安装，部署和使用。
+架构
+	安装：
+		1.# 安装jdk
+		2.# wget http://apache.fayea.com//db/derby/db-derby-10.13.1.1/db-derby-10.13.1.1-bin.tar.gz
+		  # tar -xf 
+		3.# 运行
+		
+		运行：
+			说明：可以使用三种方式运行derby：
+			方式：
+				1.运行derby提供的命令脚本
+					安装bin包
+					设置 DERBY_HOME  JAVA_HOME，并加入PATH环境变量
+				2.使用derbyrun.jar
+					安装lib包
+					设置 DERBY_H0ME	
+				3.使用java语法或在java程序中
+	结构
+		目录结构
+			源码目录
+			安装目录：
+				bin：包含可执行文件和设置环境脚本
+				demo：包含演示程序
+				docs：包含derby文档
+				javadoc：包含从源代码注释生成的api文档
+				lib：包含derby的jar文件
+				test：包含derby的回归测试
+		进程结构
+			端口
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群：
+		derby提供两种基本的部署方式：
+			简单嵌入：
+				说明：
+					指由一个简单的单用户Java应用程序启动的Derby。使用此选项，Derby在与应用程序相同
+					的Java虚拟机中运行。Derby对于最终用户几乎是不可见的，因为它由应用程序启动和停止，
+					并且通常不需要管理
+			网络服务器：
+				说明：
+					指由一个应用程序启动Derby，该应用程序通过网络为Derby数据库提供多用户连接。这种方
+					式下Derby在托管服务器的Java虚拟机中运行。应用程序从不同的JVM连接到服务器以访问数
+					据库。Derby网络服务器是Derby软件分发的一部分，并为Derby提供了这种类型的框架。 Derby也适用于其他独立开发的服务器应用程序。
+具体服务相关
+	概念:
+		原理
+		嵌入式：
+			
+	内部命令

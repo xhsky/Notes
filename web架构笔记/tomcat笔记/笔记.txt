@@ -1,0 +1,852 @@
+
+
+
+
+System call：系统调用
+API：应用编程接口，将System call二次封装后提供给程序员的接口
+
+	POSIX：Portable Opereating System，为了同Unix一致，加了IX。
+		可移植操作系统，是一种操作系统编程接口规范。使遵循POSIX的程序在不同的平台上编译，但可能无法运行(其ABI不同)
+		
+	ABI：应用二进制接口
+		eg：window的库：dll
+			linux的库：so
+			
+
+一些语言可以嵌入到html中由解释器运行，但该语言会有一个中间状态码。若改源码(html或其它)，则须重新进行编译，故有MVC
+			
+Java：可跨平台运行的语言
+	1995年，java1.0面世,1999年，Hotsport发布。2009年，Oracle以74亿美元收购Sun
+	最大特点：Once for all，一次编译，到处运行(Write once,Run anywhere)
+	用于编写动态程序
+	
+	4项技术：
+		1.java程序设计语言
+		2.java API(java库)
+		3.java class文件格式(由java语言编译而来的bytecode)
+		4.JVM：java虚拟机(用来解释运行bytecode字节码并实现跨平台)
+			JVM实现方式
+				1.一次性解释器(解释字节码并执行，多次解释)
+				2.即时编译器(将解释的结果缓存到内存中，耗内存)
+				3.自适应编译器(自动缓存执行频率较高的代码)
+				
+			JVM的种类
+				sun公司：Hotspot JVM
+							JRE：java运行环境，只能运行，无法编译
+							JKD：java开发组件，可以编译，运行
+				开源界： OpenJKD
+							可以编译，运行
+							
+				
+				安装jdk
+					一般商业公司的生产环境都使用sun的jdk，其有三种安装方式，rpm，bin，源码，但sun一般不开放源码
+						rpm：openjdk是jre，openjdk-devel是jdk
+							默认安装在/usr/lib/jvm下
+							环境配置
+								# vim /etc/profile
+									export JAVA_HOME=/usr/lib/jvm/java-verson-openjdk-**
+									export PATH=$PATH:$JAVA_HOME/bin
+								# . /etc/profile
+						通用二进制安装
+							# tar -xvf jdk-version-linux-64.tar.gz -C /usr/local
+							# ln -sv /usr/local/jdkversion jdk
+							# vim /etc/profile.d/jdk.sh
+								export JAVA_HOME=/usr/local/jdk
+								export PATH=$JAVA_HOME/bin:$PATH
+							# . /etc/profile.d/jdk.sh
+				java配置参数
+					# java
+							-XX:+<option>			开启此参数指定的功能
+							-XX:-<option>			关闭功能
+							-XX:<option>=<value>	给option指定的选项赋值
+							-D<name>=<avlue>		设置一个系统属性
+							
+							eg：显示所有参数
+								# java -XX:PrintFlagsPinal
+				Sun jdk监控和故障处理工具
+					# jps			显示系统内所有的HotSpot虚拟机进程列表
+					# jstat			收集并显示HotSpot虚拟机各方面的运行数据
+					# jinfo	id		显示正在运行的某HotSpot虚拟机配置信息
+					# jmap			生成某Hotspot虚拟机的内存转储快照
+				可视化工具
+					# jconsole		java的监控与管理控制台
+					# jvisualvm		可视化的VM
+				
+					
+					
+				类的生命周期：从被类加载器加载开始到从内存中被清理
+					loading：			加载
+					verification：		验证
+					preparation：		准备
+					resolution：		解析
+					initialization：	初始化
+					using：				使用
+					unloading：			卸载
+				
+					
+	根据应用领域的不同，java可分为三类
+		1.JAVA SE：Standard Edtion，用于中小型应用
+		2.JAVA EE：Enterprise Edtion，企业版
+		3.JAVA ME：Mobile Edtion，移动开发
+		
+			Java EE的API：包含Java SE的API
+				Servlet
+				JSP
+				EJB(Enterprise JavaBean)：		Java相关的诸多高级功能的实现
+				JMS(Java Message Service)：			高性能异步消息服务，实现Java EE应用程序与非Java程序的"透明"通信
+				JMX(Java Management Extensions)：	在程序运行时对其进行交互式监控和管理的机制
+				JTA(Java Transaction API)；			允许应用程序在自身的一个或多个组件中平滑处理错误的机制
+				JavaMail：							通过工业标准的POP/SMTP、IMAP协议接发邮件的机制
+	
+			Java SE的API
+				JNDI(Java Naming and Directory Interface)：	用于与LDAP服务交互的API
+				JAXP(Java API for XML Processing):			用于分析与转换XML(基于XSLT实现)
+				JDK
+				
+			Java EE应用程序服务器：提供了所有Java EE的API
+				Websphere：最著名，全球第一，IBM研发，商业收费
+				Weblogic：全球第二大，属于BEA公司，后被oracle收购，商业收费
+				oc4j：oracle，商业收费
+				JBoss(核心为tomcat)：RedHat，开源
+				
+				
+				
+	开发在不同状态下的应用程序
+		applet类：开发运行在客户端的程序，基于web技术
+			客户端在浏览器上安装了jre插件，就可以在本地运行来自服务器端的嵌入到html的applet小程序，有安全隐患
+			
+		Servlet类：开发运行在服务器上的程序，基于CGI技术
+			以java语言实现的CGI技术(增加进了对http的处理能力),使java开发动态页面，并通过CGI的方式和前端web服务器进行通信
+			
+			CGI：通用网关接口，协议
+				使web服务器来调用其他程序解析该代码
+		
+		
+		JSP：简化Servlet开发，直接嵌入html，基于Servlet类。
+			Java Server Page，实现直接在html中嵌入java，从而实现基于就java技术的动态网页开发
+				
+				  jasper		  javac
+			.jsp --------> .java -------> .class(JVM)
+			
+			开发JSP的框架：
+				SSH：Structs，Spring，Hebernate
+		
+	Servlet Container：包含了jdk和使servlet工作的组件
+		作用：和前端web服务器交互，使.java程序在jdk上编译运行并返回web，监控.java程序的改变
+	Web Container：包含Servlet Container和jps
+		在Servlet Container的基础上添加了使java嵌入到html中并监控源码页面改变并相应将.jsp转换为.java的技术
+				
+	
+			
+	
+	JVM运行时数据区域（会产生内存溢出）
+		线程私有内存区：
+			程序计数器
+			java虚拟机栈：	存储本地变量，方法出口，动态链接，指针，操作数栈
+		线程共享内存区：
+			方法区：存放java方法
+			堆：最大的内存区，存放对象			
+				java自动内存回收，GC(Gargage Collector)
+			本地方法栈：存放外部(非java)方法
+		
+	垃圾回收算法
+		1.标记-清除
+		2.复制
+		3.标记-整理
+	垃圾回收器
+		Serial，ParNew，Parallel Scavenge，Serial Old，Parallel Old，CMS
+		
+
+	
+	Tomcat:
+		官网：tomcat.apache.org
+		不完整实现，仅提供了Servlet和JSP两个API。
+		来源：Sun公司创建了一个演示性的java服务器JWS(Java Web Server)，而ASF(Apache Software Foundation)创建了Jserv项目(可与apache整合的servlet容器)。1999年，两者
+			合并，即为Tomcat的前身。2001年发布Tomcat4.0(重新设计和实现)，其代码项目被命名为Catalina。而其项目是Tomcat
+			
+		安装：一般使用通用二进制包直接解压即可
+			1.安装JDK
+			2.解压
+				# tar xvf apache-tomcat-version.tar.gz -C /usr/local
+				# ln -sv /usr/local/apache-tomcat-version /usr/local/tomcat
+			3.写入环境变量
+				# vim /etc/profile.d/tomcat.sh
+					export CATALINEA_HOME=/usr/local/tomcat
+					export PATH=$PATH:$CATALINA_HOME/bin
+				# . /etc/profile.d/tomcat.sh	
+			4.启动
+				# catalina.sh start
+			5.查看
+				# jps(Bootstrap)	或 # netstat -tlunp(8080和8009)
+			
+				开机自启
+					# vim /etc/rc.local		添加：
+						export JAVA_HOME=/usr/local/jdk
+						/usr/local/tomcat/bin/catalina.sh start
+					# chmod u+x /etc/rc.d/rc.local
+					
+		目录：
+			bin：			一些可执行文件
+						
+			conf：			配置文件
+				server.xml				Tomcat全局配置文件
+				tomcat-users.xml		用户认证配置文件
+				web.xml					默认的应用程序部署描述文件(部署：将一个web应用程序所依赖到的类装载进JVM)
+										常有两个存放位置，$CATALINA_BASE/conf和每个Web应用程序（通常是WEB-INF/web.xml）。
+										Tomcat在deploy一个应用程序时(包括重启或重新载入)，它首先读取conf/web.xml，而后读
+										取WEB-INF/web.xml
+				context.xml				默认的host配置文件
+				catalina.properties		tomcat的属性配置
+				logging.properties		日志配置
+				catalina.policy			tomcat的安全属性
+				
+			lib：			库文件
+			
+			LICENSE：
+			
+			logs：			日志目录	
+				catalina.out						tomcat当前的输出
+				catalina.date.log					out的滚动文件
+				localhost_access_log.date.txt		localhost主机的访问日志
+				localhost.date.log					localhost主机的错误和其它日志
+				host-manager.date.log				和主机管理器相关日志
+				manager.date.log					管理日志
+				
+			NOTICE
+			RELEASE-NOTES
+			RUNNING.txt
+			temp			临时文件目录
+			
+			webapps			应用程序目录
+				默认访问ROOT
+				每个应用程序下都会有一个WEB-INF目录，存放其私有资源(无法通过url来访问)
+				
+			work			工作目录(.jsp --> .java --> .class)
+			
+		组件
+			tomcat各组件的关系
+				<Server>
+					<Service>
+						<Connector />
+						<Engine>
+							<host>
+								<Context> </Context>
+							</host>
+						</Engine>
+					</Service>
+				</Server>
+				
+			Server：	<Server port="8005" shutdown="SHUTDOWN">
+				Tomcat的实例(即一个JVM)，监听在8005端口以接受shutdown命令。一般只有一个
+					className：用于实现此Server容器的完全限定类的名称
+					port：		接收shutdown指令的端口，默认仅允许通过本机访问，默认为8005
+					shutdown：	发往此Server用于实现关闭tomcat实例的命令字符串，默认为SHUTDOWN
+
+			Service：	<Service name="Catalina">
+				Service主要用于关联一个引擎和与此引擎相关的连接器，每个连接器通过一个特定的端口和协议接收入站请求交将其转发
+				至关联的引擎进行处理。因此，Service要包含一个引擎、一个或多个连接器。
+					calssName：用于实现service的类名
+					name：此服务的名称，默认为Catalina，此名称也会记录在日志文件当中
+					
+			Connect：
+				正确接收来自于客户端的请求，并将这些请求转换成Servlet规范中所定义的Request,再转给相应引擎处理，最后将Engine返回的Response返回给客户端
+					常见连接器有四种：
+						1.Http连接器	2.SSL连接器		3.AJP 1.3连接器		4.proxy连接器
+						
+						http连接器
+							<Connector port="8080" protocol="HTTP/1.1"
+							  maxThreads="150" connectionTimeout="20000"
+							  redirectPort="8443"/>
+						属性：
+							address：指定连接器监听的地址，默认为所有地址，即0.0.0.0
+							maxThreads：支持的最大并发连接数，默认为200
+							port：监听的端口，默认为0
+							protocol：连接器使用的协议，默认为HTTP/1.1，定义AJP协议时通常为AJP/1.3
+							connectionTimeout：等待客户端发送请求的超时时间，单位为毫秒，默认为60000，即1分钟
+							enableLookups：是否通过request.getRemoteHost()进行DNS查询以获取客户端的主机名；默认为true
+							acceptCount：设置等待队列的最大长度；通常在tomcat所有处理线程均处于繁忙状态时，新发来的请求将被放置于等待队列中
+							
+			Engine：	<Engine name="Catalina" defaultHost="localhost">
+				Servlet处理器的一个实例，即servlet引擎，决定从Connecter过来的请求应该交给哪一个Host来处理 
+				
+				属性：
+					defaultHost：默认发往的虚拟主机名。当此引擎的连接器收到一个发往非明确定义虚拟主机的请求时则需要将此
+								请求发往一个默认的虚拟主机进行处理
+					name：Engine组件的名称，用于日志和错误信息记录时区别不同的引擎
+				
+				Engine容器中可以包含Realm、Host、Listener和Valve子容器
+				
+			Host：
+				位于Engine容器中用于接收请求并进行相应处理的主机或虚拟主机
+				属性：
+					appBase：此Host的webapps目录，即存放非归档的web应用程序的目录或归档后的WAR文件的目录路径，可以使用
+							基于$CATALINA_HOME的相对路径；
+					autoDeploy：在Tomcat处于运行状态时放置于appBase目录中的应用程序文件是否自动进行deploy；默认为true；
+					unpackWars：在启用此webapps时是否对WAR格式的归档文件先进行展开；默认为true
+			
+			Context：	<Context path="/bbs" docBase="haha" reloadable="true"></Context>
+				用来定义url路径别名，可以写在单独的xml文件中，其目录$CATALINA_HOME/conf/<engine name>/<host name>
+				
+				属性：
+					path：相对于Web服务器根路径而言的URI；如果为空“”，则表示为此webapp的根路径
+					docBase：相应的Web应用程序的存放目录或war文件路径；也可以使用相对路径(在其所属的host中appBase定义的路径)，切记，
+							docBase的路径名不能与相应的Host中appBase中定义的路径名有包含关系，比如，如果appBase为deploy，
+							而docBase绝不能为deploy-bbs类的名字
+					reloadable：是否允许重新加载此context相关的Web应用程序的类，默认为false
+			
+			Realm：
+				一个Realm表示一个安全上下文，它是一个授权访问某个给定Context的用户列表和某用户所允许切换的角色相关定义的列表
+			
+				属性：
+					JAASRealm：基于Java Authintication and Authorization Service实现用户认证
+					JDBCRealm：通过JDBC访问某关系型数据库表实现用户认证
+					JNDIRealm：基于JNDI使用目录服务实现认证信息的获取
+					MemoryRealm：查找tomcat-user.xml文件实现用户信息的获取
+					UserDatabaseRealm：基于UserDatabase文件(通常是tomcat-user.xml)实现用户认证，它实现是一个完全可更新和持久
+									有效的MemoryRealm，因此能够跟标准的MemoryRealm兼容；它通过JNDI实现
+			
+			Value：
+				Valve类似于过滤器，它可以工作于Engine和Host/Context之间、Host和Context之间以及Context和Web应用程序的某资源之间。
+				一个容器内可以建立多个Valve，而且Valve定义的次序也决定了它们生效的次序
+			
+				属性：
+					AccessLogValve：访问日志Valve
+					ExtendedAccessValve：扩展功能的访问日志Valve
+					JDBCAccessLogValve：通过JDBC将访问日志信息发送到数据库中；
+					RequestDumperValve：请求转储Valve；
+					RemoteAddrValve：基于远程地址的访问控制；
+					RemoteHostValve：基于远程主机名称的访问控制；
+					SemaphoreValve：用于控制Tomcat主机上任何容器上的并发访问数量
+					JvmRouteBinderValve：在配置多个Tomcat为以Apache通过mod_proxy或mod_jk作为前端的集群架构中，当期望停止某节点时，可以通过此Valve将用记请求定向至备用节点；使用此Valve，必须使用JvmRouteSessionIDBinderListener；
+					ReplicationValve：专用于Tomcat集群架构中，可以在某个请求的session信息发生更改时触发session数据在各节点间进行复制；
+					SingleSignOn：将两个或多个需要对用户进行认证webapp在认证用户时连接在一起，即一次认证即可访问所有连接在一起的webapp；
+					ClusterSingleSingOn：对SingleSignOn的扩展，专用于Tomcat集群当中，需要结合ClusterSingleSignOnListener进行工作；
+					RemoteHostValve和RemoteAddrValve可以分别用来实现基于主机名称和基于IP地址的访问控制，控制本身可以通过allow或deny来进行定义
+										
+			GlobalNamingResources：
+				应用于整个服务器的JNDI映射，此可以避免每个Web应用程序都需要在各自的web.xml创建，这在web应用程序以WAR的形式存在时尤为有用。它通常可以包含三个子元素：
+					Environment;
+					Resource;
+					ResourceEnvRef;
+			WatchedResource
+				WatchedResource可以用于Context中监视指定的webapp程序文件的改变，并且能够在监视到文件内容发生改变时重新装载此文件
+			Listener
+				Listener用于创建和配置LifecycleListener对象，而LifecycleListener通常被开发人员用来创建和删除容器		
+			Loader
+				Java的动态装载功能是其语言功能强大表现之一，Servlet容器使用此功能在运行时动态装载servlet和它们所依赖的类。Loader可以用于Context中控制java类的加载		
+			Manager
+				Manger对象用于实现HTTP会话管理的功能，Tomcat中有5种Manger的实现：
+					1.StandardManager
+						Tomcat的默认会话管理器，用于非集群环境中对单个处于运行状态的Tomcat实例会话进行管理。当Tomcat关闭时，这些会话相关的数据会被写入磁盘上的一个名叫SESSION.ser的文件，并在Tomcat下次启动时读取此文件。
+					2.PersistentManager
+						当一个会话长时间处于空闲状态时会被写入到swap会话对象，这对于内存资源比较吃紧的应用环境来说比较有用。
+					3.DeltaManager
+						用于Tomcat集群的会话管理器，它通过将改变了会话数据同步给集群中的其它节点实现会话复制。这种实现会将所有会话的改变同步给集群中的每一个节点，也是在集群环境中用得最多的一种实现方式。
+					4.BackupManager
+						用于Tomcat集群的会话管理器，与DeltaManager不同的是，某节点会话的改变只会同步给集群中的另一个而非所有节点。
+					5.SimpleTcpReplicationManager
+						Tomcat4时用到的版本，过于老旧了		
+			Stores
+				PersistentManager必须包含一个Store元素以指定将会话数据存储至何处。这通常有两种实现方式：FileStore和JDBCStore
+			Resources
+				经常用于实现在Context中指定需要装载的但不在Tomcat本地磁盘上的应用资源，如Java类，HTML页面，JSP文件等
+			Cluster
+				专用于配置Tomcat集群的元素，可用于Engine和Host容器中。在用于Engine容器中时，Engine中的所有Host均支持集群功能。在Cluster元素中，需要直接定义一个Manager元素，这个Manager元素有一个其值为org.apache.catalina.ha.session.DeltaManager或org.apache.catalina.ha.session.BackupManager的className属性。同时，Cluster中还需要分别定义一个Channel和ClusterListener元素。
+				
+				Channel 用于Cluster中给集群中同一组中的节点定义通信“信道”。Channel中需要至少定义Membership、Receiver和Sender三个元素，此外还有一个可选元素Interceptor。
+				Membership 用于Channel中配置同一通信信道上节点集群组中的成员情况，即监控加入当前集群组中的节点并在各节点间传递心跳信息，而且可以在接收不到某成员的心跳信息时将其从集群节点中移除。Tomcat中Membership的实现是org.apache.catalina.tribes.membership.McastService。
+				Sender 用于Channel中配置“复制信息”的发送器，实现发送需要同步给其它节点的数据至集群中的其它节点。发送器不需要属性的定义，但可以在其内部定义一个Transport元素。
+				Transport 用于Sender内部，配置数据如何发送至集群中的其它节点。Tomcat有两种Transport的实现： 
+					1) PooledMultiSender 
+						基于Java阻塞式IO，可以将一次将多个信息并发发送至其它节点，但一次只能传送给一个节点。 
+					2)PooledParallelSener 
+						基于Java非阻塞式IO，即NIO，可以一次发送多个信息至一个或多个节点。
+				Receiver 用于Channel定义某节点如何从其它节点的Sender接收复制数据，Tomcat中实现的接收方式有两种BioReceiver和NioReceiver
+							
+			
+			定义主机别名：
+				更改server.xml文件并重新启动
+					<Host name="www.test.com" appBase="webapps" unpackWARs="true">
+					 <Alias>test.com</Alias>
+					</Host>
+				
+			
+			Tomcat一般有两种工作模式
+				1.作为应用程序服务器：请求来自前端的web服务器，可能是Apache，IIS或Nginx
+				2.作为独立服务器：请求来自Web浏览器
+				
+			Tomcat支持基于FQDN的虚拟主机，这些虚拟主机可以通过在Engine容器中定义多个不同的Host组件来实现；
+
+		
+		
+		
+数据库
+	MySql正在逐渐走向封闭
+	
+	MariaDB：无法使用支持事务的innoDB引擎(已被oracle收购)
+	PerconaDB：在原有的mysql主分支基础上构建的数据库，以后可能会以MariaDB为蓝本进行设计
+	
+	
+	NoSql：
+		redis
+		mongodb
+		
+		持久存储，快速响应
+Nginx
+	官方站点：http://nginx.org/
+	两种角色
+		http服务器
+		反向代理(reverse proxy)	
+			能够精确理解两种协议	
+				http
+				mail（smtp，pop3，imap）
+	特点；
+		1.高性能
+		2.稳定性
+		3.丰富的特性
+		4.简单的配置
+		5.低资源消耗
+		
+		C10K问题：当一个服务器的并发连接数达到10K的时候会产生众多的问题
+		
+		支持AIO、mmap、event-dirven
+		支持FastCGI，uwsgi(python),SCGI，memcached
+		sendfile：不经用户空间，数据直接由内核处理后发向请求
+	www.netcraft.com：更新全球web服务器的占有状况
+	
+	Tengine：淘宝发行的nginx二次改版，免费、开源、嵌入新特性
+	
+	
+	三个具有事件驱动功能的I/O模型：
+		epoll(Linux 2.6+) kqueue(FreeBSD 4.1+) /dev/poll(Solaris)
+		
+	nginx自身的cache
+		共享内存：存储键和缓存对象元数据
+		磁盘空间：存储数据
+		
+		proxy_cache_path /path/dir levels=2:2 keys_zone=NAME:20m max_size=1g；
+		
+			
+			levels：	一级子目录名由2个字符组成，二级子目录由2个字符组成。最多有三级，每级最多有2个字符
+			keys_zone:	写入共享内存的名称和大小
+			max_size：	定义/path/dir的大小
+			
+			启用缓存功能：
+				在location中定义：
+					proxy_cache NAME/off;
+				
+			
+			不能定义在server{}中，写在http{}中
+	安装nginx
+		# yum install pcre-devel		-- 支持重写rewrite
+		# tar -xvf nginx-1.6.3.tar.gz -C /usr/local/src
+		# cd /usr/local/src/nginx-1.6.3
+		# useradd -r nginx
+		# ./configure --prefix=/usr/local/nginx --user=nginx  --group=nginx  --with-http_stub_status_module  --with-http_ssl_module --with-http_gzip_static_module --with-http_realip_module 
+		# make && make install
+	
+		编译参数：
+			–prefix= 指向安装目录
+			–sbin-path 指向（执行）程序文件（nginx）
+			–conf-path= 指向配置文件（nginx.conf）
+			–error-log-path= 指向错误日志目录
+			–pid-path= 指向pid文件（nginx.pid）
+			–lock-path= 指向lock文件（nginx.lock）（安装文件锁定，防止安装文件被别人利用，或自己误操作。）
+			–user= 指定程序运行时的非特权用户
+			–group= 指定程序运行时的非特权用户组
+			–builddir= 指向编译目录
+			–with-rtsig_module 启用rtsig模块支持（实时信号）
+			–with-select_module 启用select模块支持（一种轮询模式,不推荐在高载环境下使用）禁用：–without-select_module
+			–with-poll_module 启用poll模块支持（功能与select相同，与select特性相同，为一种轮询模式,不推荐在高载环境下使用）
+			–with-file-aio 启用file aio支持（一种APL文件传输格式）
+			–with-ipv6 启用ipv6支持
+			–with-http_ssl_module 启用ngx_http_ssl_module支持（使支持https请求，需已安装openssl）
+			–with-http_realip_module 启用ngx_http_realip_module支持（这个模块允许从请求标头更改客户端的IP地址值，默认为关）
+			–with-http_addition_module 启用ngx_http_addition_module支持（作为一个输出过滤器，支持不完全缓冲，分部分响应请求）
+			–with-http_xslt_module 启用ngx_http_xslt_module支持（过滤转换XML请求）
+			–with-http_image_filter_module 启用ngx_http_image_filter_module支持（传输JPEG/GIF/PNG 图片的一个过滤器）（默认为不启用。gd库要用到）
+			–with-http_geoip_module 启用ngx_http_geoip_module支持（该模块创建基于与MaxMind GeoIP二进制文件相配的客户端IP地址的ngx_http_geoip_module变量）
+			–with-http_sub_module 启用ngx_http_sub_module支持（允许用一些其他文本替换nginx响应中的一些文本）
+			–with-http_dav_module 启用ngx_http_dav_module支持（增加PUT,DELETE,MKCOL：创建集合,COPY和MOVE方法）默认情况下为关闭，需编译开启
+			–with-http_flv_module 启用ngx_http_flv_module支持（提供寻求内存使用基于时间的偏移量文件）
+			–with-http_gzip_static_module 启用ngx_http_gzip_static_module支持（在线实时压缩输出数据流）
+			–with-http_random_index_module 启用ngx_http_random_index_module支持（从目录中随机挑选一个目录索引）
+			–with-http_secure_link_module 启用ngx_http_secure_link_module支持（计算和检查要求所需的安全链接网址）
+			–with-http_degradation_module  启用ngx_http_degradation_module支持（允许在内存不足的情况下返回204或444码）
+			–with-http_stub_status_module 启用ngx_http_stub_status_module支持（获取nginx自上次启动以来的工作状态）
+			–without-http_charset_module 禁用ngx_http_charset_module支持（重新编码web页面，但只能是一个方向–服务器端到客户端，并且只有一个字节的编码可以被重新编码）
+			–without-http_gzip_module 禁用ngx_http_gzip_module支持（该模块同-with-http_gzip_static_module功能一样）
+			–without-http_ssi_module 禁用ngx_http_ssi_module支持（该模块提供了一个在输入端处理处理服务器包含文件（SSI）的过滤器，目前支持SSI命令的列表是不完整的）
+			–without-http_userid_module 禁用ngx_http_userid_module支持（该模块用来处理用来确定客户端后续请求的cookies）
+			–without-http_access_module 禁用ngx_http_access_module支持（该模块提供了一个简单的基于主机的访问控制。允许/拒绝基于ip地址）
+			–without-http_auth_basic_module禁用ngx_http_auth_basic_module（该模块是可以使用用户名和密码基于http基本认证方法来保护你的站点或其部分内容）
+			–without-http_autoindex_module 禁用disable ngx_http_autoindex_module支持（该模块用于自动生成目录列表，只在ngx_http_index_module模块未找到索引文件时发出请求。）
+			–without-http_geo_module 禁用ngx_http_geo_module支持（创建一些变量，其值依赖于客户端的IP地址）
+			–without-http_map_module 禁用ngx_http_map_module支持（使用任意的键/值对设置配置变量）
+			–without-http_split_clients_module 禁用ngx_http_split_clients_module支持（该模块用来基于某些条件划分用户。条件如：ip地址、报头、cookies等等）
+			–without-http_referer_module 禁用disable ngx_http_referer_module支持（该模块用来过滤请求，拒绝报头中Referer值不正确的请求）
+			–without-http_rewrite_module 禁用ngx_http_rewrite_module支持（该模块允许使用正则表达式改变URI，并且根据变量来转向以及选择配置。如果在server级别设置该选项，那么他们将在 location之前生效。如果在location还有更进一步的重写规则，location部分的规则依然会被执行。如果这个URI重写是因为location部分的规则造成的，那么 location部分会再次被执行作为新的URI。 这个循环会执行10次，然后Nginx会返回一个500错误。）
+			–without-http_proxy_module 禁用ngx_http_proxy_module支持（有关代理服务器）
+			–without-http_fastcgi_module 禁用ngx_http_fastcgi_module支持（该模块允许Nginx 与FastCGI 进程交互，并通过传递参数来控制FastCGI 进程工作。 ）FastCGI一个常驻型的公共网关接口。
+			–without-http_uwsgi_module 禁用ngx_http_uwsgi_module支持（该模块用来医用uwsgi协议，uWSGI服务器相关）
+			–without-http_scgi_module 禁用ngx_http_scgi_module支持（该模块用来启用SCGI协议支持，SCGI协议是CGI协议的替代。它是一种应用程序与HTTP服务接口标准。它有些像FastCGI但他的设计 更容易实现。）
+			–without-http_memcached_module 禁用ngx_http_memcached_module支持（该模块用来提供简单的缓存，以提高系统效率）
+			-without-http_limit_zone_module 禁用ngx_http_limit_zone_module支持（该模块可以针对条件，进行会话的并发连接数控制）
+			–without-http_limit_req_module 禁用ngx_http_limit_req_module支持（该模块允许你对于一个地址进行请求数量的限制用一个给定的session或一个特定的事件）
+			–without-http_empty_gif_module 禁用ngx_http_empty_gif_module支持（该模块在内存中常驻了一个1*1的透明GIF图像，可以被非常快速的调用）
+			–without-http_browser_module 禁用ngx_http_browser_module支持（该模块用来创建依赖于请求报头的值。如果浏览器为modern ，则$modern_browser等于modern_browser_value指令分配的值；如 果浏览器为old，则$ancient_browser等于 ancient_browser_value指令分配的值；如果浏览器为 MSIE中的任意版本，则 $msie等于1）
+			–without-http_upstream_ip_hash_module 禁用ngx_http_upstream_ip_hash_module支持（该模块用于简单的负载均衡）
+			–with-http_perl_module 启用ngx_http_perl_module支持（该模块使nginx可以直接使用perl或通过ssi调用perl）
+			–with-perl_modules_path= 设定perl模块路径
+			–with-perl= 设定perl库文件路径
+			–http-log-path= 设定access log路径
+			–http-client-body-temp-path= 设定http客户端请求临时文件路径
+			–http-proxy-temp-path= 设定http代理临时文件路径
+			–http-fastcgi-temp-path= 设定http fastcgi临时文件路径
+			–http-uwsgi-temp-path= 设定http uwsgi临时文件路径
+			–http-scgi-temp-path= 设定http scgi临时文件路径
+			-without-http 禁用http server功能
+			–without-http-cache 禁用http cache功能
+			–with-mail 启用POP3/IMAP4/SMTP代理模块支持
+			–with-mail_ssl_module 启用ngx_mail_ssl_module支持
+			–without-mail_pop3_module 禁用pop3协议（POP3即邮局协议的第3个版本,它是规定个人计算机如何连接到互联网上的邮件服务器进行收发邮件的协议。是因特网电子邮件的第一个离线协议标 准,POP3协议允许用户从服务器上把邮件存储到本地主机上,同时根据客户端的操作删除或保存在邮件服务器上的邮件。POP3协议是TCP/IP协议族中的一员，主要用于 支持使用客户端远程管理在服务器上的电子邮件）
+			–without-mail_imap_module 禁用imap协议（一种邮件获取协议。它的主要作用是邮件客户端可以通过这种协议从邮件服务器上获取邮件的信息，下载邮件等。IMAP协议运行在TCP/IP协议之上， 使用的端口是143。它与POP3协议的主要区别是用户可以不用把所有的邮件全部下载，可以通过客户端直接对服务器上的邮件进行操作。）
+			–without-mail_smtp_module 禁用smtp协议（SMTP即简单邮件传输协议,它是一组用于由源地址到目的地址传送邮件的规则，由它来控制信件的中转方式。SMTP协议属于TCP/IP协议族，它帮助每台计算机在发送或中转信件时找到下一个目的地。）
+			–with-google_perftools_module 启用ngx_google_perftools_module支持（调试用，剖析程序性能瓶颈）
+			–with-cpp_test_module 启用ngx_cpp_test_module支持
+			–add-module= 启用外部模块支持
+			–with-cc= 指向C编译器路径
+			–with-cpp= 指向C预处理路径
+			–with-cc-opt= 设置C编译器参数（PCRE库，需要指定–with-cc-opt=”-I /usr/local/include”，如果使用select()函数则需要同时增加文件描述符数量，可以通过–with-cc- opt=”-D FD_SETSIZE=2048”指定。）
+			–with-ld-opt= 设置连接文件参数。（PCRE库，需要指定–with-ld-opt=”-L /usr/local/lib”。）
+			–with-cpu-opt= 指定编译的CPU，可用的值为: pentium, pentiumpro, pentium3, pentium4, athlon, opteron, amd64, sparc32, sparc64, ppc64
+			–without-pcre 禁用pcre库
+			–with-pcre 启用pcre库
+			–with-pcre= 指向pcre库文件目录
+			–with-pcre-opt= 在编译时为pcre库设置附加参数
+			–with-md5= 指向md5库文件目录（消息摘要算法第五版，用以提供消息的完整性保护）
+			–with-md5-opt= 在编译时为md5库设置附加参数
+			–with-md5-asm 使用md5汇编源
+			–with-sha1= 指向sha1库目录（数字签名算法，主要用于数字签名）
+			–with-sha1-opt= 在编译时为sha1库设置附加参数
+			–with-sha1-asm 使用sha1汇编源
+			–with-zlib= 指向zlib库目录
+			–with-zlib-opt= 在编译时为zlib设置附加参数
+			–with-zlib-asm= 为指定的CPU使用zlib汇编源进行优化，CPU类型为pentium, pentiumpro
+			–with-libatomic 为原子内存的更新操作的实现提供一个架构
+			–with-libatomic= 指向libatomic_ops安装目录
+			–with-openssl= 指向openssl安装目录
+			–with-openssl-opt 在编译时为openssl设置附加参数
+			–with-debug 启用debug日志
+	
+		配置文件
+			结构
+				main段
+					worker_process
+					error_log
+					user
+				events{
+				
+				}
+					事件驱动相关
+				httpd{
+				
+				}	关于http相关的配置
+				server{
+				
+				}	虚拟主机
+				location{
+				
+				}	定义URI及其访问属性
+		
+		
+		
+			location [ = | ~ | ~* | ^~ ] uri { ... }
+				
+				location URI {}:		对当前目录及子目录下的所有对象生效
+				location = URI {}:		只对当前路径生效(只对目录或只对文件)
+				location ~ URI {}：	
+				location ~* URI {}:		模式匹配，此处的URI可用正则表达式，~表示区分大小写，~*表示不区分大小写
+				location ^~ URI {}:		取消模式匹配，所有字符取消其模式意义
+				
+					优先级：
+						=		^~		~*/~    URI
+					
+				
+				
+				全部转发
+					server {
+						listen 80；
+						server_name ***
+						location / {
+							proxy_pass http://ip:port/path
+							proxy_set_header X-Real-IP $remote_addr 		# 将客户端地址发往upstream server
+						}
+					}	
+			
+			负载均衡：
+				Upstream模块	-- with-http_upstream_ip_hash_module
+				
+				nginx支持三种负载均衡算法
+					1.round-robin		加权轮询
+					2.ip_hash			
+					3.least_conn		调用最小链接的server
+				
+				
+				
+				独立于server之外
+				upstream name {
+					ip_hash；													# 将客户端的IP做hash，定位到同一个服务器上，使重用session信息。此时权重无意义
+					server ip:port weight=N max_fails=N fail_timeout=M;			# 后端健康状况监测：最多连接N次，每次时长M秒
+					server ip:port weight=N;
+					server ip:port backup;										# 此server须在server{}中设置
+				}
+				
+				在server中的location  / {
+					proxy_pass http://name；
+					proxy_set_header X-Real-IP $remote_addr;
+				}
+				
+			
+			控制访问：
+				基于IP的访问控制：	默认都允许
+					location / {
+						allow ip;
+						deny ip/mask;
+						allow all;
+					}
+				基于用户的访问控制
+					编译时启用--with-http_auth_basic_module，默认启用
+					location / {
+						auth_basic 		"Restricted"
+						auth_basic_user_file /path/file;
+					}
+					
+					要用htpasswd须安装httpd
+						# htpasswd -c -m /usr/local/.user username		--第一次需用c
+						# htpasswd -m /usr/local/.user username
+			
+			虚拟主机
+				基于域名的虚拟主机
+					配置文件中每个server都是一个虚拟主机，只需将server_name的值更改，root的值更改即可
+					在客户端中将同一个ip写为两个域名，访问
+			
+			location / {
+				autoindex on;			可以索引目录，默认为off
+			}
+			
+			location /status {
+				stub_status on;
+			}
+				已经接受的连接的个数，已经处理的连接的个数，已经处理的请求的个数(一个长连接可能会有多个请求)
+				
+				reading：nginx正在读取其首部请求的个数		-- 正在接入的链接数
+				writing：nginx正在读取其主体的请求的个数，正处理其请求内容的请求的个数或者正在向其客户发送响应的个数			-- 正在处理的链接数
+				waiting：长连接模式保持的链接个数
+				
+			nginx在其核心模块中设置了许多变量，可以直接引用
+			
+			
+		检测配置文件
+			# /usr/local/nginx/sbin/nginx -t
+		启动
+			# /usr/local/nginx/sbin/nginx
+		重载
+			# /usr/local/nginx/sbin/nginx -s reload
+		关闭
+			# /usr/local/nginx/sbin/nginx -s stop
+	
+	
+	
+httpd的常用方法：
+	GET、POST、HEAD、PUT、TRACE、OPTIONS、CONNECTION、DELETE
+	
+	
+Apache
+	
+	prefork模型：
+		由主进程产生多个子进程一对一地进行响应用户，主进程只用来管理子进程，
+		缺点：
+			1.进程切换产生资源消耗
+			2.进程空间独立，可能为重复的数据，内存使用效率较低
+				只支持1024个，超过则拒绝响应
+	worker模型：
+		由主进程产生多个子进程，每个子进程产生多个线程，由线程去响应用户
+		只支持1024个，超过则拒绝响应
+	event模型：基于事件驱动
+	
+	linux不支持原生态的线程
+		thread：Light Weight Process,LWP	轻量级进程
+		linux上若要使用线程，须使用glibc提供的线程库
+		线程依然要进行切换，但只切换执行指令，一些缓存的数据可以直接使用，不再加载
+		缺点：同一进程内资源争用
+	
+
+支持分发的服务器
+	lvs			四层，内核空间，配置复杂性能好，支持百万的请求
+	nginx		七层，用户空间，对系统资源要求小，自身有缓存功能，只支持数万的请求
+	haproxy		七层，用户空间，同等硬件下，比nginx转发能力强，只支持数万的请求
+	
+	
+	
+
+内核为每个I/O设备文件维护一个buffer，I/O设备通过buffer和进程进行数据交换，而根据等待数据输入到buffer的时间和由buffer拷贝到进程的时间的
+	模式不同，I/O动作可分为五种模式
+	
+				读取		拷贝
+		I/O设备 ---- buffer ---- 进程
+		
+	1.blocking I/O(阻塞I/O)
+		在IO执行的两个阶段都被block了，直到kernel返回结果，用户进程才解除block的状态，重新运行起来
+	2.nonblocking I/O	(非阻塞I/O)
+		同阻塞I/O基本相同，在数据从磁盘调用到内核buffer过程中，用户进程只是是不断的主动询问kernel数据是否准备好。在数据从内核到进程
+		空间的过程中，进程则变为阻塞状态
+	3.I/O multiplexing(I/O复用，select)
+		进程发起两次系统调用。第一次将数据调入内核，然后自身变为阻塞状态。调入完成后内核通知进程，进程在某个时间第二次将数据调入进程内，
+		然后自身变为阻塞状态
+	4.signal driven I/O(信号驱动I/O)
+		进程同样发起两次系统调用，第一次时自身不受限制，第二次时则变为阻塞状态
+	5.asynchronous I/O(异步I/O) 
+		两个阶段进程均无限制，最终数据调到进程空间后，内核通知进程来处理
+		
+
+
+
+SSL/TLS协议
+	
+	单向认证:将传输的数据加密，但是不会校验客户端的来源
+	双向认证：如果客户端浏览器没有导入客户端证书，则无法访问web系统
+	
+	
+	https(Hypertext Transfer Protocol over Secure Socket Layer)
+		
+	Https和http
+		1.https协议需要到CA申请证书
+		2.http是超文本传输协议，信息是明文传输；https则是具有ssl加密的协议
+		3.http和https使用的是完全不同的连接方式，默认端口也不同
+		4.http的连接简单，是无状态的；https协议是由ssl+http协议构建的可加密的传输
+	
+	https的作用：
+		1.建立一个信息安全通道，用来保证数据传输的安全
+		2.确认网站的真实性
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+	
+缓存服务
+	varnish
+	squid
+		
+	nginx：cache(disk)
+	httpd：cache(disk,memory)
+	
+Redis：实质是个数据库，nosql，在内存中，支持持久存储
+		
+Memcache：只能支持key:value存储，且在内存中，不能持久存储	
+	
+DMA：硬件芯片，直接内存访问，将磁盘上的数据调到内核中，解放CPU  
+mmap：内存映射，磁盘数据不经内核buffer，直接复制到进程空间
+
+
+
+
+校验文件的完整性方法
+	校验方法当前一般是MD5，SHA1，PGP三种
+
+	MD5校验 
+		原理：
+			对文件进行MD5 Hash，求出文件的MD5哈希值，通过下载后文件MD5哈希值和发布者提供的MD5哈希值是否一致来判断文件是否在发
+			布者发布之后被篡改过。
+		说明：
+			寿命老长的一个Hash算法，适用范围广，网站存储密码也经常使用。不同的文件产生的MD5哈希值是唯一的，但这点已经有办法通
+			过对文件进行少量的修改，让文件的MD5后的哈希值保持一致。
+		命令：
+			# md5sum file > md5.txt
+			# md5sum -c md5.txt
+
+	SHA1校验 
+		原理： 
+			原理同MD5一样，都是通过对文件进行HASH求值，比对文件发布者发布的HASH值，通过是否相等判断文件是否被篡改
+		说明：
+			SHA1 HASH求值方法可以说是MD5的一个升级版本（SHA1 20位，MD5 16位），在HASH求值方面，MD5退出的舞台将有SHA1占据。SHA家
+			族有五个算法：SHA-1、SHA-224、SHA-256、SHA-384，和SHA-512，后四种有时候称为SHA2
+		命令：
+			# sha1sum file > sha.txt
+			# sha1sum -c sha.txt
+
+	PGP校验 
+
+		原理：使用非对称加密，程序生成唯一的密钥对（公钥和私钥：Public Key和Private Key/Secret Key）。操作方法如下：
+
+			1.发布者通过用生成的密钥对中的私钥对要发布的文件进行签名，得到签名文件（sign）；
+			2.发布者将密钥对中的公钥发布到公钥服务器；
+			3.发布者将文件和用私钥生成的签名一起发布；
+			4.验证者下载发布者发布的文件和签名；
+			5.使用PGP的程序获取的发布者第二步发布的公钥；
+			6.使用公钥校验文件签名
+			
+		说明：
+			签名算法中，密钥的用处分别是：公钥用于加密信息和验证，私钥用于解密和签名。私钥掌握在信息发布方，公钥可以任意分发。
+			信息发布方用密钥进行对信息进行签名，接收方在获取公钥后，可以用公钥对发布方发布的信息+签名进行验证。如果验证失败则
+			认为信息被篡改。在网络中，我们经常碰到的HTTPS协议，使用了同样的机制。
+
+		使用：
+			由于PGP是商业应用程序，在CentOS/Linux中，具有同类功能的是GPG（也就是：GnuPG），同样遵守OpenPGP数据加密标准(RFC 4880)，
+			没有安装可以用 # yum install gnupg 安装，命令是： gpg 
+
+		命令：
+			# gpg --verify soft-name.asc
+				
+				情况1：只有签名，但生成签名的文件不存在时（系统没找到，一般应该放在同目录下面），返回的是：
+					gpg: 不含签名的数据
+					gpg: can't hash datafile: No data
+					
+				解决：
+					将软件放入与签名文件相同的目录
+				
+				情况2：有文件的时候，但还没有与签名对应的公钥时，gpg返回的信息类似下面：
+					gpg: 于 2015年11月06日 星期一 18时27分27秒 CST 创建的签名，使用 RSA，钥匙号 A1C052F8
+					gpg: 无法检查签名：No public key
+			
+				解决：
+					可用的公钥服务器可以通过wikipedia 上的Key Server条目来查看常用的一些key服务器列表。这里使用hkp://pgp.mit.edu：
+					# gpg --keyserver hkp://pgp.mit.edu --recv-keys A1C052F8
+				
+			# gpg --verify soft-name.asc	
+				
+				gpg: 于 2015年04月21日 星期二 22时14分01秒 CST 创建的签名，使用 RSA，钥匙号 A1C052F8
+				gpg: 完好的签名，来自于“Maxim Dounin <mdounin@mdounin.ru>”
+				gpg: 警告：这把密钥未经受信任的签名认证！
+				gpg:       没有证据表明这个签名属于它所声称的持有者。
+				主钥指纹： B0F4 2533 73F8 F6F5 10D4  2178 520A 9993 A1C0 52F8
+				# 此时即说明该文件未被篡改过
+				
+				gpg: 于 2015年04月21日 星期二 22时14分01秒 CST 创建的签名，使用 RSA，钥匙号 A1C052F8
+				gpg: 已损坏的签名，来自于“Maxim Dounin <mdounin@mdounin.ru>”
+				# 此时说明该文件被篡改
+				
+				
+				ps：警告语句：说明这个是未受信任的签名认证。因为这个公钥谁都可以发布上去的，如果确实需要进一步认证，可以在签名认证之
+					前，还要联系下真正的发布者，确认这个密钥的信息——指纹！这个是这个算法的一个弱点
+					
+	举例1，假设系统A，该系统有3000个用户，平均每天大概有400个用户要访问该系统（可以从系统日志从获得），对于一个典型用户来说，一天之内用户从登陆到退出的平均时间为4小时，而在一天之内，用户只有在8小时之内会使用该系统。 
+那么， 
+平均并发用户数为：C = 400*4/8 = 200 
+并发用户数峰值为：C‘ = 200 + 3*根号200 = 243				
+					

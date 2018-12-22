@@ -1,0 +1,305 @@
+
+硬件相关
+
+	计算机体系结构：五大结构
+		1.运算器
+		2.控制器
+		3.存储器
+		4.输入设备
+		5.输出设备
+
+	内存 -->  缓存  --> CPU
+			3  2  1
+		程序的局部性原理
+
+	
+	32位的系统为什么可支持的最大内存是4G
+		2^32 = 4 * 2^10 * 2 ^10 *2^10B=4GB 
+		32位X86架构是指个人电脑的地址总线是32位的，CPU、内存控制器、操作系统都是按32位地址总线设计。
+		32位地址总线可以支持的内存地址代码是4096MB，也就是有4GB的地址代码，可以编4GB个地址。这4GB个
+		地址码正好可以分配给4GB内存。但是，这4GB个地址码不能全部分配给安装在主板上的物理内存。因为
+		个人电脑还有很多设备需要地址代码，以便CPU可以根据地址码找到它们，同时CPU和这些设备交换数据
+		需要暂时存放数据的存储器——寄存器，这些寄存器也需要地址代码。比如硬盘控制器、软驱控制器、
+		管理插在PCI槽上的 PCI卡的PCI总线控制器，PCI-E总线控制器和PCI-E显卡，它们都有寄存器都需要系
+		统分配给它们地址代码。这些地址由系统分配，电脑用户在使用中感觉不到。这样一来，当我们为电脑
+		插上总容量为4GB的内存时，就有一部分内存分配不到地址代码而不能使用。
+	
+	
+	CPU的种类
+	  精简指令集
+	  复杂指令集
+	  
+	  eg：
+		虚拟化指令集：	Intel-VT，AMD-SVM
+		64/32兼容技术：	Intel-EM64T，AMD-AMD-64
+	外频：CPU与外部组件进行数据传输/运算时的速度
+	倍频：CPU内部用来加速工作性能的一个倍数
+				两者想乘才是CPU的频率
+	超频：将CPU的倍频或外频通过主板的设定功能改成较高频率的一种方式(倍频出厂时已设定，一般改外频)
+	
+	移植：底层芯片不同
+	
+	Linux查看物理CPU个数、核数、逻辑CPU个数
+
+		# 总核数 = 物理CPU个数 X 每颗物理CPU的核数 
+		# 总逻辑CPU数 = 物理CPU个数 X 每颗物理CPU的核数 X 超线程数
+		# 超线程数= siblings/cpu cores
+
+		processor: 		逻辑CPU序列（top看到的cpu数+1，包括超线程）
+		physical id：	物理CPU序列，从0开始
+		cpu cores：		每个CPU的物理核心数
+		core id: 		物理核心数序列（最大序列为物理核数+1）
+		siblings：		每个CPU的逻辑核心数
+		# 查看物理CPU个数
+		cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l
+
+		# 查看每个物理CPU中core的个数(即核数)
+		cat /proc/cpuinfo| grep "cpu cores"| uniq
+		
+		# 查看每个物理CPU中超线程
+		cat /proc/cpuinfo| grep "siblings" | uniq
+		
+		# 查看逻辑CPU的个数
+		cat /proc/cpuinfo| grep "processor"| wc -l
+
+		查看CPU信息（型号）
+		cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c
+
+  
+	地址总线：内存寻址
+	数据总线：传输数据
+	控制总线：控制指令
+	寄存器：CPU暂时存储器
+
+	南桥：低速总线控制器   ---- >  北桥：高速总线控制器
+		硬盘、USB、网卡					CPU、内存、显卡
+
+	硬件架构：CPU芯片的不同
+		ARM：安卓 IOS
+		x86 x64 安腾 alpha Ultrasparc Power PowerPC
+
+	所谓硬盘的CHS，即Cylinder（柱面）、Head（磁头）、Sector（扇区），只要知道了硬盘的CHS的数目，即可确定硬盘的容量，硬盘的容量=柱面数*磁头数*扇区数*512B。
+	硬盘每个磁道的扇区数不一样
+	
+	缓冲存储器
+		：硬盘上含有一个缓冲存储器，将硬盘内常用的数据缓存起来，以加速系统的读取性能
+		
+	拔电源无法顺利关机：一般关机后硬盘内部机械手臂要回归原位
+	
+	IDE硬盘				/dev/hd[a-d]
+	SCSI/SATA/USB		/dev/sd[a-p]
+	
+	CD和DVD的区别
+		1.DVD容量大，性能好，价格高
+		2.CD容量小，性能差，价格低
+	
+	
+	操作硬件平台：
+		主要针对不同的CPU进行优化参数的设置，硬件平台可向下兼容
+		i386：	几乎适用于所有的x86的平台，不论32位还是64位
+		i586：	包括P-I MMX CPU及AMD的K5、K6系列的CPU
+		i686：	在P-II以后的Intel系列CPU及K7以后的CPU，目前市场上几乎仅剩P-II以后的硬件平台了
+		x86_64：64位的CPU，包括Intel的Core 2以上级别及AMD的Athlon 64以后的CPU
+		noarch：没有任何等级限制，一般来说，此类rpm文件中没有二进制程序存在，较常出现的是shell script方面的软件
+	
+	CMOS：记录主板上的重要参数：系统时间，CPU电压与频率、各项设备的I/O地址与IRQ等
+	
+	发行版： 
+		liveDVD 	可以光盘直接启动进入桌面环境，有点类似于体验版的意思，也可作应急急救盘
+		binDVD 		是功能比较全的光盘安装版本。
+		netinstall 	适合光盘启动后联网在线安装，体积最小，但网速慢的话安装也慢。
+		minimal 	是基本系统，体系小同时功能也少。
+	
+	工作站：不提供因特网服务的主机，仅提供大量的运算能力给用户，强调稳定不死机，且运算过程要完全正确
+	
+	DOS和Linux下的换行符不同！
+		windows：\r\n
+		linux : 	\n
+		
+	linux和windows的格式转换（跨平台兼容）
+		·linux-->win		
+		# gawk ‘{RS=“\n”:ORS=”\r\n”;print $0}’file.linux > file.win 
+		·win-->linux
+		# gawk ‘{RS=“\r\n”:ORS=”\n”;print $0}’file.win> file.linux 
+	
+	虚拟机移动
+		copy：去除其特有信息
+		move：不变
+	
+	存储用十进制
+	速度用二进制
+	
+安装启动
+	安装的机器：
+		- PC Server			-- HP	Dell	IBM
+		- PowerPC
+		- IBM Mainframe
+		- Virtual Machine
+	安装源：
+		本地安装： CD-ROM/DVD-ROM    Hard Disk
+		网络安装： http   ftp   NFS
+			网络安装中NFS最快 FTP次之 HTTP最慢
+	红帽的硬件兼容列表可参见以下网址：	http://hardware.redhat.com/hcl
+
+	安装方式：
+		1.Graphical
+		2.Text
+		3.noprobe and kickstart(ks=url)
+			> vmlinuz initrd=initrd.img ks=http://ip/path/*.cfg
+    	                                   ftp://ip/path/*.cfg
+											nfs:ip:/path/*.cfg
+		可用yum install system-config-kickstart来制作cfg文件
+
+	centos7/rhel7进入单用户方式和重置密码：		重置密码主要有rd.break和init两种方法。
+		rd.break方法：
+			1.启动的时候，在启动界面，相应启动项，内核名称上按“e”；
+			2.进入后，找到linux16开头的地方，按“end”键到最后，输入rd.break，按ctrl+x进入；
+			3.进去后输入命令mount，发现根为/sysroot/，并且不能写，只有ro=readonly权限；
+			4.# mount -o remount,rw /sysroot/			重新挂载，之后mount，发现有了r,w权限；
+			5.# chroot /sysroot/ 						改变根；
+			  # echo redhat | passwd --stdin root 		修改root密码为redhat，或者输入passwd，交互修改；
+			6.# touch /.autorelabel 					这句是为了selinux生效
+			7.ctrl+d 退出
+			8.# reboot									至此，密码修改完成
+
+		init方法：
+			1.启动系统，并在GRUB2启动屏显时，按下e键进入编辑模式。
+			2.在linux16/linux/linuxefi所在参数行尾添加以下内容：init=/bin/sh
+			3.按Ctrl+x启动到shell。
+			4.挂载文件系统为可写模式：# mount -o remount,rw /
+			5.运行passwd,并按提示修改root密码。
+			6.若之前系统启用了selinux，必须运行以下命令，否则将无法正常启动系统：# touch /.autorelabel
+			7.运行命令exec /sbin/init来正常启动，或者用命令exec /sbin/reboot重启
+	
+	
+	分区原因：
+	   1.将磁盘进行物理分割，在读写数据时将磁头限制在一个小的范围内，避免费时间移动
+	   2.方便系统备份，避免掺入其他文件
+	   3.配额是针对分区的
+	最简单分区：
+		/boot     /       /swap
+
+	分区布局：
+		1./ 必须包含 /etc  /lib  /dev  /bin  /sbin
+		2.swap≈2RAN
+		3.一般挂载点
+			/boot  /home  /usr  /tmp  /var  /usr/local  /opt
+		
+		注：centos6的boot分区一般200M即可，cento7的boot分区，2G
+			
+	扩展分区：在partion table的某个16bytes里存放一个指针，指向一个更大的标记分区的位置
+	若安装多重引导，先安装windows，再安装linux
+
+	安装完成后，图形界面会出现 Setup Agent(firstboot)
+	用1登录后，其用户为root
+	Linux两种登录模式:
+		- 虚拟控制台(文本模式)  
+		- 图形登录
+     	通常Linux系统有6个虚拟控制台和一个图形控制台 
+		服务器系统通常只有虚拟控制台 
+		桌面系统和工作站通常两种都有
+	工作区亦称为虚拟桌面
+
+	run level --- 其实质是定义了系统须启动的服务
+		0-6  S  emergency
+		1 :   init --> /etc/rc.sysinit --> /etc/rc1.d/*
+		S :   init --> /etc/rc.sysinit
+		emergency init --> some /etc/rc.sysinit
+		
+		单用户模式会脱离网络
+		
+		
+	1模式与单用户的区别：  ？
+		1会有服务启动而单用户无服务启动
+		tty0指的是当前的virtual console
+
+	更换run level
+		1./etc/initiab
+		2.开机时输入
+		3.开机后用init n
+
+	System shutdown（先运行sync）           System reboot
+		1.shutdown -h 22：00                  shutdown -r now
+		2.halt                                reboot
+		3.poweroff                            ctrl+alt+del
+		4.init 0                              init 6
+
+	查看系统属性：
+		- 查看自己的操作系统：/cat/etc/redhat-release
+		- 查看内核版本：# uname -r
+		- 查看执行等级：# /sbin/runlevel  who -r
+		
+		在开机界面的进度条时，按Esc键可看到后台的具体工作。
+		在内核初始化过程中，会将信息写入/var/log/dmesg。 
+
+		
+	给grub加密
+		全局加密:不可通过编辑菜单进而修改root密码，可直接进入
+			在全局加密后，可在菜单title下写"lock"，则必须输入密码才可启动该菜单
+			
+		菜单加密:对每个选项进行加密	
+			写在initrd那一行下
+		
+		password --md5 （read !grub-md5-crypt）
+		password = 123456
+
+	timeout参数删除或者将等于号后的数字改为负数， GRUB将一直停留在引导页面等待用户选择	
+		
+	Kdump：当内核出现错误时，将当时的内存消息写到文件中(可供内核开发者研究为什么宕机)，但内存数据太大，易造成硬盘空间浪费	
+	
+
+	BootLoader：引导加载程序
+			不同的操作系统文件系统不同，故用引导加载程序来识别文件格式并加载内核
+		LILO：早期linux默认使用
+		GRUB：现在使用
+		spfdisk
+		
+		
+			MBR组成：一般在第一个分区的第一个扇区
+				- bootloader(grub):446bytes,程序，用来加载分区中的操作系统   
+					bootloader的功能
+						1.提供菜单，选择不同的开机选项
+						2.载入内核文件
+						3.识别其它分区中的loader并转交，由其引导该分区中的内核
+							bootloader可安装在两个地方
+								1.MBR   2.其它分区的引导扇区内
+				- partition table：标记分区位置，16bytes标识一个分，16*4
+						文件系统标识符    磁柱起始位置   磁柱数量
+				- magic(55AA)：2bytes，标识MBR是否有效		2
+				
+				每种操作系统都有自己的boot loader
+				每个文件系统或分区都会保留一块引导扇区(boot sector)来安装其操作系统的boot loader
+				操作系统通常会安装一份boot loader到其根目录所在的文件系统的引导扇区上
+				
+				linux/windows安装时会安装boot loader到MBR和boot sector，但windows的boot loader不具备转交功能，不能转到
+				linux的boot loader来加载linux的内核，故先按windows再安linux
+			
+		
+linux启动
+
+	BIOS		-- 固体
+		1.加载CMOS，取得其中各项硬件配置信息
+  		1.开机自检(Power on self test，POST)
+  		2.选取开机设备
+  		3.通过硬件INT 13中断功能来读取该设备的MBR并执行
+ 	BootLoader
+		加载bootloader(grub主引导程序)，并依据/boot/grub/grub.conf的设定加载内核
+ 	Kernel
+  		1.监测外设
+  		2.初始化驱动
+			initramfs在内存中解压，仿真成根目录，加载相应的内核模块，从而识别根文件系统
+  		3.只读挂载 / 目录
+ 		4.加载init程序
+ 	init ----- /etc/inittab 和 /etc/init/*.conf					此时开始出现Welcome    可按I进入手动选择服务开启
+		id:N:initdefault		--->		（/etc/inittab）
+		/etc/rc.sysinit			--->		（/etc/rc.d/rc N）
+		/etc/rc.Nd/*			--->
+		/etc/rc.local			--->
+		/sbin/mingetty			--->
+				N==5	--> /etc/X11/prefdm
+				N!5		--> Text mode
+		/bin/bash
+
+			/etc/sysconfig/*		系统启动时相应服务的配置文件
+			/etc/modprobe.conf		指定系统内的硬件所使用的模块，通常由系统自行产生
+
