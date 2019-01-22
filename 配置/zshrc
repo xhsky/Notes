@@ -97,7 +97,7 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
+#alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
 alias rm="mv -f --target-directory=/tmp/"
 
 # 配置direnv

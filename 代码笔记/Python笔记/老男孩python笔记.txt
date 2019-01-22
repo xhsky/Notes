@@ -288,8 +288,35 @@ if __name__ == '__main__':
   2.第三方库/开源模块: 安装才能用
   3.自定义模块
 
-  模块本质就是py文件, 为了实现某个功能
+  模块:
+    模块本质就是py文件, 为了实现某个功能
+    模块有一个全局变量: __name__ 
+    模块搜索路径:
+      当模块被导入时, 首先会寻找同名内置模块. 接着在sys.path的list路径下寻找同名的.py文件
+
+      import mod
+      from mod import fun1, fun2
+
   包: 本质就是个目录, 但必须带有一个__init__.py文件. 为了组织模块
+    __init__.py可写入__all__=["mod1", "mod2"]
+      指定在from package import *时导入的mod
+
+    包的搜索路径:
+      从sys.path中
+
+      import package1.package2.mod
+      from package1.package2 import mod
+      from package1.package2.mod import fun
+
+      包内引用: 当包内有多个模块或有子包时:
+        绝对引用:
+          from package.package1 import mod1     # 在package.package2的mod1中引用
+        相对引用:
+          from . import mod
+          from .. import package1
+          from ..package1 import mod
+          
+        
 
   import module1_name, module2_name                 # 将module_name中的所有代码运行一边然后赋值给module_name
   from module_name import m1, m2, m3                # 将module中的m执行在当前文件中执行了一遍
