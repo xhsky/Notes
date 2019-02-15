@@ -1,13 +1,57 @@
 简介
 	时间，作者，开发语言，定义
-    诞生于2013年初, 最初发起者时dotCloud公司(后改名Docker Inc). 是基于go语言实现的开源容器项目
-	官网
+    诞生于2013年初, 最初发起者时dotCloud公司(后改名Docker Inc). 是基于go语言实现的开源容器项目.
+    docker的理念: 在任何地方构建, 发布并运行任何应用
+	官网:
+    Docker官网        https://www.docker.com
+    Docker中文官网    https://www.docker-cn.com
+    Docker中文社区		http://dockboard.org
+    Docker@Github 		https://github.com/docker/docker/issues
+    Docker Hub			  https://hub.docker.com/
 	版本
+    社区版(CE)
+    企业版(EE)
 	协议: Apache 2.0
 适用性(优缺)
+  1.docker比vm更少的抽象层. docker不需要hypervisor实现硬件资源虚拟化, 运行在docker上的程序都是直接使用实际的硬件资源, 因此在CPU, 内存利用率上会有显著优势
+  2.docker利用的时宿主机的内核而不需要guest os. 因此当新建一个容器时, docker不需要和vm一样重新加载一个操作系统内核
+
+  特点:
+    1.提供简单轻量的建模方式
+    2.职责的逻辑分类
+    3.快速高效的开发生命周期
+    4.鼓励使用面向服务的架构
+  使用场景:
+    1.使用docker容器开发, 测试, 部署
+    2.创建隔离的运行环境
+    3.搭建测试环境
+    4.构建多用户的平台即服务(PaaS)基础设施
+    5.提供软件即服务(SaaS)应用部署
+    6.高性能, 超大规模的宿主机部署
 架构
 	模块
 	安装
+    1.安装依赖包
+      # yum install yum-utils device-mapper-persistent-data lvm2 -y
+    2.设置stable镜像仓库
+      # yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo   # docker官方(慢)
+      # yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo    # 阿里云(快)
+    3.安装docker
+      # yum install docker-ce docker-ce-cli containerd.io
+    4.启动
+      # systemctl start docker
+    5.验证docker是否被正确安装
+      # docker run hello-world
+    6.配置镜像加速
+      # vim /etc/docker/daemon.json
+        {
+            "registry-mirrors": ["https://mk2azw0n.mirror.aliyuncs.com"]
+        }
+      # systemctl restart docker
+    7.卸载
+      # yum remove docker-ce
+      # rm -rf /var/lib/docker
+
 	结构
 		目录结构
 			源码目录
@@ -18,7 +62,269 @@
 		管理软件
 	命令
 		服务器
+      # docker-init
+      # docker-proxy
+      # dockerd-ce
 		客户端
+      # docker [option] command
+        option:
+          --config file     # 配置文件路径, 默认/root/.docker
+          -D                # 启用debug模式
+          -H                # 
+          -v                # 打印版本信息
+        management command:
+					builder command                       # 管理build
+					config      Manage Docker configs                                                                                                                                          
+					container   Manage containers                                                                                                                                              
+					engine      Manage the docker engine                                                                                                                                       
+					image       Manage images                                                                                                                                                  
+					network     Manage networks                                                                                                                                                
+					node        Manage Swarm nodes                                                                                                                                             
+					plugin      Manage plugins                                                                                                                                                 
+					secret      Manage Docker secrets                                                                                                                                          
+					service     Manage services                                                                                                                                                
+					stack       Manage Docker stacks                                                                                                                                           
+					swarm       Manage Swarm                                                                                                                                                   
+					system      Manage Docker                                                                                                                                                  
+					trust       Manage trust on Docker images                                                                                                                                  
+					volume      Manage volumes       
+        command:
+          # 镜像
+					history [option] image        # 显示镜像构建的历史
+            -H                          # 大小和日期以易读方式显示, 默认为true
+            --no-trunc                  # 不截断显示
+            -q                          # 只显示镜像id
+					images [option] [repo[:tag]]  # 列出本地镜像
+            -a:                         # 列出所有镜像, 默认隐藏中间镜像
+            -q:                         # 只显示image id
+            --digests:                  # 显示摘要
+            -f
+            --format str  
+            --no-trunc:                 # 不截取输出
+					search [option] term          # 从docker hub上查询images
+            -f filter
+            --format str
+            --limit N                   # 查询结果的最大数量, 默认25
+            --no-trunc                  # 不截断输出
+					build [option] path|url|-     # 根据docker file建立镜像
+            --add-host list             # 添加一个host-to-ip的映射(host:ip)
+            -build-arg list             # 设置建立时变量
+            --cache-from str            # 
+            --cgroup-parent str         # 
+            --compress                  # 使用gzip压缩
+            --cpu-period int            # 
+            --cpu-quota int  
+            -c int                      # cpu份额(相对权重)
+            --cpuset-cpus str           # 
+            --cpuset-mems str           # 
+            -f file                     # docker file的名称, 默认Dockerfile
+            --force-rm                  # 始终移除中间容器
+            --iidfile str               # 写入image id到文件中
+            --isolation str             # 容器隔离技术
+            --label list                # 为镜像设置元数据
+            -m bytes                    # 内存限制
+            -memory-swap byts           # swap限制(等于mem+swap, -1表示不限制)
+            --network str               # 在构建期间为run指定设置的网络模式(默认default)
+            --no-cache                  # 当构建镜像时不适用缓存
+            --pull                      # 总是尝试pull一个更新版本的镜像
+            -q                          # 抑制构建输出, 成功后打印image id
+            --rm                        # 建立成功后移除中间容器(默认true)
+            --security-opt str          # 安全选项
+            --shm-size bytes            # /dev/shm的大小
+            -t list                     # 镜像的名称(name:tag)
+            --target str                # 
+            --ulimit ulimit             # ulimit选项(默认[])
+          # 容器
+					attach [option] container     # 将本地的标准输入/输出/错误流附加到正在运行的container
+            --no-stdin                  # 不附加标准输入
+					commit [option] container [repo[:tag]]      # 依据容器创建一个新镜像
+            -a str                      # 作者(sky <x_hsky@163.com>)
+            -c list
+            -m str                      # 提交信息
+            -p                          # 在提交过程中暂停容器(默认true)
+					cp [option] container:dir local_dir|-
+                      local_dir container:dir         # 在容器和本地文件系统之间拷贝文件或目录
+            -a                          # 归档模式, 拷贝所有的uid/gid信息
+            -L                          # 拷贝软连接的实际文件
+					diff container                # 检查容器中文件系统的更改
+					exec [option] container command             # 在运行的容器中运行命令
+            -d                          # 后台运行命令
+            -e list                     # 设置环境变量
+            -it                         # 交互式且附加tty
+            -u uid:gid                  # 用户名
+            -w str                      # 设置进入的工作目录
+					export [option] container     # 将容器的文件系统以tar包形式导出
+            -o str                      # 指定tar包文件名
+          
+					create [option] image [command]             # 创建一个容器
+            --add-list
+            -a list                     # 附加到容器
+            --blkio-weight uint16       # block IO(相对权重). 范围10-1000, 0表示禁用, 默认为0
+            --blkio-weight-device list  # block IO权重(相对设备权重), 默认为[]
+            --cap-add list              # 添加Linux功能
+            --cap-drop list             # 去除Linux功能
+            --cgroup-parent str
+            --cidfile str               # 
+            --cpu-period int
+            --cpu-quota int
+            --cpu-rt-period int
+            --cpu-rt-runtime int
+            -c
+            --cpus decimal
+            --cpuset-cpus str
+            --cpuset-mems str
+            --device list               # 
+            --device-cgroup-rule list   # 
+            --device-read-bps list
+            --device-read-iops list
+            --disable-content-trust
+            --dns list
+            --dns-option list
+            --dns-sarch list
+            --entrypoint str
+            -e list
+            --env-file list
+            --expose list
+            --group-add list
+            --health-cmd str
+            --health-interval duration
+            --health-retries int
+            --health-start-period durati
+            --health-timeout duration
+            -h str                      # 容器的主机名
+            --init
+            -i
+            -ip str
+            -ipc                        # 使用ipc模式
+            -isolation str
+            --kernel-memory bytes       # 内核内存限制
+            -l list                     # 为容器设置元数据
+            --label-file list           # 
+            --link list                 #
+            --link-local-ip
+            --log-driver str
+            --log-opt list
+            --mac-address string        # 容器内存地址
+            -m bytes                    # 内存限制
+            --memory-reservation bytes  # 
+            --memory-swap bytes
+            --memroy-swappiness int
+            --mount mount
+            --name str                  # 容器名称
+            --network str     
+            --network-alias list
+            --no-healthcheck
+            --oom-kill-disable          # 禁用OOM killer
+            --oom-score-adj int         # 
+            --pid str                   # 使用pid命名空间
+            --pids-limit int            # 
+            --privileged                # 给容器额外的权限
+            -p list                     # 将容器的端口发布给主机
+            -p                          # 发布所有exposed的端口到主机的随机端口
+            --read-only                 # 只读挂载容器的文件系统
+            --restart str               # 
+            --rm                        # 当容器存在时自动删除
+            --runtime str               # 
+            --security-oop list
+            --shm-size bytes            # 
+            --stop-signal str           # 
+            --stop-timeout int
+            --storage-opt list
+            --sysctl map
+            --tmpfs list
+            -t                          # 附加tty
+            --ulimit ulimit             # ulimit选项, 默认[]
+            -u user                     # user
+            -userns str                 # 使用用户命名空间
+            --uts str                   # 使用UTS命名空间
+            -v list                     # 绑定一个volume
+            --volume-driver str         # 
+            --volumes-from list
+            -w workdir                  # 指定工作目录
+					events [option]               # 从服务器获取实时事件
+            -f                          # 
+            --format str
+            --since str
+            --until str
+
+					import [option] file|url|- [repo[:tag]]      # 将tar包中内容导入创建文件系统镜像
+            -c list                     # 
+            -m str                      # 设置导入镜像的信息
+
+          # 
+					info:                         # 显示docker服务端信息
+					version:                      # 显示docker版本     
+
+					inspect [option] name|id ...  # 返回关于docker对象的低级信息
+            -f str
+            -s                          # 如果类型为容器, 这显示文件大小
+            --type str                  # 
+					kill [option] container ...   # 关闭一个或多个运行着的容器
+            -s str                      # 发送信息, 默认kill
+					load [option]                 # 从标准输入或tar包中加载一个镜像
+            -i tar_file                 # 指定tar包文件
+            -q                          # 抑制加载输出
+					login [option] [server]       # 登录一个docker注册服务器
+            -p str
+            -u str
+					logout [server]               # 退出注册服务器
+					logs [option] container       # 获取一个容器的日志
+            --details                   # 
+            -f                          # 实时显示
+            -t                          # 日志显示时间戳
+            --since str                 # 从timestamp开始显示日志
+            --until str                 # 在timestamp以前显示日志
+            --tail N                    # 显示结尾N行
+					pause container ...           # 暂停容器内
+					port container [private_port[/proto]]         # 列出端口映射
+					ps [option]                   # 列出所有运行容器
+            -a                          # 列出所有容器(包括非运行)
+            -f
+            -n N                        # 显示前N个容器
+            -l                          # 显示最新一个容器
+            --no-trunc                  # 不截断输出
+            -q                          # 仅显示容器id
+            -s                          # 显示文件大小
+					pull [option] name[:tag|#digest]              # 从注册服务器上拉取一个镜像或仓库
+            -a                          # 从repo中下载所有的tag镜像
+            --disable-content-trust     # 跳过镜像验证, 默认为true
+					push name[:tag]               # 往注册服务器上传镜像或仓库
+					rename container new_name     # 重命名container
+					restart [option] container ...# 重启container
+            -t N                        # 等待关闭时间(默认10s), 否则kill
+					rm [option] container ...     # 删除容器
+            -f                          # 强制删除一个运行的容器(使用kill)
+            -l                          # 
+            -v                          # 删除和容器相关联的volumes
+					rmi [option] image ...        # 删除一个或多个镜像
+            -f                          # 强制删除镜像
+            --no-prune
+					run           # 在一个新容器内运行命令
+            --name"str" # 为新容器指定名称
+            -d          # 后台运行容器并返回容器id
+            -i          # 以交互模式运行容器
+            -t          # 为容器重新分配一个伪输入终端
+            -P          # 随机端口映射
+            -p          # 指定端口映射(ip:host_port:container_port|ip::container_port|host_port:container_port|container_port)
+					save [option] image ...       # 保存一个或多个image为一个tar文件
+            -o tar_file                 # 写入指定的文件
+					start [option] container ...  # 启动一个或多个已停止的容器
+            -ai                         # 附加到容器内
+					stats [option] [container ...]# 显示容器的使用统计信息
+            -a                          # 显示所有容器(默认只显示运行的)
+            --format str
+            --no-stream                 # 非流状态显示
+            --no-trunc                  # 不截断
+					stop [option] container ...   # 停止容器
+            -t N                        # 等待超时时间(默认10s), 否则kill
+					tag source_image[:tag] target_image[:tag]      # 创建一个引用source标记的target标记 
+					top container [ps options]    # 显示容器内运行的程序
+					unpause container ...         # 恢复容器运行
+					update      Update configuration of one or more containers
+					wait container ...            # 
+      退出:
+        1.exit: 容器停止退出
+        2. ctrl+p+q: 容器不停止退出
 	日志
 	优化
 	安全
@@ -28,10 +334,89 @@
 	概念:
 		原理:
       1.docker最初是基于LXC技术, 但从0.9版本开始, 开发了libcontainer项目作为更广泛的容器驱动实现, 从而替换掉了LXC
+      2.docker是C/S架构的程序
     核心概念:
-      1.镜像: 一个只读的模板, 是创建docker容器的基础
-      2.容器: 类似一个轻量级的沙箱, docker利用容器来运行和隔离应用
-      3.仓库: 集中存放镜像文件的场所
-        仓库注册服务器存放多个仓库, 每个仓库存放某一类镜像(可通过不同的标签(tag)进行区分)
+      1.镜像(image): 一个只读的模板, 可用来创建docker容器.
+        说明: docker image是一个层叠的只读文件系统
+          - 最低端是一个引导文件系统(bootfs, 当一个容器启动后会被移动到内存中, 而bootfs会被卸载).
+          - 第二层是只读rootfs(某种文件系统, eg: centos, ubuntu)
+          - 第三层是同时加载一种或多种只读文件系统(利用联合加载(union mount)技术, 将各层文件系统叠加到一起, 最终的文件系统会包含所有的底层文件和目录)
+      2.容器(container): 类似一个轻量级的沙箱, docker根据image生成容器来运行和隔离应用
+        说明:
+          - 当容器启动时, docker会在image之上添加一个读写文件系统(可写层)
+          - 当文件系统发生变化时, 所有的变化都会应用到可写层上(修改的文件会从下面的只读层复制到可写层, 可写层的文件将只读层的文件隐藏(写时复制))
+      3.仓库(repository): 集中存放镜像文件的场所
+        仓库注册服务器(registry): 存放多个仓库, 每个仓库存放某一类镜像(可通过不同的标签(tag)进行区分)
+        公开仓库: 最大的公开仓库(hub.docker.com)
+        私有仓库:
+    docker依赖的Linux内核特性:
+      说明:docker本质是宿主机上的一个进程.通过namespace实现了资源隔离, 通过cgroup实现了资源限制, 通过写时复制实现了高效的文件操作
+      namespace的六项隔离:
+        namespace:系统调用参数:隔离内容
+        uts:clone_newuts:隔离内核和版本标识
+        ipc:clone_newipc:信号量, 消息队列和共享内存
+        pid:clone_newpid:进程进程
+        network:clone_newnet:管理网络设备, 网络栈, 端口等
+        mount:clone_newns:管理挂载点
+        user:clone_newuser:用户和用户组
+      control groups(cgroups)四大功能:
+        1.资源限制
+        2.优先级分配
+        3.资源统计
+        4.任务控制
+    数据管理:
+      1.数据卷:
+        特性:
+          1.多个容器之间共享
+          2.对数据卷数据更改, 容器内会立即生效
+          3.数据卷的更新不会影响镜像本身
+          4.数据卷会一直存在(即使容器被删除)
+      2.数据卷容器:
+    docker编排:
+      docker compose: docker容器依赖
+    docker file:
+      说明: 是用来构建docker file的构建文件, 是由一系列命令和参数构成的脚本.
+      语法:
+        1.每条指令必须大写且后面至少跟随一个参数
+        2.# 表示注释
+        3.每条指令都会创建一个新的镜像层, 并对镜像层进行提交
+      指令:
+        FROM image:tag             # 基础镜像, 当前新镜像是基于哪个镜像的
+        MAINTAINER name            # 镜像维护者的姓名和邮箱地址
+        RUN command|["executable", "para1", "para2"]  # 容器在构建时需要运行的命令(分为shell模式和exec模式)
+        EXPOSE port1[ port2]       # 当前容器对外暴露出的端口
+
+        CMD command|["executable", "para1", "para2"]  # 容器在启动时需要运行的命令(分为shell模式和exec模式, docker file可以有多个cmd命令, 但只有最后一个生效, cmd会被docker run之后的参数替换)
+        ENTRYPOINT                 # 同cmd, 但entrypoint会追加到docker run的参数之后
+
+        ADD src dest|["src", "dest"]                  # 将宿主机目录下的文件拷贝进镜像且add命令会自动处理URL和解压tar包
+        COPY src dest|["src", "dest"]                 # 类似add, 拷贝文件或目录到镜像中
+                        
+        VOLUME ["/data"]                              # 容器数据卷, 用于数据保存和持久化工作
+
+        WORKDIR /path/workdir                         # 在创建容器后, 终端默认登录的工作目录
+        ENV key=value ...                             # 在构建镜像过程中设置环境变量
+        USER user:group|uid:gid                       # 镜像被指定的用户来运行, 默认root用户
+        ONBUILD instruction                           # 镜像触发器, 当一个镜像被其它镜像作为基础镜像执行时, 会在构建过程中插入该指令
+        .dockerignore
+      执行docker file流程:
+        1.docke从基础镜像运行一个容器
+        2.执行一条指令并对容器做出修改
+        3.执行类似docker commit的操作提交一个新的镜像层
+        4.docker再基于刚提交的镜像运行一个新容器
+        5.执行docker file中的下一条执行, 直至所有指令都执行完成
+      步骤:
+        1. # vim dockerfile
+        2. # docker build
+        3. # docker run 
+      docker的C/S模式连接方式:
+        1.unix://var/run/docker.sock
+        2.tcp://host:port
+        3.fd://socketfd
+    docker网络:
+      说明: 容器启动时, 会创建网络连接的两端.一端连接到容器中的网络设备, 一端到主机上打开veth*的接口, 用来实现docker0与容器的网络通信
+      docker0: 特殊的虚拟网桥, docker服务通过docker0为容器提供网络连接
+      
+
 	内部命令
 

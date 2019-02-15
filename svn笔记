@@ -1,0 +1,180 @@
+简介
+	时间，作者，开发语言，定义
+    是subversion的简称, 是一个开放源代码的版本控制系统
+	官网: http://subversion.apache.org/
+	版本
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    1.# yum install subversion
+    2.建立svn库
+      # mkdir /opt/svn/repos
+      # svnadmin create /opt/svn/repos
+    3.启动svn
+      # svnserve -d -r /opt/svn/repos
+
+	结构
+		目录结构
+			安装目录
+      版本库目录:
+        conf: 版本库配置目录
+          authz: 权限配置文件
+          passwd: 账号文件
+          svnserve.conf 资源库配置文件
+        db: 版本库数据目录
+        format: 文本文件, 只有一个整数, 表示当前版本库布局版本号
+        hooks: 存放hook脚本文件的目录(与版本库事件触发的程序)
+        locks: 存储svn版本库锁定数据的目录, 被用来追踪对版本库的访问
+      .svn:
+        1.文件的修订版本
+        2.本地拷贝最后更新的时间戳
+
+      配置文件
+        passwd: 每行一个账户
+          [users]
+          user = password
+        svnserve.conf:
+          anon-access = none        # 匿名访问权限
+          auth-access = write       # 认证用户权限
+          password-db = passwd      # 密码配置路径, 默认为同目录的passwd文件
+          realmp = SVNofMyProject   # 认证标记
+
+		进程/端口
+      svnserver: 3690
+		编程接口
+		管理软件
+	命令
+		服务器
+      svnadmin: 建立, 调整和修补版本库的工具
+        # svnadmin subcommand repos_path [opotions]
+          subcommand:
+            crashtest               # 打开位于repos_path的版本库, 然后终止.从而模拟一个持有版本库句柄进程的崩溃
+            create                  # 创建一个新的版本库
+            deltify
+            dump                    # 将文件系统的内容转储到标准输出
+            hotcopy repos_path new_repos_path       # 对版本库做热拷贝
+            list-dblogs
+            list-unused-dblogs
+            load                    # 从标准输入读取转储的内容
+            lslocks repos_path [path_in_repos]      # 显示path_in_repos中的锁的描述
+            lstxns                  # 显示所有未提交事务的名称
+            pack                    # 使用更有效的存储模型压缩版本库
+            recover                 # 对版本库运行修复程序
+            rmlocks repos_path locked_path          # 从每个locked_path中删除锁
+            rmtxns repos_path txn_name              # 从版本库中删除事务名
+            setlog repos_path -r revision file      # 将revision版本的日志信息改为file文件的内容
+            setrevprop
+            setuuid repos_path [new_uuid]           # 重置版本库的uuid
+            upgrade                 # 升级版本库
+            verify                  # 校验版本库中的数据
+      svndumpfilter: 过滤subversion版本库转储文件的工具
+        # svndumpfilter subcommand [args]
+          subcommand:
+            exclude path_prefix     # 从转储流删除指定匹配前缀的节点
+            include path_prefix     # 从转储流删除未包含指定匹配前缀的节点
+      svnlook:  查看版本库中的修订版本和事务(只读工具)
+        # svnlook subcommand repos_path [options]
+          options:
+            --revision(-r) arg:     指定版本编号
+            --transaction(-t) arg:  指定事务名称
+          subcommand:
+            author                  # 显示提交者
+            cat                     # 显示文件内容
+            changed                 # 显示目录树中修改过的文件和目录
+            date                    # 显示提交日期
+            diff                    # 显示版本库中改变的文件和属性差异
+            dirs-changed            # 显示目录树中本身被修改或其中文件被修改的目录
+            filesize repos_path file_in_repos           # path_in_repos中文件的大小(字节)
+            history [path_in_repos] # 显示path_in_repos中的历史记录信息
+            info                    # 显示提交者, 时间, 日志信息大小及日志信息
+            lock repos_path path_in_repos               # 若path_in_repos中存在锁, 则显示其详细信息
+            log                     # 显示树的日志信息
+            propget repos_path propname path_in_repos   # 显示版本树中路径的属性值
+            proplist repos_path path_in_repos           # 显示版本树中属性集合
+            tree [path_in_repos]    # 从path_in_repos中显示目录树, 若无则从/开始
+            uuid                    # 显示版本库的uuid
+            youngest                # 显示最新的版本号
+      svnrdump:
+      svnserve: 控制svn系统服务的启动
+        -d: 表示后台运行
+        -r path: 指定服务器根目录
+      svnsync:
+      svnversion: 报告客户端拷贝状态(当前修订版本的项目)的工具
+		客户端
+      svn:  版本库的检出, 更新, 提交, 重定向等
+        # svn <subcommand> [option] [args]
+          option:
+            --username arg: 指定用户名称
+            --password arg: 指定密码
+            --no-auth-cache: 不缓存用户认证令牌
+            --non-interactive: 不要交互式提示
+            --trust-server-cert: 不提示接受未知ssl证书
+            --config-dir dir: 从目录中读取用户配置文件
+          subcommand:
+            add path: 把文件和目录纳入版本控制
+            blame target: 输出指定文件或url的追溯内容
+            cat target: 查看版本库中文件的内容
+            changelist(cl)
+            checkout(co) url [path]: 从版本库中取出一个工作拷贝
+            cleanup: 
+            commit(ci)
+            copy(cp)
+            delete(del,remove,rm)
+            diff(di)
+            export
+            import
+            info
+            list(ls)
+            lock
+            log
+            merge
+            mergeinfo
+            mkdir
+            move(mv, rename, ren)
+            patch
+            propdel(pdel,pd)
+            propedit(pedit,pe)
+            propget(pget,pg)
+            proplist(plist,pl)
+            propset(pset,ps)
+            relocate
+            resolve
+            resolved
+            revert
+            status(stat,st)
+            switch(sw)
+            unlock
+            update(up)
+            upgrade
+
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+    两种运行方式:
+      1.独立服务器:   svn://
+      2.借助Apache:   http://
+    版本模型: 拷贝-修改-合并
+      每个客户从版本库建立一个个人工作拷贝, 用户并行工作, 修改各自的工作拷贝.最终, 各个私有的拷贝和并到一起, 成为最终的版本(最终要人工去确定正误)
+    版本库访问方式:
+      file:///    本地磁盘访问
+      http://     通过配置svn的Apache服务器的WebDAV协议:
+      https://    类似htt://, 但包括ssl加密
+      svn://      通过svnserve服务自定义的协议
+      svn+ssh://  与svv://类似, 但通过ssh封装
+    全局修订号:
+      svn的修订号是针对整个目录树的, 而非单个文件. 每当版本库接受了一次提交, 则该版本被赋予一个独一无二的自然数.
+    事务:
+      svn的版本库是一串目录树, 每一个目录树就是版本库在某一时刻的快照(这些快照是客户端提交的结果, 叫做修订版本)
+    版本库数据存储:
+      版本库中数据存储有两种方式
+        1.在Berkeley DB数据库中存储数据
+        2.使用普通文件, 采用自定义格式
+      默认采用了本地操作系统的文件系统来存储数据的版本变化(FSFS)
+      
+	内部命令
