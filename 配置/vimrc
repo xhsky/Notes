@@ -66,8 +66,8 @@ inoremap , ,
 " map
 let mapleader = "-"
 " 将单词转为大写
-noremap <leader>U <esc>viwgUea<space>
-inoremap <leader>U <esc>viwgUea<space>
+noremap <leader>U <esc>viwgUe
+inoremap <leader>U <esc>viwgUea
 " 给单词加上引号和括号
 inoremap <leader>" <esc>bi"<esc>lea"
 inoremap <leader>' <esc>bi'<esc>lea'

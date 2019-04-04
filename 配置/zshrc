@@ -99,6 +99,7 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 #alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
 alias rm="mv -f --target-directory=/tmp/"
+alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
 
 # 配置direnv
 eval "$(direnv hook zsh)"

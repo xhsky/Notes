@@ -1105,8 +1105,6 @@ import pyyaml
 
     本地测试: 直接用浏览器打开文件
     注释: <!--      -->
-
-
     提交方式有两种: get post
       get方式将提交的信息写在url中, post将提交的信息写入提交的请求中
 
@@ -1209,7 +1207,82 @@ import pyyaml
     颜色
       rgb颜色对照表
     位置
-  js:
+  js(JavaScript):
+    说明: 独立的语言, 浏览器具有js解释器的功能, 每行代码后需加;
+    js存在形式:
+      1.存在于html head中<script>js code</script>
+      2.文件中, <script src='/path/file.js'></script>
+      注: js代码需要放在<body>标签的最下方
+    注释:
+      单行注释: //
+      多行注释: /* */
+    变量:
+      name="sky"          # 全局变量
+      var name="sky"      # 局部变量
+    基本数据类型:
+      数字: 不区分int和float
+      字符串:
+      布尔: true/false
+      数组: 
+        list = [1, 2, 3]
+      字典:
+    循环:
+      for(var item in list|dict){
+        //循环时, 循环的元素是索引/key
+        }
+      for(var i=0;i<10, i++){
+        }
+      while(){
+        }
+
+      break; continue;
+    条件:
+      if() {
+        }
+      else if(){
+        }
+      else{
+        }
+
+      switch(name):{
+        case: "1":
+          code;
+          break;
+        case: "2":
+          code;
+          break;
+        default:
+          code;
+        }
+
+      ==(!=)    : 值相等即为true
+      ===(!==)  : 值相等且类型相同为true
+
+      &&, ||
+    定时器:
+      setInterval('code', interval)
+    函数:
+      普通函数:
+        function name(args){
+          }
+        调用: name(args)
+      匿名函数:
+      自执行函数:
+    序列化:
+      JSON.stringify()        将对象转为字符串 
+      JSON.parse()            将字符串转为对象类型
+    作用域:
+      
+        
+
+
+Dom: 
+  获取单个元素: document.getElementById("")
+  获取多个元素: document.getElementsByTagName("div")      列表
+  获取多个元素: document.getElementsByClassName("div")     
+  获取多个元素: document.getElementsByName()
+    
+
 
    
   
