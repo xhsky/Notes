@@ -54,7 +54,6 @@
       # yum remove docker-ce
       # rm -rf /var/lib/docker
 
-
     1.curl -fsSL https://get.docker.com/ | sh
     1.wget -qO- https://get.docker.com/ | sh
   结构
@@ -215,7 +214,7 @@
                                                   namespaces
         -v, --version                                 Print version information and quit
     客户端
-      # docker [option] command
+      .# docker [option] command
         option:
           --config file     # 配置文件路径, 默认/root/.docker
           -D                # 启用debug模式
@@ -348,11 +347,11 @@
               --format str                    # 
               -q                              # 只显示id
             rm secret ...                     # 删除secret
-          stack [option] command              # 
+          stack [option] command              # 管理docker stacks
             option:
-              --orchestrator swarm|kubernets|all    # 要使用的
+              --orchestrator swarm|kubernets|all    # 要使用的架构
             command:
-              deploy|up [option] stack              # 部署一个新的stack或更新一个已存在的stack
+              deploy|up [option] stack_name         # 部署一个新的stack或更新一个已存在的stack
                 --bundle-file str                   # 分发应用bundle文件的路径
                 -c                                  # compose file的路径
                 --orchestrator str                  # 要使用的适配器(swarm|kubernetes|all)
@@ -988,8 +987,9 @@
               --until str
           > 仓库
           login [option] [server]       # 登录一个docker注册服务器
-            -p str
-            -u str
+            -p str                      # 指定密码
+            --password-stdin            # 输入密码
+            -u str                      # 指定用户
           logout [server]               # 退出注册服务器
           info:                         # 显示docker服务端信息
           version:                      # 显示docker版本     
@@ -1028,8 +1028,8 @@
           .# systemctl daemon-reload
           .# systemctl start docker
         3.下载并启动register
-          .# docker pull registry
-          .# docker run -d --name "myregistry" -p 5000:5000 -v /opt/data/regist
+          .# docker pull registry:2
+          .# docker run -d --name "myregistry" -p 5000:5000 -v registry_data:/var/lib/registry registry:2
         4.打标签并上传
           .# docker tag sky/mycentos:1.1 10.128.2.107:5000/test
           .# docker push 10.128.2.107:5000/test
@@ -1606,6 +1606,10 @@
           2.alpine: 面向安全的轻型Linux发行版, 只有5M多, docker官方推荐使用alpine作为默认的基础镜像环境
           3.debian/ubuntu
           4.centos/fedora
+    docker-compose:
+      说明: 用来定义services, networks, volumes的yml文件, 默认路径为./docker-compose.yml(yml/yaml)
+    DAB(分布式应用程序包, Distrbuted Application Bundle):
+      说明: 一种开放文件格式, 用于捆绑运送和部署多容器应用程序所需的所有工具
     docker网络:
       说明:
         1.容器启动时, 会创建网络连接的两端.一端连接到容器中的网络设备, 一端到主机上打开veth*的接口, 用来实现docker0与容器的网络通信
@@ -1643,8 +1647,8 @@
               1.overlay网络驱动在多台docker主机上创建了一个分布式网络, 它基于主机网络之上, 允许连接的容器安全的进行通信(默认的ingress网络不建议生产环境)
               2.创建自定义overlay需要该节点为swarm manager方可
             网络创建过程: 当初始化一个swarm或加入到一个swarm时, docker主机将会创建两个网络
-                - ingress(overlay网络): 用来处理于swarm service相关的控制和数据流(默认连接该网络)(只能有一个ingress网络, 再创建失败)
-                - docker_gwbridge(bridge网络): 用来将单个的docker进程连接到swarm中其它的docker进程
+              - ingress(overlay网络): 用来处理于swarm service相关的控制和数据流(默认连接该网络)(只能有一个ingress网络, 再创建失败)
+              - docker_gwbridge(bridge网络): 用来将单个的docker进程连接到swarm中其它的docker进程
             通信加密:
               1.所有swarm服务管理的通信默认在GCM模式下使用AES加密.swarm管理节点每12小时更新一次gossip数据的秘钥
               2.应用数据也可以加密(network create -d overlay --opt encrypted), 这种加密会导致性能损失
@@ -1669,7 +1673,7 @@
       管理配置:
         1.当向swarm添加配置时, docker通过TLS将配置发送给所有swarm manager
         2.该配置加密存储在raft日志中
-        3.当授权service访问configs时, configs将作为文件挂载进容器(默认在/<config_name>)
+        3.当授权service访问configs时, configs将作为文件挂载进容器(使用tmpfs方式, 默认在/<config_name>)
         4.configs是不可变的, 故无法更改一个service的文件.只能使用不同文件创建一个新配置
         5.当节点同manager失去连接, 仍可访问其配置, 但在重新连接前无法接收更新
     存储驱动:
