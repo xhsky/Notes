@@ -1,0 +1,63 @@
+简介
+	时间，作者，开发语言，定义
+    诞生于2004年, 统一的分布式存储系统, 用于高性能, 可靠性和可扩展性. C++编写
+	官网: https://ceph.com/
+	版本
+	协议
+适用性(优缺)
+  1.Ceph在一个统一的文件系统中分别支持object, block和file存储
+
+架构
+	模块
+	安装
+    1.安装ceph-deploy
+      .# yum install epel-release
+      .# vim /etc/yum.repos.d/ceph.repo
+        [ceph-noarch]
+        name=Ceph noarch packages
+        baseurl=https://download.ceph.com/rpm-mimic/el7/noarch
+        enabled=1
+        gpgcheck=1
+        type=rpm-md
+        gpgkey=https://download.ceph.com/keys/release.asc
+      .# yum install ceph-deploy python-setuptools
+    2.设置root免密码登录
+    3.安装ntp(防止时钟漂移问题)
+      .# yum install ntp ntpdate ntp-doc
+	结构
+		目录结构
+			源码目录
+			安装目录
+		        配置文件
+		进程/端口
+      ceph-mon:
+        1.维护集群状态的映射(监控映射, 管理映射, OSD映射, CRUSH映射), 这些映射是ceph守护进程相互协调的关键
+        2.负责管理守护进程和客户端之间的认证
+        3.冗余和高可用则至少需要三个monitor是正常的
+      ceph-mgr:
+        1.跟踪运行时指标和集群当前状态, 包括存储利用率, 当前性能指标和系统负载.
+        2.托管基于Python模块来管理和公开集群信息, 包括基于web的Dashboard和RSET API.高可用至少有两个manager是正常的
+      ceph-osd: 对象存储进程
+        1.存储数据, 处理数据复制, 恢复, 再均衡并且通过检查其它osd进程来获取心跳为monitor和manager提供一些监控信息
+        2.冗余和高可用至少需要3个osd是正常的
+      ceph-mds:
+        1.ceph为文件系统存储元数据(block和object不适用MDS)
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		原理
+      1.ceph将数据存储为逻辑存储池中的对象.通过CRUSH算法, ceph计算应该包含对象的放置组, 并且进一步计算哪个osd进程应该存储该放置组. CRUSH算法使集群能够动态扩展, 再均衡和恢复
+    CRUSH算法:
+      说明: 
+
+
+	内部命令

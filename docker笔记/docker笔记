@@ -2,6 +2,7 @@
   时间，作者，开发语言，定义
     诞生于2013年初, 最初发起者时dotCloud公司(后改名Docker Inc). 是基于go语言实现的开源容器项目.
     docker的理念: 在任何地方构建, 发布并运行任何应用
+    容器使软件具备了超强的可移植能力
   官网:
     Docker官网        https://www.docker.com
     Docker中文官网    https://www.docker-cn.com
@@ -33,31 +34,28 @@
   模块
   安装
     1.安装依赖包
-      # yum install yum-utils device-mapper-persistent-data lvm2 -y
+      .# yum install yum-utils device-mapper-persistent-data lvm2 -y   (device mapper驱动需要后两个包支持)
     2.设置stable镜像仓库
-      # yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo   # docker官方(慢)
-      # yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo    # 阿里云(快)
+      .# yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo   # docker官方(慢)
+      .# yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo    # 阿里云(快)
     3.安装docker
-      # yum install docker-ce docker-ce-cli containerd.io
+      .# yum install docker-ce docker-ce-cli containerd.io             (docker被安装但未启动. docker用户组被创建, 但无用户被添加)
     4.启动
-      # systemctl start docker
+      .# systemctl start docker
     5.验证docker是否被正确安装
-      # docker run hello-world
+      .# docker run hello-world
     6.配置镜像加速
-      # vim /etc/docker/daemon.json
+      .# vim /etc/docker/daemon.json
         {
             "registry-mirrors": ["https://mk2azw0n.mirror.aliyuncs.com"]
         }
-      # systemctl daemon-reload
-      # systemctl restart docker
-    7.卸载
-      # yum remove docker-ce
-      # rm -rf /var/lib/docker
-
-    1.curl -fsSL https://get.docker.com/ | sh
-    1.wget -qO- https://get.docker.com/ | sh
+      .# systemctl daemon-reload
+      .# systemctl restart docker
+    7.卸载(container, volume, network, configs等需要手动删除)
+      .# yum remove docker-ce
+      .# rm -rf /var/lib/docker
   结构
-    安装目录
+    安装目录:
       /var/lib/docker/volumes: 存储volumes数据
       /var/lib/docker/overlay2: 存储image的各种layer(目录名称和layer id不对应)
       /var/lib/docker/containers: 容器存储目录
@@ -70,6 +68,7 @@
           "storage-driver": "overlay2"                                      # 指定存储驱动
           "debug": true,                                                    # 启用debug
           "live-restore": true                                              # 当docker不可用时保持容器运行(不兼容swarm模式)
+          "features": { "buildkit": true }                                  # 启用buildkit
       }
     进程/端口
       dockerd: 为客户的提供RESTful API, 相应来自客户端的请求, 采用来自模块化的架构, 通过专门的Engine模块来分发管理各个来自客户端的任务.可以单独升级
@@ -80,10 +79,14 @@
       2376: docker
       2377: swarm
       swarm:
-        2377/tcp: 集群管理端口而
+        2377/tcp: 集群管理端口
         7946/tcp, 7946/udp: 节点交互端口, 容器的网络发现
         4789/udp: overlay网络
     编程接口
+      说明: docker提供了一个与docker守护进程交互的API以及用于Go和Python的SDK.
+        1.Docker Engine API: 是一个RESTful API
+        2.Go SDK: # go get github.com/docker/docker/client
+        3.Python SDK: # pip install docker
     管理软件
   命令
     服务器
@@ -446,70 +449,70 @@
               --role str                      # 节点的角色(worker|manager)
           service command                     # 管理services
             create [option] image [command]   # 创建一个新的service
-							--name string                   # 指定service名称
-							--with-registry-auth            # 将registry认证信息发送给swarm代理
-							--mode string                   # service模式(replicated|global), 默认replicated
-							--replicas N                    # 指定task的数量
-              --config config                	# 指定配置文件名(source=config_name, target=/path/file, mode=0440(默认0444), uid=N(默认运行容器的用户id), gid=N)
-							--constraint list               # 约束位置
-							--container-label list          # 容器label
-							-d			                        # 立即退出而非等待service converge
-							--dns list											# 自定义dns
-							--dns-option list               # 设置dns选项
-							--dns-search list               # 自定义dns搜索域
-							--endpoint-mode string          # endpoint模式(vip|dnsrr, 默认vip)
-							--entrypoint command            # 覆盖image的默认entrypoint
+              --name string                   # 指定service名称
+              --with-registry-auth            # 将registry认证信息发送给swarm代理
+              --mode string                   # service模式(replicated|global), 默认replicated
+              --replicas N                    # 指定task的数量
+              --config config                 # 指定配置文件名(source=config_name, target=/path/file, mode=0440(默认0444), uid=N(默认运行容器的用户id), gid=N)
+              --constraint list               # 约束位置
+              --container-label list          # 容器label
+              -d                              # 立即退出而非等待service converge
+              --dns list                      # 自定义dns
+              --dns-option list               # 设置dns选项
+              --dns-search list               # 自定义dns搜索域
+              --endpoint-mode string          # endpoint模式(vip|dnsrr, 默认vip)
+              --entrypoint command            # 覆盖image的默认entrypoint
               -e list                         # 设置环境变量
-							--env-file list                 # 从文件中读取环境变量 
-							--generic-resource list         # 用户自定义资源
-							--group list                    # 为容器设置补充用户组
-							--health-cmd string             # 运行健康检查的命令
-							--health-interval duration      # 运行两次检查的间隔(ms|s|m|h)
-							--health-retries int            #
-							--health-start-period duration  #
-							--health-timeout duration       #
-							--host list                     # 设置自定义的host:ip映射
-							--hostname string               # 容器主机名
-							--mount mount                   # 挂载, 默认volume模式
+              --env-file list                 # 从文件中读取环境变量 
+              --generic-resource list         # 用户自定义资源
+              --group list                    # 为容器设置补充用户组
+              --health-cmd string             # 运行健康检查的命令
+              --health-interval duration      # 运行两次检查的间隔(ms|s|m|h)
+              --health-retries int            #
+              --health-start-period duration  #
+              --health-timeout duration       #
+              --host list                     # 设置自定义的host:ip映射
+              --hostname string               # 容器主机名
+              --mount mount                   # 挂载, 默认volume模式
                                               # type=volume, src=volume_name, dst=container_path, volume-driver=driver, volume-opt=key_value
-							                                # type=bind, src=host_path, dst=container_path, readonly
+                                              # type=bind, src=host_path, dst=container_path, readonly
                                               # type=tmpfs, dst=/path[, tmpfs-size=1024, tmpfs-mode=1777]  大小为字节, 默认无限制. 文件模式, 默认1777
-							--init                          # Use an init inside each service container to forward signals and reap processes
-							--isolation string              # Service container隔离模式
+              --init                          # Use an init inside each service container to forward signals and reap processes
+              --isolation string              # Service container隔离模式
               -l, --label list                    # Service labels
-							--limit-cpu decimal             # cpu个数
-							--limit-memory bytes            # 内存限制
-							--reserve-cpu decimal           #     Reserve CPUs
-							--reserve-memory bytes          #     Reserve Memory
-							--log-driver string                  Logging driver for service
-							--log-opt list                       Logging driver options
-							--network network               # 指定使用网络名称
-							--no-healthcheck                     Disable any container-specified HEALTHCHECK
-							--no-resolve-image                   Do not query the registry to resolve image digest and supported platforms
-							--placement-pref pref                Add a placement preference
+              --limit-cpu decimal             # cpu个数
+              --limit-memory bytes            # 内存限制
+              --reserve-cpu decimal           #     Reserve CPUs
+              --reserve-memory bytes          #     Reserve Memory
+              --log-driver string                  Logging driver for service
+              --log-opt list                       Logging driver options
+              --network network               # 指定使用网络名称
+              --no-healthcheck                     Disable any container-specified HEALTHCHECK
+              --no-resolve-image                   Do not query the registry to resolve image digest and supported platforms
+              --placement-pref pref                Add a placement preference
               -p port                         # 映射端口(-p 8080:80, -p 8080:80/udp, -p 8080:80/tcp -p 8080:80/udp )
               -q, --quiet                              Suppress progress output
-							--read-only                          Mount the container's root filesystem as read only
-							--restart-condition string           Restart when condition is met ("none"|"on-failure"|"any") (default "any")
-							--restart-delay duration             Delay between restart attempts (ns|us|ms|s|m|h) (default 5s)
-							--restart-max-attempts uint          Maximum number of restarts before giving up
-							--restart-window duration            Window used to evaluate the restart policy (ns|us|ms|s|m|h)
-							--rollback-delay duration            在两个任务回滚之间等待的时间(ns|us|ms|s|m|h), 默认0s
-							--rollback-failure-action string     一个任务回滚失败后的行为("pause"|"continue") (default "pause")
-							--rollback-max-failure-ratio float   Failure rate to tolerate during a rollback (default 0)
-							--rollback-monitor duration          Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h) (default 5s)
-							--rollback-order string              Rollback order ("start-first"|"stop-first") (default "stop-first")
-							--rollback-parallelism uint          Maximum number of tasks rolled back simultaneously (0 to roll back all at once) (default 1)
-							--secret secret                      Specify secrets to expose to the service
-							--stop-grace-period duration         Time to wait before force killing a container (ns|us|ms|s|m|h) (default 10s)
-							--stop-signal string                 Signal to stop the container
+              --read-only                          Mount the container's root filesystem as read only
+              --restart-condition string           Restart when condition is met ("none"|"on-failure"|"any") (default "any")
+              --restart-delay duration             Delay between restart attempts (ns|us|ms|s|m|h) (default 5s)
+              --restart-max-attempts uint          Maximum number of restarts before giving up
+              --restart-window duration            Window used to evaluate the restart policy (ns|us|ms|s|m|h)
+              --rollback-delay duration            在两个任务回滚之间等待的时间(ns|us|ms|s|m|h), 默认0s
+              --rollback-failure-action string     一个任务回滚失败后的行为("pause"|"continue") (default "pause")
+              --rollback-max-failure-ratio float   Failure rate to tolerate during a rollback (default 0)
+              --rollback-monitor duration          Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h) (default 5s)
+              --rollback-order string              Rollback order ("start-first"|"stop-first") (default "stop-first")
+              --rollback-parallelism uint          Maximum number of tasks rolled back simultaneously (0 to roll back all at once) (default 1)
+              --secret secret                      Specify secrets to expose to the service
+              --stop-grace-period duration         Time to wait before force killing a container (ns|us|ms|s|m|h) (default 10s)
+              --stop-signal string                 Signal to stop the container
               -t, --tty                                Allocate a pseudo-TTY
-							--update-delay duration              在更新之间的延迟(ns|us|ms|s|m|h), 默认0s
-							--update-failure-action string       当更新失败时的行为("pause"|"continue"|"rollback") (default "pause")
-							--update-max-failure-ratio float     在更新期间失败的任务比例, 默认为0
-							--update-monitor duration            每次更新任务后监控失败的持续时间, 默认5s. 超过该时间的失败不计算在内
-							--update-order string                Update order ("start-first"|"stop-first") (default "stop-first")
-							--update-parallelism uint            调度程序同时更新任务的个数, 默认为1, 0为更新所有
+              --update-delay duration              在更新之间的延迟(ns|us|ms|s|m|h), 默认0s
+              --update-failure-action string       当更新失败时的行为("pause"|"continue"|"rollback") (default "pause")
+              --update-max-failure-ratio float     在更新期间失败的任务比例, 默认为0
+              --update-monitor duration            每次更新任务后监控失败的持续时间, 默认5s. 超过该时间的失败不计算在内
+              --update-order string                Update order ("start-first"|"stop-first") (default "stop-first")
+              --update-parallelism uint            调度程序同时更新任务的个数, 默认为1, 0为更新所有
               -u string                       # 运行用户
               -w string                       # 指定工作目录
             inspect [option] service ...      # 显示详细信息
@@ -541,87 +544,87 @@
               -q                              # 抑制输出
             scale [-d] service=replicas ...   # 缩放replicated services
             update [option] service           # 更新一个service
-							--args command                  # 更新现有service运行的命令
-							--config-add config_name        # 从一个service中更新或添加configs 
-							--config-rm cofig_name          # 从一个service中删除configs
-							--constraint-add list                Add or update a placement constraint
-							--constraint-rm list                 Remove a constraint
-							--container-label-add list           Add or update a container label
-							--container-label-rm list            Remove a container label by its key
-							--credential-spec credential-spec    Credential spec for managed service account (Windows only)
-							-d, --detach                             Exit immediately instead of waiting for the service to converge
-							--dns-add list                       Add or update a custom DNS server
-							--dns-option-add list                Add or update a DNS option
-							--dns-option-rm list                 Remove a DNS option
-							--dns-rm list                        Remove a custom DNS server
-							--dns-search-add list                Add or update a custom DNS search domain
-							--dns-search-rm list                 Remove a DNS search domain
-							--endpoint-mode string               Endpoint mode (vip or dnsrr)
-							--entrypoint command                 Overwrite the default ENTRYPOINT of the image
-							--env-add list                       Add or update an environment variable
-							--env-rm list                        Remove an environment variable
-							--force                              Force update even if no changes require it
-							--generic-resource-add list          Add a Generic resource
-							--generic-resource-rm list           Remove a Generic resource
-							--group-add list                     Add an additional supplementary user group to the container
-							--group-rm list                      Remove a previously added supplementary user group from the container
-							--health-cmd string                  Command to run to check health
-							--health-interval duration           Time between running the check (ms|s|m|h)
-							--health-retries int                 Consecutive failures needed to report unhealthy
-							--health-start-period duration       Start period for the container to initialize before counting retries towards unstable (ms|s|m|h)
-							--health-timeout duration            Maximum time to allow one check to run (ms|s|m|h)
-							--host-add list                      Add a custom host-to-IP mapping (host:ip)
-							--host-rm list                       Remove a custom host-to-IP mapping (host:ip)
-							--hostname string                    Container hostname
-							--image string                       Service image tag
-							--init                               Use an init inside each service container to forward signals and reap processes
-							--isolation string                   Service container isolation mode
-							--label-add list                     Add or update a service label
-							--label-rm list                      Remove a label by its key
-							--limit-cpu decimal                  Limit CPUs
-							--limit-memory bytes                 Limit Memory
-							--log-driver string                  Logging driver for service
-							--log-opt list                       Logging driver options
-							--mount-add mount                    Add or update a mount on a service
-							--mount-rm list                      Remove a mount by its target path
-							--network-add network                Add a network
-							--network-rm list                    Remove a network
-							--no-healthcheck                     Disable any container-specified HEALTHCHECK
-							--no-resolve-image                   Do not query the registry to resolve image digest and supported platforms
-							--placement-pref-add pref            Add a placement preference
-							--placement-pref-rm pref             Remove a placement preference
-							--publish-add port                      # 添加或更新一个映射端口
-							--publish-rm port                    Remove a published port by its target port
-							-q, --quiet                              Suppress progress output
-							--read-only                          Mount the container's root filesystem as read only
-							--replicas uint                      Number of tasks
-							--reserve-cpu decimal                Reserve CPUs
-							--reserve-memory bytes               Reserve Memory
-							--restart-condition string           Restart when condition is met ("none"|"on-failure"|"any")
-							--restart-delay duration             Delay between restart attempts (ns|us|ms|s|m|h)
-							--restart-max-attempts uint          Maximum number of restarts before giving up
-							--restart-window duration            Window used to evaluate the restart policy (ns|us|ms|s|m|h)
-							--rollback                           Rollback to previous specification
-							--rollback-delay duration            Delay between task rollbacks (ns|us|ms|s|m|h)
-							--rollback-failure-action string     Action on rollback failure ("pause"|"continue")
-							--rollback-max-failure-ratio float   Failure rate to tolerate during a rollback
-							--rollback-monitor duration          Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h)
-							--rollback-order string              Rollback order ("start-first"|"stop-first")
-							--rollback-parallelism uint          Maximum number of tasks rolled back simultaneously (0 to roll back all at once)
-							--secret-add secret                  Add or update a secret on a service
-							--secret-rm list                     Remove a secret
-							--stop-grace-period duration         Time to wait before force killing a container (ns|us|ms|s|m|h)
-							--stop-signal string                 Signal to stop the container
-							-t, --tty                                Allocate a pseudo-TTY
-							--update-delay duration              Delay between updates (ns|us|ms|s|m|h)
-							--update-failure-action string       Action on update failure ("pause"|"continue"|"rollback")
-							--update-max-failure-ratio float     Failure rate to tolerate during an update
-							--update-monitor duration            Duration after each task update to monitor for failure (ns|us|ms|s|m|h)
-							--update-order string                Update order ("start-first"|"stop-first")
-							--update-parallelism uint            Maximum number of tasks updated simultaneously (0 to update all at once)
-							-u, --user string                        Username or UID (format: <name|uid>[:<group|gid>])
-							--with-registry-auth                 Send registry authentication details to swarm agents
-							-w, --workdir string                     Working directory inside the container
+              --args command                  # 更新现有service运行的命令
+              --config-add config_name        # 从一个service中更新或添加configs 
+              --config-rm cofig_name          # 从一个service中删除configs
+              --constraint-add list                Add or update a placement constraint
+              --constraint-rm list                 Remove a constraint
+              --container-label-add list           Add or update a container label
+              --container-label-rm list            Remove a container label by its key
+              --credential-spec credential-spec    Credential spec for managed service account (Windows only)
+              -d, --detach                             Exit immediately instead of waiting for the service to converge
+              --dns-add list                       Add or update a custom DNS server
+              --dns-option-add list                Add or update a DNS option
+              --dns-option-rm list                 Remove a DNS option
+              --dns-rm list                        Remove a custom DNS server
+              --dns-search-add list                Add or update a custom DNS search domain
+              --dns-search-rm list                 Remove a DNS search domain
+              --endpoint-mode string               Endpoint mode (vip or dnsrr)
+              --entrypoint command                 Overwrite the default ENTRYPOINT of the image
+              --env-add list                       Add or update an environment variable
+              --env-rm list                        Remove an environment variable
+              --force                              Force update even if no changes require it
+              --generic-resource-add list          Add a Generic resource
+              --generic-resource-rm list           Remove a Generic resource
+              --group-add list                     Add an additional supplementary user group to the container
+              --group-rm list                      Remove a previously added supplementary user group from the container
+              --health-cmd string                  Command to run to check health
+              --health-interval duration           Time between running the check (ms|s|m|h)
+              --health-retries int                 Consecutive failures needed to report unhealthy
+              --health-start-period duration       Start period for the container to initialize before counting retries towards unstable (ms|s|m|h)
+              --health-timeout duration            Maximum time to allow one check to run (ms|s|m|h)
+              --host-add list                      Add a custom host-to-IP mapping (host:ip)
+              --host-rm list                       Remove a custom host-to-IP mapping (host:ip)
+              --hostname string                    Container hostname
+              --image string                       Service image tag
+              --init                               Use an init inside each service container to forward signals and reap processes
+              --isolation string                   Service container isolation mode
+              --label-add list                     Add or update a service label
+              --label-rm list                      Remove a label by its key
+              --limit-cpu decimal                  Limit CPUs
+              --limit-memory bytes                 Limit Memory
+              --log-driver string                  Logging driver for service
+              --log-opt list                       Logging driver options
+              --mount-add mount                    Add or update a mount on a service
+              --mount-rm list                      Remove a mount by its target path
+              --network-add network                Add a network
+              --network-rm list                    Remove a network
+              --no-healthcheck                     Disable any container-specified HEALTHCHECK
+              --no-resolve-image                   Do not query the registry to resolve image digest and supported platforms
+              --placement-pref-add pref            Add a placement preference
+              --placement-pref-rm pref             Remove a placement preference
+              --publish-add port                      # 添加或更新一个映射端口
+              --publish-rm port                    Remove a published port by its target port
+              -q, --quiet                              Suppress progress output
+              --read-only                          Mount the container's root filesystem as read only
+              --replicas uint                      Number of tasks
+              --reserve-cpu decimal                Reserve CPUs
+              --reserve-memory bytes               Reserve Memory
+              --restart-condition string           Restart when condition is met ("none"|"on-failure"|"any")
+              --restart-delay duration             Delay between restart attempts (ns|us|ms|s|m|h)
+              --restart-max-attempts uint          Maximum number of restarts before giving up
+              --restart-window duration            Window used to evaluate the restart policy (ns|us|ms|s|m|h)
+              --rollback                           Rollback to previous specification
+              --rollback-delay duration            Delay between task rollbacks (ns|us|ms|s|m|h)
+              --rollback-failure-action string     Action on rollback failure ("pause"|"continue")
+              --rollback-max-failure-ratio float   Failure rate to tolerate during a rollback
+              --rollback-monitor duration          Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h)
+              --rollback-order string              Rollback order ("start-first"|"stop-first")
+              --rollback-parallelism uint          Maximum number of tasks rolled back simultaneously (0 to roll back all at once)
+              --secret-add secret                  Add or update a secret on a service
+              --secret-rm list                     Remove a secret
+              --stop-grace-period duration         Time to wait before force killing a container (ns|us|ms|s|m|h)
+              --stop-signal string                 Signal to stop the container
+              -t, --tty                                Allocate a pseudo-TTY
+              --update-delay duration              Delay between updates (ns|us|ms|s|m|h)
+              --update-failure-action string       Action on update failure ("pause"|"continue"|"rollback")
+              --update-max-failure-ratio float     Failure rate to tolerate during an update
+              --update-monitor duration            Duration after each task update to monitor for failure (ns|us|ms|s|m|h)
+              --update-order string                Update order ("start-first"|"stop-first")
+              --update-parallelism uint            Maximum number of tasks updated simultaneously (0 to update all at once)
+              -u, --user string                        Username or UID (format: <name|uid>[:<group|gid>])
+              --with-registry-auth                 Send registry authentication details to swarm agents
+              -w, --workdir string                     Working directory inside the container
           system command                      # 管理docker
             df [option]                       # 显示docker磁盘使用
               --format str                    # 基于模板显示
@@ -1005,19 +1008,19 @@
       说明: docker服务器需要设置代理才能访问其它网络
       配置:
         1. 创建~/.docker/config.json文件. 可同时设置多个,或通过noProxy排除代理,支持*
-					{
-						 "proxies":
-						 {
-							 "default":
-							 {
-								 "httpProxy": "http://127.0.0.1:3001",
-								 "httpsProxy": "http://127.0.0.1:3001",
-								 "ftpProxy": "http://127.0.0.1:3001",
-								 "noProxy": "*.test.example.com,.example2.com"
-							 }
-						 }
-						}
-				2.当启动新容器时自动生效
+          {
+             "proxies":
+             {
+               "default":
+               {
+                 "httpProxy": "http://127.0.0.1:3001",
+                 "httpsProxy": "http://127.0.0.1:3001",
+                 "ftpProxy": "http://127.0.0.1:3001",
+                 "noProxy": "*.test.example.com,.example2.com"
+               }
+             }
+            }
+        2.当启动新容器时自动生效
     私有仓库:
       说明: 可利用docker来简单搭建一套本地私有仓库环境
       步骤:
@@ -1043,8 +1046,7 @@
           2.配置并管理多台远程docker主机
           3.配置swarm集群
         安装:
-          .# curl -L https://github.com/docker/machine/releases/download/v0.16.1/docker-machine-`uname -s`-`uname -m` >/tmp/docker-machine && \
-              chmod +x /tmp/docker-machine && sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
+          .# curl -L https://github.com/docker/machine/releases/download/v0.16.1/docker-machine-`uname -s`-`uname -m` >/tmp/docker-machine &&  chmod +x /tmp/docker-machine && sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
           .# 免密码配置
           .# docker-machine create -d generic --generic-ip-address docker1_ip --engine-registry-mirror "https://mk2azw0n.mirror.aliyuncs.com" docker1
           .# docker-machine create -d generic --generic-ip-address docker2_ip --engine-registry-mirror "https://mk2azw0n.mirror.aliyuncs.com" docker2
@@ -1110,7 +1112,7 @@
               active [-t sec]           # 打印活动的machine, 默认10s超时时间(意为DOCKER_HOST环境变量指向该主机). 即为env设置的machine
               inspect machine           # 显示machine的详细信息
               ip machine ...            # 获取machine的ip地址
-              ls [option]                        # 列出machine
+              ls [option]               # 列出machine
                 -q                      # 只列出主机名
                 -t sec                  # 超时时间, 默认10s
               config [--swarm] machine  # 打印出machine的连接配置信息
@@ -1129,7 +1131,7 @@
               url machine               # 获取machine的url
               version [machine]         # 显示machine的版本或docker版本
         客户端连接配置:
-          说明: 默认情况下, 所有的客户端配置数据都会自动存放在~/.docker/machine/machines/路径下()
+          说明: 默认情况下, 所有的客户端配置数据都会自动存放在~/.docker/machine/machines/路径下
         使用generic驱动安装:
           1.若docker未运行, 则会自动安装
           2.更新主机
@@ -1241,7 +1243,6 @@
                 entrypoint: /code/entrypoint.sh                   # 覆盖默认的entrypoint
                 env_file: .env                                    # 从文件中添加环境变量
                 environment:
-
         命令:
           .# docker-compose [-f <arg>] [option] [command] [args]
             -f file                         # 指定备用compose文件(默认docker-compose.yml)
@@ -1380,6 +1381,10 @@
             说明:
               1.swarm中支持入口负载均衡的映射模式.在该模式下, 每个服务都会被分配一个公开端口, 该端口在集群任意节点上都可以被访问到, 并被保留给该服务.
               2.当有请求发送至任意节点的公开端口时, 该节点若没有实际执行相关服务的容器, 则会通过路由机制将请求分发给实际执行服务容器的工作节点
+          服务发现:
+            说明: 
+              1.基于同一个overlay网络的service能够根据service name相互通信
+              2.
         任务(task):
           说明: 任务是swarm集群中最小的调度单位(一个指定的容器)
           任务的生命周期: 
@@ -1423,9 +1428,52 @@
     Kukernetes:
 具体服务相关
   概念:
-    原理:
-      1.docker最初是基于LXC技术, 但从0.9版本开始, 开发了libcontainer项目作为更广泛的容器驱动实现, 从而替换掉了LXC
-      2.docker是C/S架构的程序
+    容器核心技术: 使得容器能够在单个host运行
+      容器规范:
+        1.保证不同容器之间能够兼容, 包括Docker, CoreOS, Google在内的若干公司共同成立Open Container Initiative(OCI), 其目的是指定开放的容器规范
+        2.目前OCI发布了两个规范: runtime spec和images format spec
+        3.有了这两个规范, 不同组织和厂商开发的容器则能在不同的runtime上运行, 保证了容器的可移植性和互操作性
+      runtime: 容器真正运行的地方, runtime需要和操作系统kernel紧密协作, 为容器提供运行环境
+        1.lxc: linux上的容器runtime. Docker最初也使用lxc作为runtime
+        2.runc: docker开发的容器runtime, 也是现在docker默认的runtime
+        3.rkt: CoreOS开发的runtime
+      容器管理工具: 对内与runtime交互, 对外为用户提供interface
+        1.lxd: lxc对应的管理工具
+        2.docker engine: runc的管理工具, 包括daemon和cli两个部分
+        3.rkt cli: rkt的管理工具
+      容器定义工具: 允许用户定义容器的内容和属性, 以便容器能够保存, 共享和重建
+        1.docker image: 是docker容器的模板, runtime依据docker image创建容器
+        2.Dockerfile: 
+        3.ACI(App Container Image): 与docker image类似, 是由CoreOS开发的的rkt的容器image格式
+      容器OS: 专门运行容器的操作系统. 与常规OS相比, 容器OS的体积更小, 启动更快, 运行容器的效率更高
+        1.CoreOS
+        2.atomic
+        3.ubuntu core
+    容器平台技术: 可让容器作为集群在分布式环境中运行
+      容器编排引擎: 包括容器管理, 调度, 集群定义和服务发现
+        1.docker swarm: Docker开发的容器编排引擎
+        2.kubernets: Google开发的开源容器编排引擎, 同时支持Docker和CoreOS容器
+        3.mesos+marathon: mesos是一个通用的集群资源调度平台, 与marathon一起提供容器编排功能
+      容器管理平台: 是架构在容器编排引擎之上的一个更为通用的平台. 可以支持多种编排引擎(抽象了编排引擎的底层实现细节)
+        1.Rancher
+        2.containerShip
+      基于容器的PaaS:
+        1.Deis
+        2.Flynn
+        3.Dokku
+    容器支持技术: 被用于支持容器的基础设施
+      1.容器网络: 管理容器与容器, 容器与其它实体之间的连通性和隔离性
+        docker network, flannel, weave, calico
+      2.服务发现: 容器会在集群中发生动态变化, 其ip和端口也会随之变化, 则服务发现可使客户端能够知道如何访问容器提供的服务
+        etcd, consul, zookeeper
+      3.监控
+        docker ps/top/stats, docker stats API, sysdig, cAdisor/Heapster, Weave Scope
+      4.数据管理: 
+      5.日志管理
+        docker logs, logspout
+      6.安全性
+        OpenSCAP
+
     容器自启动策略:
       说明: 在容器exit时的策略, 使用--restart参数
       策略:
@@ -1462,8 +1510,8 @@
       1.镜像(image): 一个只读的模板, 可用来创建docker容器.
         说明: docker image是一个层叠的只读文件系统
         结构:
-          1.最低端是一个引导文件系统(bootfs, 当一个容器启动后会被移动到内存中, 而bootfs会被卸载).
-          2.第二层是只读rootfs(某种文件系统, eg: centos, ubuntu)
+          1.最底端是一个引导文件系统(bootfs, 当一个容器启动后会被移动到内存中, 而bootfs会被卸载).
+          2.第二层是只读rootfs(某种文件系统, eg: centos文件系统, ubuntu文件系统包括最基本的命令, 工具和程序库)
           3.第三层是同时加载一种或多种只读文件系统(利用联合加载(union mount)技术, 将各层文件系统叠加到一起, 最终的文件系统会包含所有的底层文件和目录)
       2.容器(container): 类似一个轻量级的沙箱, docker根据image生成容器来运行和隔离应用
         说明:
@@ -1483,6 +1531,7 @@
         仓库注册服务器(registry): 存放多个仓库, 每个仓库存放某一类镜像(可通过不同的标签(tag)进行区分)
         公开仓库: 最大的公开仓库(hub.docker.com)
         私有仓库:
+    资源限制: 内存, CPU, block I/O
     基础技术: docker依赖的Linux内核特性:
       说明: docker本质是宿主机上的一个进程.通过namespace实现了资源隔离, 通过cgroup实现了资源限制, 通过写时复制实现了高效的文件操作
       命名空间(namespace):
@@ -1509,6 +1558,7 @@
         2.支持将文件系统中的修改信息作为一次提交, 并层层叠加
         3.可以将不同的目录挂载到同一个虚拟文件系统下, 应用看到的是最终的结果
         4.联合文件系统是实现docker image的基础
+        5.可以实现资源共享(image共享, layer共享)
       容器格式:
         1.docker engine将命名空间, 控制组和联合文件系统组合在一起称为容器格式.
         2.默认容器格式是libcontainer
@@ -1566,29 +1616,89 @@
         2.每条指令都会创建一个新的layer, 并对layer进行提交
         3.更Dockerfile重建镜像时, 仅重建已经更改的layer
       语法:
-        1.每条指令必须大写且后面至少跟随一个参数
+        1.每条指令建议大写且后面至少跟随一个参数
         2.# 表示注释
+      构建上下文:
+        说明: 
+          1.docker build是根据Dockerfile和context的内容, 由dockerd构建的 
+          2.build首先将上下文发送给docker
+          3.上下文是指定的PATH或URL的内容(PATH: 目录内的所有文件. URL: 是git库的位置)
+      最小化image:
+        1.选择合适的基本镜像
+        2.使用多阶段构建
+        3.合并RUN命令, 以减少layer数量,  除ADD, COPY, RUN之外, 其它指令只会临时中间image, 不会增加build的大小
+        4.若多个images都有共同点, 则可将共同点抽取出来组建成base images, 并在其上创建images
+        5.当发出docker build时, 后面指定的目录为工作目录(其中所有文件和目录的内容都会当做构建上下文发送给docker), 故要选取干净的工作目录
+        6.不安装不必要的包
+        7.解耦应用程序
+        8.利用缓存构建镜像(docker在按Dockerfile顺序执行指令时, 会在缓存中查找可重用的image)
+        9.可使用 \ 来将一行长命令划分为多行
+      缓存匹配规则:
+        1.对于ADD和COPY指令, 会检查文件的校验值, 文件的修改时间和访问时间不被考虑. 校验值相同则匹配
+        2.除ADD和COPY指令外, 缓存检查不会查看文件以决定是否匹配. 即只检查命令本身的字符串是否匹配
+        3.只要某一层发生变化, 其上的所有层的缓存都会失效. 
+      buildkit:
+        说明: docker build的增强功能. 通过继承buildkit, 用户可以看到性能, 存储管理, 功能和安全性方面的改造
+          1.检测并跳过执行未使用的build阶段
+          2.并行build独立的build阶段
+          3.在builds之间仅增加上下文中已更改的文件
+          4.检测并跳过传输未使用的上下文中的文件
+          5.使用许多额外的docker新功能的实现
+          6.确定缓存优先级以自动修剪
+        使用: # BUILDKIT=1 docker build ...
+      解析器指令:
+        说明: 用来提示解析器进行特殊处理
+          1.该指令可选, 且不会向构建中添加layer, 也不会在构建步骤中显示.
+          2.必须写在Dockerfile第一行, 语法为 # directive=value
+          3.指令不能重复和跨行, 行内空格被忽略, 建议小写, 与后续指令间隔一行
+        指令:
+          escape=\                 # 用于在Dockerfile中定义转义字符的字符, 默认为\
+      .dockerignore文件: 类似.gitignore, 避免将目录下的某些文件以上下文发送
+      multi-stage builds(多阶段构建):
+        说明: 
+          1. 第一阶段完成编译开发环境, 第二阶段将第一阶段的结果copy到第二阶段的运行环境中. 最终生成mini的运行环境镜像
+          2. 可以很方便地将多个彼此依赖的项目通过一个Dockerfile就可轻松构建出期望的容器镜像, 而不用担心镜像太大,源码泄露等风险 
+          3. 还可以用外部image作为某一阶段, eg: --from=nginx:latest 
+        操作:
+          FROM image_name1 as builder
+          ...
+
+          FROM image_name2
+          ...
+          COPY --from=<builder|index> /path/dir/file ./
       指令:
-        FROM image:tag             # 基础镜像, 当前新镜像是基于哪个镜像的. 该指令必须位于非注释第一行
-        MAINTAINER name            # 镜像维护者的姓名和邮箱地址
-        RUN command|["executable", "para1", "para2"]  # 容器在构建时需要运行的命令(分为shell模式和exec模式)
-        EXPOSE port1 ...          # 当前容器对外暴露出的端口
+        # escape=\                                    # 定义转义字符
+        ARG key=value                                 # 唯一一个在FROM前的指令, 用于定义FROM指令可用的变量(FROM base:${value})
+        FROM <image>[:tag] AS <name>                  # 基础镜像, 当前新镜像是基于哪个镜像的. 该指令必须位于非注释第一行
+        EXPOSE port port/udp ...                      # 该指令通知docker容器在运行时监听指定的端口
 
-        CMD command|["executable", "para1", "para2"]  # 容器在启动时需要运行的命令(分为shell模式和exec模式, docker file可以有多个cmd命令, 但只有最后一个生效, cmd会被docker run之后的参数替换)
-        ENTRYPOINT                 # 同cmd, 但entrypoint会将docker run的之后命令当做参数使用
+        SHELL ["executable", 'para1']                 # 覆盖shell模式下指令的默认shell, 可多次出现, 依次覆盖
+        RUN command|["executable", "para1", "para2"]  # 容器在构建时需要运行的命令(分为shell模式(默认为/bin/sh -c)和exec模式(不会调用shell, 若需要则明确指定))
+        CMD ["executable", "para1", "para2"]          # 容器在启动时需要运行的命令(主要为可执行的容器提供默认值), exec模式(不会提供shell)
+        CMD ["para1", "para2"]                        # 作为ENTRYPOINT的默认参数(两者都须使用json格式)
+        CMD command para1 para2                       # shell模式(默认/bin/sh -c). docker file可以有多个cmd命令, 但只有最后一个生效, cmd会被docker run之后的参数替换
+        ENTRYPOINT ["executable", "para1", "para2"]   # 同cmd, exec模式. 但entrypoint会将docker run的之后命令当做参数使用
+        ENTRYPOINT commond para1 para2                # shell模式
+        STOPSIGNAL signal                             # 指定要求停止容器的系统调用的信号, 可为数字或名称
 
-        ADD src dest|["src", "dest"]                  # 将宿主机目录下的文件拷贝进镜像且add命令会自动处理URL和解压tar包
-        COPY src dest|["src", "dest"]                 # 类似add, 拷贝文件或目录到镜像中
+        LABEL key=value "key"="value" ...             # 为生成的镜像添加元数据标签信息(可使用\连接多行).LABEL可以多行也可一行(images不会有区别). 父镜像中的label会被当前镜像继承, 同key则覆盖
+        LABEL maintainer="x_hsky@163.com"             # 镜像维护者的姓名和邮箱地址
+        ENV key=value ...                             # 指定环境变量, 在镜像构建过程中可以被后续RUN, ENTRYPOINT和CMD命令使用, 在镜像启动的容器中也会存在
+        ENV key value                                 # 该形式key后第一个空格后的字符串被视为value(包括value中的空格). 
+        ARG <name>[=<value>]                          # 定义build过程中使用的变量
+
+        ADD [--chown=<user>:<group>] <src>... <dest>  # 将src下的文件/目录/URL拷贝进镜像dest且add命令会自动处理URL和解压tar包. src可使用通配符, dest可写为绝对路径或相对于WORKDIR的路径.默认用户为0:0
+        COPY [--chown=<user>:<group>] <src>... <dest> # 类似add, 但src只能是文进或目录, 且不能处理tar包
+        COPY --from=<name|index> src dest             # 多阶段构建
                         
         VOLUME ["/data"]                              # 容器数据卷, 用于数据保存和持久化工作
 
-        WORKDIR /path/workdir                         # 为run, cmd, entrypoin, copy和add命令指定工作目录
-        ENV key=value ...                             # 指定环境变量, 在镜像构建过程中可以被后续RUN, ENTRYPOINT和CMD命令使用, 在镜像启动的容器中也会存在
-        USER user:group|uid:gid                       # 用户运行后续命令的用户, 默认root用户.
-        ONBUILD instruction                           # 镜像触发器, 当一个镜像被其它镜像作为基础镜像执行时, 会在子镜像构建过程中插入该指令
-        LABEL key=value ...                           # 为生成的镜像添加元数据标签信息
-        ARG                                           # 定义创建过程中使用的变量
-        .dockerignore
+        WORKDIR /path/workdir                         # 为之后的run, cmd, entrypoin, copy和add命令指定工作目录(会自动创建), 可多次使用. 若提供了相对路径, 则相对于前一条的WORKDIR
+        USER user[:group]|uid[:gid]                   # 用户运行后续命令的用户, 未指定时默认root用户.
+        ONBUILD instruction                           # 镜像触发器, 当本镜像被其它镜像作为基础镜像执行时, 会在子镜像构建过程中(FROM指令时)插入该指令
+        HEALTHCHECK [option] CMD command              # 通过在容器内运行命令来检查容器运行情况, 只能有一条指令.CMD关键字后可以是shell命令, 也可以是exec模式. 命令结束状态(健康状态): 0(健康), 1(不健康), 2(保留)
+                                                      # option: --interval=N(默认30s) --timeout=N(30秒), --start-period=N(0s), --retries=N(3)
+        HEALTHCHECK NONE                              # 禁用从基础镜像继承来的任何健康检查
       执行Dockerfile流程:
         1.docke从基础镜像运行一个容器
         2.执行一条指令并对容器做出修改
@@ -1606,8 +1716,7 @@
           2.alpine: 面向安全的轻型Linux发行版, 只有5M多, docker官方推荐使用alpine作为默认的基础镜像环境
           3.debian/ubuntu
           4.centos/fedora
-    docker-compose:
-      说明: 用来定义services, networks, volumes的yml文件, 默认路径为./docker-compose.yml(yml/yaml)
+    docker-compose: 说明: 用来定义services, networks, volumes的yml文件, 默认路径为./docker-compose.yml(yml/yaml)
     DAB(分布式应用程序包, Distrbuted Application Bundle):
       说明: 一种开放文件格式, 用于捆绑运送和部署多容器应用程序所需的所有工具
     docker网络:
@@ -1713,3 +1822,5 @@
   内部命令
 
 虚拟化技术所构建的集群处理能力
+
+Dockerfile也是依据docker commit来一层层提交的
