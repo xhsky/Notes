@@ -1,0 +1,58 @@
+简介
+	时间，作者，开发语言，定义
+    开源数据库中间件, 支持读写分离以及分表分库, 容灾备份且可以用于多租户应用开发, 云平台基础设置.
+    由java实现
+	官网: http://www.mycat.io/
+	版本
+    前身为阿里的Cobar.
+    2013年年底产生最早的Mycat版本
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    0.安装MySQL
+    1.安装jdk
+    2.安装Mycat
+      .# wget -c http://dl.mycat.io/1.6.7.1/Mycat-server-1.6.7.1-release-20190213150257-linux.tar.gz
+      .# tar -xf 
+      .# vim .bashrc
+        export JAVA_HOME=/opt/jdk
+        export MYCAT_HOME=/opt/mycat
+        export PATH=$JAVA_HOME/bin:$MYCAT_HOME/bin:$PATH
+      .# ./bin/mycat start
+	结构
+		目录结构
+			源码目录
+			安装目录
+        bin: 提供封装好的服务和shell脚本
+        catlet:
+        conf: 提供配置文件
+          server.xml: 服务器参数调整和用户授权文件
+          schema.xml: 逻辑库/表定义和分片定义的配置文件
+          rule.xml: 分片规则的配置文件
+        lib: mycat依赖的jar文件
+        logs: 日志目录
+          mycat.log: mycat日志
+          mycat.pid:
+          switch.log:
+          wrapper.log: Mycat的启动时经过warapper封装成启动脚本的, 所以有相应的日志文件
+
+          
+        version.txt
+		进程/端口
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+    1.拦截用户发来的SQL语句, 对其做特定分析(分片, 路由, 读写分离, 缓存等), 然后将此SQL发往后端的真实数据库, 并将返回结果做适当的处理, 最终返回给用户
+		原理
+	内部命令

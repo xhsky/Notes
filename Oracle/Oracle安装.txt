@@ -1,0 +1,74 @@
+1.安装桌面
+  # yum update -y
+  # yum groupinstall "X Window System" "GNOME Desktop" -y
+2.环境配置
+  # vim /etc/hostname
+    oracle.dream.org
+  # vim /etc/hosts
+    ip oracle.dream.org oracle
+  # systemctl disable firewalld 
+  # vim /etc/selinux/config
+    SELINUX=disabled
+  # reboot
+3.安装依赖包
+  # yum -y install gcc gcc-c++ make binutils compat-libstdc++-33 glibc \
+    glibc-devel libaio libaio-devel libgcc libstdc++ libstdc++-devel \
+    libXtst sysstat ksh make libXi compat-libcap1 elfutils-libelf-devel
+4.创建用户及目录
+  # groupadd oinstall
+  # groupadd dba 
+  # useradd -g oinstall -G dba oracle 
+  # echo oracle | passwd --stdin oracle
+
+  # mkdir -p /data/oracle
+  # mkdir -p /data/oraInventory
+  # mkdir -p /data/database
+  # chown -R oracle:oinstall /data/oracle
+  # chown -R oracle:oinstall /data/oraInventory
+  # chown -R oracle:oinstall /data/database
+5.修改参数
+  # vim /etc/sysctl.conf
+    net.ipv4.icmp_echo_ignore_broadcasts = 1
+    net.ipv4.conf.all.rp_filter = 1
+    fs.file-max = 6815744
+    fs.aio-max-nr = 1048576
+    kernel.shmall = 2097152
+    kernel.shmmax = 4247483648
+    kernel.shmmni = 4096
+    kernel.sem = 250 32000 100 128
+    net.ipv4.ip_local_port_range = 9000 65500
+    net.core.rmem_default = 262144
+    net.core.rmem_max= 4194304
+    net.core.wmem_default= 262144
+    net.core.wmem_max= 1048576
+  # sysctl -p
+  # vim /etc/security/limits.conf
+    oracle soft nproc 2047
+    oracle hard nproc 16384
+    oracle soft nofile 1024
+    oracle hard nofile 65536
+  # vim /home/oracle/.bash_profile
+    export ORACLE_BASE=/data/oracle
+    export ORACLE_HOME=$ORACLE_BASE/product/11.2.0/db_1
+    export ORACLE_SID=orcl          #################自定义sid################## 
+    export PATH=$ORACLE_HOME/bin:/usr/sbin:$PATH
+    export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/lib
+    export TNS_ADMIN=$ORACLE_HOME/network/admin
+6.安装vnc并启动
+  # yum install vnc-server -y
+  # su - oracle 
+  $ vncserver
+7.解压开始安装(在客户端输入ip:5901和密码登录图形化)
+  $ unzip "linux-oracle11g 11.2.0.4-update-install-1.zip" -d /data/database
+  $ unzip "linux-oracle11g 11.2.0.4-update-install-2.zip" -d /data/database
+  $ cd /data/database/dtabase/
+  $ export LANG=C
+  $ ./runInstaller -jreLoc /etc/alternatives/jre_1.8.0/
+    图形化安装即可, 注意sid和编码
+    遇到"agent nmhs"的错误, 则打开提示文件, 找到"$(MK_EMAGENT_NMECTL)"该行, 并改为"$(MK_EMAGENT_NMECTL) -lnnz11". 保存并重试
+8.创建用户
+  $ sqlplus / as sysdba
+  > create tablespace dreamts datafile '/data/oracle/oradata/dreamdb/dreamts1.dbf' size 20480M autoextend on;
+  > create user dream identified by dream default tablespace dreamts;
+  > grant connect, resource, dba to dream;
+
