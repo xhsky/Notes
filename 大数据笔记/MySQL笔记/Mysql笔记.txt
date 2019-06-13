@@ -123,7 +123,7 @@
           long_query_time=10                      # 查询时间超过N秒的SQL被记录, 默认为10
           min_examined_row_limit=N                # 至少扫描了N行的SQL被记录, 默认为0. 两者是and关系
           log_slow_admin_statements=1|0           # 是否将超时的管理SQL语句记录到慢日志(alter table, analyze table, check table, create index, drop index, optimize table, repair table), 默认为0
-          log_queries_not_using_indexes=1|0       # 是否将不使用索引的SQL记录到慢日志. 默认为0
+          log_queries_not_using_indexes=1|0       # 是否将不使用索引的SQL记录到慢日志(和时长无关). 默认为0
         二进制日志
           server_id=1
           log_bin=/path/binlog                    # 二进制日志. 会自动在文件名后加序号后缀.若binlog被启用, 则该server_id必须指定. 同时启用binlog. 默认启用
@@ -706,7 +706,7 @@
               --exclude_databases=db1,db2,...     # 排除数据库, 使用逗号分隔
               --include_databases=db1,db2,...     # 导出数据库(包含所有对象), 使用逗号分隔
               --exclude_tables=table1,table2,...  # 排除表, 使用逗号分隔
-              --ixclude_tables=table1,table2,...  # 包含表, 使用逗号分隔
+              --include_tables=table1,table2,...  # 包含表, 使用逗号分隔
               --exclude_event=e1,e2               # 排除事件, 使用逗号分隔
               --include_event=e1,e2               # 导出事件, 使用逗号分隔
               --exclude_routines=r1,r2            # 排除过程和函数, 使用逗号分隔
@@ -1224,7 +1224,7 @@
             物理还原: 将物理备份的目录和文件还原至原目录即可
             逻辑还原: SQL格式文件被mysql客户端处理即可, 文本格式文件通过load data infile语句或mysqlimport程序处理
               1.> use db_name;
-                > set sql_log_bin=0;             # 不记录到binlog中
+                > set sql_log_bin=0;             # 不记录到binlog中 | set GLOBAL innodb_flush_log_at_trx_commit = 0 # 每隔1S将log刷新到磁盘, 但是不保证. 事务提交不会触发log写入
                 > source /path/db_name.sql;   |  # mysql -uuser -ppassword db_name < all_db.sql  一定要查看SQL文件中是否create database和use语句
               2.> source ./table_name.sql; > load data infile 'table_name.txt' into table table_name;
             增量备份恢复:
@@ -1236,7 +1236,7 @@
                 .# mysqlbinlog log_file_00023 > /tmp/mysql.sql       # 编辑该sql文件, 将不需要的SQL删除, 然后再执行
                 .# mysql -uroot -p < /tmp/mysql.sql
               2.使用event位置恢复: 语法同1, 但可更精确的指定恢复内容
-                .# mysqlbinlog --start_position=368312 --start_position=368315 file_log_00023 | mysql -uroot -p
+                .# mysqlbinlog --start_position=368312 --stop_position=368315 file_log_00023 | mysql -uroot -p
       批处理:
         1.# mysql -uuser -ppasswd -h host -D db_name [--force] < batch.sql | less
         2.> source batch.sql | > \. bathc.sql
