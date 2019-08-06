@@ -124,8 +124,10 @@ func Set_python_title()
   call setline(2,"# *-* coding:utf8 *-*")
   call setline(3,"# sky")
   call setline(4,"")
-  call setline(5,"if __name__ == \"__main__\":")
-  call setline(6,"    pass")
+  call setline(5,"def main():")
+  call setline(6,"    ")
+  call setline(7,"if __name__ == \"__main__\":")
+  call setline(8,"    main()")
 endfunc
 
 " shell
@@ -177,6 +179,6 @@ noremap! ， ,
 noremap! 。 . 
 noremap! × *
 noremap! ” ""<left>
-noremap! （ ()<left>
+"noremap! （ ()<left>
 
 

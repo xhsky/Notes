@@ -4,13 +4,11 @@
     MySQL提供了快速,多线程,多用户和结构化SQL语言.
   官网: http://www.mysql.com
   版本
-    稳定级别: alpha-->beta-->rc-->GA
-      ·alpha    表明发行包含大量未被彻底测试的新代码
-      ·beta     意味着该版本的功能时完整的,并且所有的新代码被测试,没有增加重要的新特征.当alpha版本至少一个月没有出现致命漏洞,并且没有计划增加导致已经实施的功能不稳定的新功能是,可以从alpha版变为beta版本
-      ·rc       是发布版本,是一个发行了一段时间的beta版本,能正常运行,只增加了很小的修复
-      ·         若没有后缀,则意味着该版本已经在很多地方运行了一段时间了,而且没有缺陷报告（GA版本）
-  协议
-    MySQL软件使用双重授权,用户可以根据GNU选择作为开放源码产品使用, 也可从Oracle处购买商业许可证
+    alpha    表明发行包含大量未被彻底测试的新代码
+    beta     意味着该版本的功能时完整的,并且所有的新代码被测试,没有增加重要的新特征.当alpha版本至少一个月没有出现致命漏洞,并且没有计划增加导致已经实施的功能不稳定的新功能是,可以从alpha版变为beta版本
+    rc       是发布版本,是一个发行了一段时间的beta版本,能正常运行,只增加了很小的修复
+             若没有后缀,则意味着该版本已经在很多地方运行了一段时间了,而且没有缺陷报告（GA版本）
+  协议: MySQL软件使用双重授权,用户可以根据GNU选择作为开放源码产品使用, 也可从Oracle处购买商业许可证
 适用性(优缺)
   MySQL的工作
     1.Mysql程序开发存储  
@@ -26,8 +24,10 @@
   模块
   安装
     Yum安装:
-      .# wget https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+      .# rpm -ivh https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
       .# yum install mysql-community-server(libs, libs-compat, client, common, libaio, net-tools)
+      .# mkdir -p /data/{mydata,mylog}; mkdir /data/mylog/{binlog,redolog,undolog}; chown -R mysql:mysql /data/{mydata,mylog}
+      .# setenforce 0
       .# systemctl start mysqld
       .# grep 'temporary password' /var/log/mysqld.log                     # 查找密码
       .# mysql -uroot -p
@@ -53,7 +53,6 @@
       .# /etc/init.d/mysqld start
       .# mysql -uroot -p
         > alter user 'root'@'localhost' identified by 'DreamSoft_123';                # 更改密码
-
     MySQL工具集:
       .# yum install mysql-utilities
     当MySQL数据库目录为空时,会自动初始化服务:
@@ -84,7 +83,16 @@
         5.先列出一般的选项组, 再列出更具体的选项组, 后指定的选项可以覆盖前指定的选项
         6.设置变量值为相乘或纯数字可在运行时设置, 值为带单位的数字则必须在启动时设置
         7.配置文件读取顺序: # mysql help | grep my.cnf(/etc/my.cnf /etc/mysql/my.cnf /usr/etc/my.cnf ~/.my.cnf)
+    变量:
+      innodb:
+        innodb_buffer_pool_resize_status                      # 记录在线更改innodb_buffer_pool_size的信息
+        innodb_buffer_pool_dump_status                        # 记录buffer pool转储的状态
+        innodb_buffer_pool_load_status                        # 记录加载buffer pool的状态
 
+        -- 预读:
+          Innodb_buffer_pool_read_ahead                       # 通过后台预读读入buffer pool中的page数
+          Innodb_buffer_pool_read_ahead_evicted               # 通过后台预读读入的page没有被查询访问就被清理的page数, 即无效预读数
+          Innodb_buffer_pool_read_ahead_rnd                   # 随机预读的数量
     配置: [mysqld]
       引入配置
         !include /path/dir/myopt.cnf        # !include 用来引入其它配置文件. 该指定在哪个选项组下就只引用文件内该选项组的内容,(!includedir指令相同)
@@ -105,8 +113,12 @@
             default_tmp_storage_engine=ndbcluster   # 设置临时表的存储引擎
       目录:
         basedir=/path/dir                           # 安装目录
-        datadir=                                    # 数据目录
+        datadir=                                    # MySQL数据目录
+        innodb_directories="dir1;dir2"              # 定义在启动时扫描的表空间的目录(包含其子目录), 且innodb_data_home_dir,innodb_undo_directory和datadir被自动附加到innodb_directories变量后(不论其是否定义)
+        innodb_data_home_dir=/path/dir/             # innodb系统表空间数据文件的目录的公共部分.默认值为datadir目录 
       日志:
+        日志时间
+          log_timestamps=system                   # 控制日志显示的时间, 默认utc
         错误日志
           log_error = /path/mysql.log             # 若无该参数, 则写入控制台.该参数默认值为数据库目录下hostname.err
           log_error_verbosity = 3                 # 日志级别. 1(只有error), 2(errors和warnings), 3(errors, warnings和notes).默认为3, 若值大于3, 则新连接报错
@@ -152,7 +164,7 @@
           binlog_group_commit_sync_no_delay_count=N     # 当缓存的事务数量达到N,则直接同步到磁盘而忽略sync_dalay的值. 默认为0,范围0-100000
           sync_binlog=N                           # 控制MySQL将binlog同步到磁盘binlog文件的频率.默认为1,范围0-4294967295. 
                                                   > 0: 禁用binlog同步到磁盘.MySQL依赖于操作系统的日志刷新. 该方式性能最好但易丢失数据
-                                                  > 1: 每个事务提交之前都先同步到磁盘的binlog. 该方式较为安全(binlog文件中不会有丢失的事务)
+                                                  > 1: 每个事务提交之前都先同步到磁盘的binlog. 该方式较为安全(binlog文件中不会有丢失的事务), 用于主从复制
                                                   > N: 在N个binlog提交被收集之后再同步到磁盘.值越高则性能越好, 但数据丢失越多的风险大
                                                   > 推荐使用该值为1, innodb_flush_log_at_trx_commit=1的设置, 具有最大的持久性和一致性
 
@@ -178,26 +190,64 @@
           .### 测试, 不用于生产环境
           max_binlog_dump_events=N                # 默认0
           sporadic_binlog_dump_fail               # 
-
       网络配置:
         max_connections=N                       # 最大连接数
         max_connect_errors=N                    # 
+        skip_networking                         # 禁用网络, 不在tcp/ip上监听.和mysql交互只能使用unix sock文件
       一般配置
         secure_file_priv=/path/dir              # 限制数据导入导出(load data, select ... into outilfe, load_file()). 参数为空则变量无效果, 为NULL则禁止导入导出, 为目录名则导入导出操作必须在该目录中执行
       innodb配置 
-        innodb_buffer_pool_size=                # innodb可用内存大小, 用于缓存数据和索引
-        innodb_buffer_pool_instances=N          # 将innodb缓冲池划分为N个区,以便不同线程读取和写入时减少争用. 
-        innodb_status_file=1|0                  # 是否启用innodb状态文件.默认禁用.innodb在数据目录下创建一个innodb_status.pid的文件, 每15s写入一次show engine innodb status的输出.
-                                                > 当MySQL正常关闭时会移除该文件.若不正常关闭, 可能需要手动移除
-                                                > 该选项一般作为临时使用, show engine innodb status的统计输出会影响性能
+        innodb_dedicated_server=1|0             # 若启用, 则MySQL自动根据主机内存配置innodb_buffer_pool_size, innodb_log_file_size, innodb_flush_method(用于专用数据库服务器)
+        innodb_buffer_pool_size=                # innodb可用内存大小, 用于缓存数据和索引. 其大小更改是以innodb_buffer_pool_chunk_size大小执行的(避免在调整期间复制整个buffer pool pages)
+        innodb_buffer_pool_chunk_size=N         # 指定缓冲池大小调整的块大小, 默认128M
+        innodb_buffer_pool_instances=N          # 将innodb缓冲池划分为N个实例,提高并发, 不同线程读取和写入时减少争用. 默认为8, 范围1-64
+                                                > 使用hash函数来随机存储或读取page
+                                                > 每个buffer pool管理直接的free list, frush list, LRU以及连接到buffer pool中的其它数据结构.其互斥由多个列表和hash来保护
+        innodb_page_size=16384                  # 自动innodb表空间的page大小, 取值4096,8192,16384,32768,65536字节, 默认16K. 该值只能在MySQL实例初始化时配置, 之后不能更改.对于4K,8K,16K, extent为1M, 32K则为2M, 64K为4M. 一个extend包含64个page
+        innodb_old_blocks_pct=37                # 指定buffer pool中old list的百分比. 默认37%, 范围5-95
+        innodb_old_blocks_time=N                # 指定第一次访问页面之后的时间窗口(毫秒), 在此期间访问该page不会移动到new list.默认值1000
+        -- innodb监控(15秒一次, 默认输出到stderr)
+          innodb_status_output=1|0              # 是否启用innodb标准监控定期输出
+          innodb_status_output_locks=1|0        # 是否启用innodb锁监控定期输出, 若要启用, 则标准监控也要启用
+          innodb_status_file=1|0                # 记录innodb标准监控到文件. 在数据目录下创建一个innodb_status.<pid>的文件, 每15s写入一次show engine innodb status的输出.
+        -- purge 
+          innodb_max_purge_lag=N                # 定义purge队列的最大长度.默认值0(无限制)
         -- redo log
-          innodb_log_group_home_dir=dir           # redo log的目录, 默认数据目录. redo log文件总大小要超过512G
+          innodb_log_group_home_dir=dir           # redo log的目录, 默认数据目录. redo log文件总大小不能超过512G
           innodb_log_file_size=N                  # redo log文件大小(单个文件). 默认值48M
           innodb_log_files_in_group=N             # redo log文件数量, 默认值2, 范围2-100
         -- log buffer
           innodb_log_buffer_size=N                # log buffer大小, 默认16M
-          innodb_flush_log_at_trx_commit=1        # log buffer的内容如何写入logfile
-          innodb_flush_log_at_timeout=            # 控制log buffer flush频率
+          innodb_flush_log_at_trx_commit=1        # log buffer的数据如何写入OS cache并刷新到redo log. 默认为1, 值为0/1/2
+                                                  > 0: 每秒写入OS cache并刷新到磁盘, 但未被刷新的事务在崩溃后会丢失
+                                                  > 1: 事务每次commit后都将log buffer的数据写入OS cache, 并调用fsync()刷新到redo log文件中. 用于主从复制
+                                                  > 2: 事务每次commit后都写入OS buffer, 并且每秒刷到redo log中, 但未被刷新的事务在崩溃后会丢失
+          innodb_flush_log_at_timeout=1           # 控制log buffer flush频率(即针对0和2的设置), 默认1秒. 范围1-2700
+        -- change buffer
+          innodb_change_buffering=all             # change buffer缓存的数据类型,默认all. 可用值:
+                                                  > all: 缓存insert,delete-marking操作,purges     > none: 不缓存任何操作
+                                                  > inserts: 只缓存insert操作                     > deletes: 只缓存delete-marking操作
+                                                  > changes: 缓存insert和delete-makring操作       > purges: 缓存发生在后台的物理删除操作
+          innodb_change_buffer_max_size=N         # change buffer的大小(以占用buffer pool的百分比显示). 默认值25, 范围0-50
+          
+        -- 预热(后台操作)
+          innodb_buffer_pool_dump_pct=N         # innodb在服务关闭时保存每个buffer pool最近使用page的百分比, 在启动时恢复, page会后台加载, 不会延迟数据库启动.默认25, 范围1-100
+          innodb_buffer_pool_filename=file_name # 预热作用保存的数据的文件名, 默认ib_buffer_pool并位于数据目录(若要更改, 必须相对数据目录指定位置). 仅保存相应page的tablespace id和page id
+          innodb_buffer_pool_dump_at_shutdown=1 # 在MySQL关闭时是否记录buffer pool的page缓存, 以缩短下次预热过程. 默认启用
+          innodb_buffer_pool_load_at_startup=1  # 在MySQL启动通过加载innodb_buffer_pool_filename自动预热, 默认启动
+          innodb_buffer_pool_dump_now=          # 在MySQL运行时保存buffer pool的状态, 则将该变量置为1
+          innodb_buffer_pool_load_now=          # 在MySQL运行时加载buffer pool的状态, 则将该变量置为1
+          innodb_buffer_pool_load_abort=        # 终止buffer pool加载, 则将该变量置为1
+          innodb_buffer_pool_in_core_file=1     # 通过排除buffer pool page来减少core file的大小, 默认启用
+        -- buffer pool刷新到磁盘
+          innodb_max_dirty_pages_pct_lwm=10     # 定义buffer pool中dirty page的低位百分比, 到达该值则开始刷新数据到磁盘.默认10, 范围0-99.99. 0表示禁用预冲洗
+          innodb_max_dirty_pages_pct=90         # 定义buffer pool中dirty page的最高百分比, 到达该值则开始积极地刷新数据.默认90, 范围0-99.99
+        -- buffer pool自适应(刷新频率, hash索引)
+          innodb_adaptive_flushing=1|0            # 指定是否基于工作负载自动调整在buffer pool中flush脏页的速率.默认启用, 可避免I/O活动的突发
+          innodb_adaptive_flushing_lwm=N          # 当innodb_adaptive_flushing被启用时,定义一个redo log容量的最低百分百.默认值10, 范围0-70
+          innodb_adaptive_hash_index=1|0          # 是否启用自适应hash索引, 默认启用
+          innodb_adaptive_hash_index_parts=N      # 索引分区, 默认为8. 范围1-512. 
+          innodb_adaptive_max_sleep_delay=N
         -- memcache插件
           daemon_memcached_enable_binlog=1|0      # 在master上使用innodb memcached插件(binlog需启用). 默认禁用
           daemon_memcached_engine_lib_name=file   # 指定实施该插件的共享库文件名称, 默认innodb_engine.so
@@ -205,14 +255,6 @@
           daemon_memcached_option=                # 空格分隔的列表.作为参数传递给memcached进程
           daemon_memcached_r_batch_size=N         # 默认值1
           daemon_memcached_w_batch_size=N         #
-
-        -- 自适应
-          innodb_adaptive_flushing=1|0            # 指定是否基于工作负载自动调整在buffer pool中flush脏页的速率.默认启用, 可避免I/O活动的突发
-          innodb_adaptive_flushing_lwm=N          # 当innodb_adaptive_flushing被启用时,定义一个redo log容量的最低百分百.默认值10, 范围0-70
-          innodb_adaptive_hash_index=1|0          # 是否启用自适应hash索引, 默认启用
-          innodb_adaptive_hash_index_parts=N      # 索引分区, 默认为8. 范围1-512. 
-          innodb_adaptive_max_sleep_delay=N
-
         -- 表空间
           -- 系统表空间
             innodb_data_file_path                   # 系统表空间的名称,大小,数量
@@ -220,39 +262,43 @@
           -- file-per-table表空间
             innodb_file_per_table=1|0               # innodb使用单独的.ibd文件为每个新建立的表存储数据和索引, 而非存储在系统表空间. 该选项不影响临时表创建
           -- undo log表空间
-            innodb_undo_directory=                  # 定义undo log表空间位置, 若未指定, 则默认在数据目录下
-            innodb_rollback_segments=               # 指定rollback segment数量.默认128. 
-            innodb_undo_log_truncate=0|1            # 
-            innodb_max_undo_log_size=N              # 指定undo log的大小. 默认1G
+            innodb_undo_directory=                  # 定义undo表空间位置, 若未指定, 则在数据目录中创建undo表空间
+            innodb_rollback_segments=N              # 指定undo表空间和global temporary表空间的rollback segment数量(分别).默认128. 范围1-128
+            innodb_undo_log_truncate=0|1            # 是否启用自动截断undo表空间, 默认on. 将超过innodb_max_undo_log_size大小的undo表空间标记.只有undo表空间能截断, 系统表空间中的undo log不支持
+            innodb_purge_rseg_truncate_frequency=128# 指定purge操作被唤起128次后才释放rollback segment, 从而截断undo表空间.默认128, 范围1-128
+            innodb_max_undo_log_size=N              # 指定undo表空间的大小. 默认1G, 当超过阈值时, 会触发truncate回收动作, truncate后空间缩小到10MB
+        -- 预读
+          innodb_read_ahead_threshold=N         # 线性预读阈值. 当innodb顺序读取了一个extent中至少N个page时, 会异步加载下一个extent到buffer pool中.默认56, 范围0-64
+          innodb_random_read_ahead=off          # 是否启用随机预读. 根据buffer pool中已有的page(同一个extent中至少13个page), 则会异步请求该extent中剩余的page. 
 
  
-        innodb_directories=
-        innodb_data_home_dir=
-
-
         default_storage_engine=innodb           # 指定默认存储引擎
-        innodb_change_buffering=all             # change buffer缓存的数据类型,默认all. 可用值:
-                                                > all: 缓存insert,delete-marking操作,purges     > none: 不缓存任何操作
-                                                > inserts: 只缓存insert操作                     > deletes: 只缓存delete-marking操作
-                                                > changes: 缓存insert和delete-makring操作       > purges: 缓存发生在后台的物理删除操作
-        innodb_change_buffer_max_size=N         # change buffer的大小(以占用buffer pool的百分比显示). 默认值25, 最大值50
         innodb_adaptive_hash_part
         innodb_doublewrite                      # 是否启用doublewrite buffer
       复制
-        server_id=N                             # 指定服务器id. 全局唯一.默认为0(则拒绝任何slave连接).
+        server_id=N                             # 指定服务器id. 全局唯一.默认为1.范围0-(2^32-1). 若设置为0, binlog正常, 但master拒绝任何slave连接, slave拒绝连接到master
         server_uuid=''                          # 读取data_dir/auto.cnf中的uuid. 若该文件不存在则生成新的uuid并写入该文件(自动生成), 不配置
         -- gtid
-          gtid_mode=                              # 是否使用gtid来验证事务.默认off.可选值: off, on, off_permissive, on_permissive
-          enforce_gtid_consistency=1              # 若为on,则服务器通过只允许执行可以使用gtid安全记录的语句来强制gtid一致性. 若启用gtid复制, 则该项必须为1
+          gtid_mode=on                            # 是否使用gtid来验证事务.默认off.可选值:
+                                                  >  off: 新事务和复制事务必须都是使用binlog
+                                                  > on: 新事物和复制事务必须都是gtid事务
+                                                  > off_permissive: 新事务是binlog的, 复制事务可以是binlog或gtid的
+                                                  > on_permissive: 新事务是gtid的, 复制事务可以是binlog或gtid的
+          enforce_gtid_consistency=on             # 若为on,则服务器通过只允许执行可以使用gtid安全记录的语句来强制gtid一致性. 若启用gtid复制, 则该项必须为on
                                                   > off: 违反gtid一致性的事务都被允许. on:违反gtid一致性的事务都不被允许. warn:违反gtid一致性的事务都被允许,但会生成警告
                                                   > create table ... select|create/drop temporayr table不能被使用. 同时更新事务表和非事务表的语句|事务不能被使用
                                                   > 该选项仅对进行二进制记录的SQL语句生效
-          gtid_executed_compression_period=N      # 默认1000,范围0-4294967295. 当N个事务发生时压缩mysql.gtid_executed. 0表示不压缩
+          gtid_executed_compression_period=N      # 当发生N此事务时压缩mysql.gtid_executed表, 默认1000, 范围0-4294967295. 若设置binlog, 则该值无效(表不压缩)
           binlog_gtid_simple_recovery=1|0         # 当MySQL启动在查找gtid过程中, binlog文件是否被迭代.默认为1
-          gtid_executed
-          gtid_next
-          gtid_owned
-          gtid_purged=
+                                                  > 当值为true, gtid_executed和gtid_purged会在MySQL启动时基于最新和最旧的两个binlog文件计算.
+                                                  > 当置为flase, 
+          gtid_executed                           # MySQL已经执行过的gtid事务集合
+          gtid_purged                             # 已经在服务器上提交, 但未在binlog中存在的事务( )
+          gtid_next                               # 该值用于指定如何获取下一个gtid(常用于跳过同步错误). 默认AUTOMATIC, 可选值:
+                                                  > AUTOMATIC : 使用下一个自动生成的gtid
+                                                  > ANONYMOUS : 事务不适用gtid, 通过binlog file和position标识
+                                                  > UUID:NUMBER : 以该格式标识
+          gtid_owned                              # 
         -- master
           show_slave_auth_info=1|0                # 在master上执行show slave hosts时显示用户和密码(需要slave以report_user和report_password启动), 默认禁止
           auto_increment_increment=N              # 默认为1, 范围1-65536. auto_increment列的间隔值
@@ -591,7 +637,7 @@
               --all_databases, -A                 # 指定所有库中所有表(除了information_schema, performance_schema和sys库)
               --databases, -B                     # 指定数据库, 多个数据库以空格分隔
               --all_tablespace, -Y                # 
-              --tables                            # 覆盖-B选项, 将其后参数作为表名
+              --tables                            # 覆盖-B选项, 将其后参数作为表名(多一个表以空格分隔)
               --no_data, -d                       # 只导出表结构, 不导出表内容(即无insert语句). 可添加-RE选项导出事件和存储定义
               --no_create_info, -t                # 只导出数据, 不产生create table语句
               --ignore_table=db_name.tb_name      # 导出时忽略指定表(视图).必须同时指定库和表名. 若要忽略多个表则多次使用该选项.
@@ -840,7 +886,6 @@
               --default_group_suffix=str                # 指定额外读取配置文件中相应后缀组的配置(eg: str=other, 则会额外读取[client_other], [_other])
               --default_auth=plugin                     # 客户端身份验证的插件
               --server_public_key_path
-
       mysqldumpslow:                              # 总结慢查询日志文件
     开发工具:
       mysql_config                                # 显示编译客户端选项
@@ -860,37 +905,65 @@
       mysqlbinlog: 处理二进制日志文件
       perror:    显示错误代码的含义
   日志
-    错误日志: mysqld的启动, 关闭, 运行日志
+    1.error log: 错误日志, 记录mysqld的启动, 关闭, 运行日志
       日志轮转: 简单移动文件即可
         .# mv mysqld.log mysqld.log.0
         > flush logs
-    通用查询日志: 记录客户端连接和发送的语句
+    2.general log: 一般查询日志, 记录客户端连接和发送的语句
       说明:
         1.mysqld按接收顺序写入而不一定是执行顺序
-        1.日志表并不干扰服务器的运行
-        2.create, alter, drop都可以用于日志表, 但alter和drop在日志表启用时被禁用, 可在日志表被禁用时使用:
+        2.日志表并不干扰服务器的运行
+        3.create, alter, drop都可以用于日志表, 但alter和drop在日志表启用时被禁用, 可在日志表被禁用时使用:
           > SET @old_log_state = @@global.general_log;
           > SET GLOBAL general_log = 'OFF';
           > ALTER TABLE mysql.general_log ENGINE = MyISAM;
           >  SET GLOBAL general_log = @old_log_state;
-        3.日志表只能使用csv或myisam引擎
-        4.truncat, rename, chkeck对日志表可以使用
-        5.lock, insert, delete, update在日志表上被禁用
-        6.写入日志表的信息不会被写入二进制日志, 故不会被复制到slave
-        7.通过flush tables或flush logs来分别刷新日志表和日志文件
-        8.日志表不可分区
-        9.日志表不会被mysqldump
-    慢查询日志: 时间超过long_query_time的查询
+        4.日志表只能使用csv或myisam引擎
+        5.truncat, rename, chkeck对日志表可以使用
+        6.lock, insert, delete, update在日志表上被禁用
+        7.写入日志表的信息不会被写入二进制日志, 故不会被复制到slave
+        8.通过flush tables或flush logs来分别刷新日志表和日志文件
+        9.日志表不可分区, 不会被mysqldump
+    3.slow query log: 慢查询日志, 时间超过long_query_time的查询
       说明: 同一般查询日志
       慢查询表轮替:
         > use mysql;
         > create table slow_log_new like slow_log;
         > rename table slow_log to slow_log_1, slow_log_new to slow_log;
-    二进制日志: 记录更改数据的语句(用于备份,恢复和复制)
+    4.relay log: 中继日志, 从master(replication)上接收的数据更改(slave将master上的binlog拷贝到本地放入relay log中, 然后调用SQL线程执行relay log中的events, 从而达到数据同步)
+      说明: 仅在从服务器上使用, 以便保留必须在slave上进行的数据更改
+      删除relay log日志:
+        > reset slave;
+    5.redo log: 重做日志, 用于记录事务操作的变化, 记录的是page修改后的内容(物理日志), 不管事务是否提交都会记录下来
+      1.是innodb存储引擎层的日志
+      2.采用固定尺寸的多个log文件以循环写入的方式存放日志文件, 当文件写满的时候则回到第一个文件的相应位置进行覆盖写
+      3.由于redo log记录了未提交的事务, 则可以此进行崩溃恢复
+      4.checkpoint之前的的空间可以被覆盖, write pos代表可以开始覆盖的位置.当两者相遇则表明redo log已满, 则数据库停止更新开始进行redo log同步
+    6.undo log: 回滚日志, 在事务开始后, 数据修改前, 将原始数据保存到undo log中(逻辑日志), 然后再进行数据修改, 一旦出错或执行rollback, 则可用undo log中的数据恢复到事务开始之前
       说明:
-        1.MySQL向二进制日志文件追加数字以创建文件序列
-        2.当服务器启动/刷新日志/大于max_binlog_size时会创建一个新的二进制日志文件
-        3.binlog目录中的.index文件包含binlog文件列表
+        1.undo tablesapce(127)|global temporary tablespace --> rollback segment(128) --> undo slots(16K/16) --> undo log --> undo log record
+        2.undo log record包含如何撤销最新的更改, 如果另一个事务需要读取原始数据, 则可从undo log中检索
+        3.在常规表上操作的事务从undo log表空间的rollback segment中分配undo log;在临时表上操作的事务从global temporary表空间的rollback segment中分配undo log
+        4.临时表修改产生的undo log不会被redo log记录, 它们不需要崩溃恢复, 只在服务器运行时被用于rollback
+        5.insert undo log在事务回滚时需要, 当事务提交则丢弃. update undo log在一致读时使用, 只要在其它事务不在使用undo log的事务版本信息后才能丢弃
+      作用: 事务回滚, MVCC
+      undo segment(slots): 
+        说明: undo log的集合,  一个undo log segment可能包含多个事务的undo log, 一个undo log segment只能一次只能被一个事务使用, 但是在事务commit或rollback后能重用
+        数量: 一个undo slot的数量取决于innodb page size/16
+      一个事务最多分配4个undo log, 每个undo log对应以下每种类型:
+        1.对用户定义表的所有insert
+        2.对用户定义表的所有update和delete
+        3.对临时表的所有insert
+        4.对临时表的所有update和delete
+      innodb能够支持的并发读写事务数:
+        常规表: undo tablespace数量(最大127) * rollback segment数量(innodb_rollback_segments) * undo slot数量(innodb_page_size/16)  / 一个事务分配的undo log数量
+        临时表: global temporary数量(1) * rollback segment数量(innodb_rollback_segments) * undo slot数量(innodb_page_size/16)  / 一个事务分配的undo log数量
+    7.bin log: 二进制日志, 记录更改数据的语句(记录原始逻辑, 用于备份,恢复和复制)
+      说明:
+        1.时MySQL Server层记录的日志, 由一组二进制文件和一个索引文件组成
+        2.MySQL向二进制日志文件追加数字以创建文件序列
+        3.当服务器启动/刷新日志/大于max_binlog_size时会创建一个新的二进制日志文件
+        4.binlog目录中的.index文件包含binlog文件列表
       二进制日志格式:
         分类:
           1.statement: 基于语句的日志记录(记录实际的SQL语句), 可能会出现非确定语句的问题(如, uuid()函数输出)
@@ -904,7 +977,7 @@
           > flush logs;
         3.手动清除: 不要使用rm删除日志. 该语法可安全地更新索引文件并且采取一个日期参数
           > purge binary logs to 'bin_log_filename'           # 按文件序号从开始删除至指定文件(但该文件不删除)          
-          > purge binary logs beffore '2018-08-03 15:00:00'   # 按照日期删除(最小单位为文件)
+          > purge binary logs before '2018-08-03 15:00:00'    # 按照日期删除(最小单位为文件)
           > reset master;                                     # 清除所有binlog文件并重新开始
       查看:
         > show binary logs;                               # 显示binlog列表
@@ -915,24 +988,7 @@
         > set sql_log_bin=0                               # 该语句后的所有SQL语句都不会被记录到二进制日志中(仅针对该会话)
         > sql
         > set sql_log_bin=1                               # 恢复记录
-    中继日志:   从master(replication)上接收的数据更改(slave将master上的binlog拷贝到本地放入relay log中, 然后调用SQL线程执行relay log中的events, 从而达到数据同步)
-      说明: 仅在从服务器上使用, 以便保留必须在slave上进行的数据更改
-      删除relay log日志:
-        > reset slave;
-    DDL日志(元数据日志): 由DDL语句执行的元数据操作
-      
-    1.查询日志    -- log
-      说明:客户端的一切操作被记录
-      操作:在配置文件中加入log=file
-    2.错误日志    -- log-error
-      说明:运行日志
-      操作:在配置文件中加入log-error
-          默认为 hostname.log
-    3.慢查询日志  -- log-slow-queries
-      说明:记录查询时间超过一定时间的查询
-          # show variables like "long_%"
-      配置:在配置文件中加入log-slow-queries和long_query_time=5
-          默认为 mysqld-slow.log
+    8.DDL log: 元数据日志
   优化
     SQL优化:
       SQL语句经过解释器转化为二进制代码. 然后经过优化器(由引擎提供)查询数
@@ -992,57 +1048,347 @@
         2.数据安全: 可以在slave上进行备份而不用损害master数据
         3.分析: 在maste上实时创建数据, 而对数据的分析可以在slave上进行
         4.远程数据分发: 使用复制为远程服务器创建本地数据的副本, 无须永久访问master
-      复制类型:
+      复制方式:
         基于binlog
           说明:
-            1.基于master的binlog event, 要求log文件和postition在主从之间异步
-            2.在master上的所有更改操作作为events写入binlog文件, slaves被配置去读取master的binlog文件, 执行其中的events.
-            3.无法配置master只记录某些events
-            4.每个slave都保存着binlog的坐标(master上的file_name和position)
-          方法:
-            1.SBR(Statement Based Replication): 复制完整的SQL语句
-            2.RBR(Row Based Replication): 只复制更改的行
-            3.MBR(Mixed Based Replication): 
+            1.master上的数据的更改会作为event写入binlog(基于不同的复制格式),  slaves被配置去读取master的binlog文件, 执行其中的events.
+            2.每个slave都会收到binlog的全部内容, 但可以指定执行binlog中的哪些语句. 无法配置master只记录某些events(只能具体到数据库级别)
+            3.每个slave都保存着binlog的坐标(slave当前处理的master上的file_name和position), 即slave可连接或断开master而不影响master的操作, slave重新连接后恢复同步
+            4.必须为master和slaves配置唯一server-id, 且为slaves配置master的ip,file_name和position.
+          操作:
+            1.在master上启用binlog并配置唯一的server_id.
+              .# vim /etc/my.cnf
+                [mysqld]
+                  server_id=1
+                  log_bin=/path/binlog/binlog
 
-        基于事务(gtid)
-          1.基于事务性的GTIDs(不需要log, 简化了许多常见的复制任务), GTID保证了主从之间的一致性
+                  sync_binlog=1
+                  innodb_flush_log_at_trx_commit=1
+            2.在master上创建一个单独的用户, 以便slave读取binlog进行同步.(该账号以文本形式存储在slave的mysql.slave_master_info)
+              > create user 'repl'@'%' identified by "DreamSoft@123456";
+              > grant replication slave on *.* to 'repl'@'%';
+            3.在启动复制之前, 记录master的binlog信息以便配置slave读取位置
+              > flush table with read lock;           # 防止master数据变更
+              > show master status;
+            4.在每个slave上配置唯一的server_id
+              .# vim /etc/my.cnf
+                [mysqld]
+                  server_id=2
+            5.同步原有数据:
+              # mysqldump -uroot -ppassword -B db_name -RE --triggers --master_data  > db_name.sql    # 在master上执行, 并退出之前的锁
+              > source ./db_name.sql                                                                  # 在slave上
+            6.在slave上配置同步信息并启动同步
+              > change master to master_host='ip', master_user='repl', master_password='DreamSoft@123456', master_log_file='binlog.0000N', master_log_pos=N;
+              > start slave;
+              > show slave status\G
+        基于GTIDs(全局事务标识符)
+          说明:
+            1.GTID是在整个复制集群中唯一的, 并与master上每个提交的事务相关联. GTID是一个单调递增没有间隔的数字
+            2.当事务被在master上提交, 并写入binlog, 则会为其分配一个GTID.
+            3 reset master会将变量gtid_executed, gtid_purged和mysql.gtid_executed表重置为空
+          自动跳过功能: 
+            1.若一个gtid的事务在一台服务器上开始执行, 但尚未提交或回滚.则在该服务器上尝试启动任何相同gtid的并发事务都将被阻塞
+            2.若该gtid事务被回滚, 则一个并发的gtid尝试执行, 其它并发的gtid依然被阻塞
+            3.若该gtid事务被提交, 则所有并发的gtid停止阻塞, 自动跳过该gtid中的所有语句(该服务器上执行相同gtid的事务的操作被忽略)
+          gtid格式: 
+            1.GTID=source_id:transaction_id(source_id标识最初的服务器, 一般是master的server_uuid. transaction_id是事务在master上提交的序列号.)
+            2.gtid sets: 包含一个或多个gtid或一个范围的gtid, 或多个服务器上的gtid sets
+          mysql.gtid_executed表: 存储gtid值
+            1.它允许slave在binlog被禁用时使用gtid, 且当binlog丢失时保留gtid状态
+            2.当binlog开启后, gtid_executed_compression_period值无效, 该表在binlog轮替时压缩
+            3.表压缩由前台线程thread/sql/compress_gtid_table执行
+            4.该表不会保存所有已经执行的gtid记录, 该信息由gtid_executed变量提供
+          限制: 
+            1.非事务引擎的更新不兼容
+            2.不能使用create table .... select
+            3.当binlog_format被设置为row或mixed时, create temporary table/drop temporary table允许在事务, 过程, 函数或触发器中使用.但该语句不会写入binlog, 也不会复制到slaves.
+
+
+          1.基于事务性的GTIDs(不需要binlog和postition, 简化了许多常见的复制任务),在master上提交的事务也应用于slave, GTID保证了主从之间的一致性
           2.使用gtid, 在master上提交和在slave上应用的事务都可以被标记和追踪. 在整个集群内, gtid都是唯一的
           3.gtids保存在master和slaves上, 
           4.当一个事务在master上被提交时, 若事务已被写入binlog, 则该事务被分配一个新的gtid(其后数字按序递增)
           5.复制的事务具有在master上相同的gtid. 每个gtid的事务只会在salve执行一次
-          7.GTID=source_id:transaction_id(source_id标识最初的服务器, 一般是master的server_uuid. transaction_id是事务在master上提交的序列号.)
 
           原理:
+            1.当主从连接握手时, slave会发送一个gtid set(包含已收到, 已提交的事务), master发送其binlog(不包含slave发送的gtid)以响应
             1.master更新数据时, 会在事务前产生gtid一同记录到binlog中
             2.slave端的I/O线程将变更的binlog写入到本地的relay log中
             3.SQL线程从relay log中获取gtid, 然后对比slave端的binlog是否有记录
             4.若有记录说明改gtid的事务已执行, slave会忽略
             5.若无记录slave从relay log执行该gtid的事务, 并记录到binlog中
-            6.
+          操作:
+            1.在master上启用binlog并配置唯一的server_id.
+              .# vim /etc/my.cnf
+                [mysqld]
+                  server_id=1
+                  log_bin=/path/binlog/binlog
+                  gtid_mode=on
+                  enforce-gtid-consistency=on
+                  log_slave_updates=1
+                  binlog_format=row
+                  sync_binlog=1
+                  innodb_flush_log_at_trx_commit=1
+            2.在master上创建一个单独的用户, 以便slave读取binlog进行同步.(该账号以文本形式存储在slave的mysql.slave_master_info)
+              > create user 'repl'@'%' identified with mysql_native_password by "DreamSoft@123456";
+              > grant replication slave on *.* to 'repl'@'%';
+            3.在每个slave上配置唯一的server_id
+              .# vim /etc/my.cnf
+                [mysqld]
+                  server_id=2
+                  log_bin=/path/binlog/binlog
+                  gtid_mode=on
+                  enforce-gtid-consistency=on
+                  log_slave_updates=1
+                  binlog_format=row
+                  sync_binlog=1
+                  innodb_flush_log_at_trx_commit=1
+            5.同步原有数据(master上数据很大或缺失binlog则需同步, 否则不需要可直接第6步):
+              # mysqldump -uroot -ppassword -B db_name -RE --triggers --master_data --set_gtid_purged=on  > db_name.sql    # 在master上执行
+              > source ./db_name.sql                                                                  # 在slave上
+            6.在slave上配置同步信息并启动同步
+              > change master to master_host='ip', master_user='repl', master_password='DreamSoft@123456', master_auto_position=1;
+              > start slave;
+              > show slave status\G
       同步类型:
         1.单向异步复制(其中一台扮演master, 其余扮演slaves), 内置的
         2.半同步复制(至少一个slave确认数据已经接收并写入binlog)
         3.延迟复制(slave落后于master一个指定的最少的时间量)
         4.同步复制(NDB集群)
-      主从复制: 传统复制
-        说明: 基于binlog复制
-        架构:
-          一个master, 多个slave
+      复制格式:
+        1.SBR(Statement Based Replication): 复制完整的SQL语句
+        2.RBR(Row Based Replication): 只复制更改的行
+        3.MBR(Mixed Based Replication): 混合复制
+      复制控制SQL:
+        控制master:
+          1. show binary|master logs;                                     # 列出服务器上的binlog
+          2. purge binary logs {to 'log_name'|before '2018-08-03 15:00:00'}     # 删除某些binlog
+          3. reset master [to binlog_index_number];                       # 将重置binlog文件, gtid_purged和gtid_executed变量和mysql.gtid_executed表. 指定to则将binlog重置以该索引号起始
+          2. show binlog events in 'binlog_name' from pos limit N;        # 列出binlog中的event, 若未指定, 则显示第一个binlog的内容
+          3. show master status;                                          # master上的binlog信息
+          4. show slave hosts;                                            # 显示当前连接到master的slave信息
+          7. set sql_log_bin=1|0                                          # 当前session的数据更改是否记录到binlog
+        控制slave
+          1. show slave status [for channel channel_name];                # 提供slave线程的信息
+          2. show relaylog event [in 'relay_file'] [from pos] [limit M, N] [channel_option]   # 列出relay log中的event
+          3. change master to {option}
+          4. change replication filter 
+          5. select master_pos_wait('master_log_file', master_log_pos[, timeout][, channel])
+          6. reset slave [all] [for channel channel_name]                 # 重置slave信息. 常用于slave干净启动(清空master info和relay log info,重置relay log文件(即使未被SQL线程完成).将master_delay重置为0), 该语句不会更改gtid_executed和gtid_purged
+                                                                          # reset slave不会更改任何复制连接参数(包括复制fiter), reset slave all则清除复制连接参数(包括filter) 
+          7. set global sql_slave_skip_counter=N                          # 该语句跳过来自master的下N个events
+        控制组复制:
+      多源复制:
+        说明:
+         1.允许从多个master并行复制
+         2.多源复制不会实现任何冲突检测和解决, 这些都留给应用程序处理
+         3.在多源复制的架构中, slave为每个接收事务的master创建复制通道
+        作用:
+          1.从多个服务器备份到单个服务器
+          2.合并表切片
+          3.从多个服务器合并数据到单个服务器
         操作:
-          1.master开启binlog, 并设置唯一的server_id
-            .# vim /etc/my.cnf
-              [mysqld]
-                server_id=1
-                log_bin=/path/binlog/binlog
-          2.master上创建用户以读取master上的binlog
-            > create user 'repl'@'ip' identified by 'password';
-            > grant replication slave on *.* to 'repl'@'ip';
-          3.master上导出需要同步的数
-            
+          1.基于主从结构
+          2.slave需要table设置
+            . # vim /etc/my.cnf
+              master_info_repository=table
+              relay_log_info_repository=table
+          3.加入将基于gtid的master
+            > change master to master_host='ip', master_user='repl', master_port=3306, master_password='', master_auto_position=1 for channel 'master_1';
+            > change master to master_host='ip', master_user='repl', master_port=3306, master_password='', master_auto_position=1 for channel 'master_2';
+          4.加入基于binlog的master
+            > change master to master_host='ip', master_user='repl', master_port=3306, master_password='', master_log_file='', master_log_pos=N for channel 'master_3';
+            > change master to master_host='ip', master_user='repl', master_port=3306, master_password='', master_log_file='', master_log_pos=N for channel 'master_4';
+          5.启动
+            > start slave for channel 'master_1';
+            > start slave for channel 'master_2';
+            > start slave for channel 'master_3';
+            > start slave for channel 'master_4';
+          6.关闭
+            > stop slave for channel 'master_1';
+          7.重置slave
+            > reset slave for channel 'master_1';
+        监控:
+          说明: show variables语句不适用于多源复制, 该变量信息已经迁移至复制性能表, 该语句在多源复制中的作用仅显示默认通道的状态
+          方式:
+            1.show slave status for channel 'master_2'\G
+            2.select * from performance_schema.replication_connection_status\G
     原理
   内部命令
     管理:
       帮助: > help show 显示所有的show语句     
+      Innodb存储引擎:
+        说明: 是一种平衡可靠性和高性能的通用存储引擎
+        优势: 
+          1.DML遵循ACID模型, 其事务具有提交,回滚,崩溃恢复等特性
+          2.行级锁定和Oracle风格一致性可提高多用户并发和性能
+          3.innnodb基于主键来优化查询.每个innodb表都有都有一个clusterd index的主键来组织数据以最小化基于主键查询的I/O
+          4.存储引擎中支持B树索引, 聚簇索引, 压缩数据, 数据缓存, 外键支持, 全文索引, 地理空间类型和索引, 索引缓存, 行粒度锁定, MVCC, 64TB存储, 事务, 更新数据字段的统计信息
+          5.服务器中支持备份/时间点恢复, 数据加密, 复制支持 
+          6.不支持集群数据库, 哈希索引, T树索引
+        特性:
+          1.崩溃自动恢复: MySQL启动后发生的清理活动.使用redo log中的数据重做未完成的事务(崩溃前已提交, 但为写入到数据文件)
+          2.innodb有自己的缓冲池(表和索引数据)
+          3.若数据损坏(内存或磁盘中), 在使用之前校验机制会提醒是伪造数据
+          4.
+        Innodb和ACID
+        Innodb多版本并发控制(MVCC)
+          说明: 允许innodb事务在某中隔离级别下执行一致读操作(实现非锁定读, 读取一行记录时, 若被其它事务占据, 则通过undo读取之前的版本)
+          一致读: 
+          
+          innodb在数据库存储的每一行上添加四个字段:
+            6字节 DB_TRX_ID: 最后insert/update该行的事务id. delete在内部被当做update对待, 行中一个特殊的直接被作为删除标记
+            7字节 DB_ROLL_PRT: roll指针, 指向写入回滚段中的undo log.
+            6字节 DB_ROW_ID: 单调递增的行id.若innodb自动生成聚簇索引, 则该索引包含行ID, 否则该列不会出现在任何索引中
+            1字节 DELETE BIT:删除标志. 若删除了一行数据, 则将该标识为设为1, 然后通过purge去异步删除真是的数据
+
+        Innodb架构
+           ______________________________      _______
+          |     In-Memory Structures    |     |      |      
+          |    ______________________   |     |      |
+          |   |    buffer pool      |   |     |      |
+          |   |  ______    ______   |   |     |      |
+          |   | | AHI |   |     |   |   |     |  OS  |
+          |   | |_____|   | LRU |   |   |     |      |
+          |   |           |_____|   |   |     | Cache|
+          |   |   ________________  |   |     |      |
+          |   |  | change buffer |  |   |     |      |
+          |   |  |_______________|  |   |     |      |
+          |   |_____________________|   |     |      |
+          |     _____________           |     |      |
+          |    | log buffer |           |     |      |
+          |    |____________|           |     |      |
+          |_____________________________|     |______|
+
+        Innodb内存结构
+          1.Buffer Pool
+            说明: 是内存中一个缓存数据和索引的区域, 允许直接从内存中处理常用数据, 以加快处理速度
+              1.为了提高大容量读取操作的效率, buffer pool被分成可以容纳多行的page.
+              2.为提高缓存管理的效率, buffer pool被实现为链接的页面列表.
+              3.使用LRU算法的变体, 很少使用的数据在缓存中老化
+            Buffer pool list:
+              1.使用LRU算法将buffer pool作为列表进行管理
+              2.缓冲池列表分为两个子列表: 头部5/8部分为new list, 尾部3/8部分为old list(实质是通过新插入的page而划分的)
+              3.访问old list的页面使其变得new, 将其移动到new list的头部
+              4.当需要空间将新page加到buffer pool时, old list中尾部页面被逐出(最近最少使用的page), 新page被添加到buffer pool的中间(old list的头部).
+              5.由下至上, 被访问的page组件变new;由上至下, 未被访问的page逐渐变old. old list尾部page最终被逐出
+              5.默认情况下, 查询读取的page会立即移动到new list中, 表扫描(mysqldump或select no where)或由预读后台线程加载会将大量数据带入buffere pool, 并逐出相同数量的旧数据.
+
+                      buffer pool list:
+                     ___________________
+                    |                  |   
+                    |                  |   
+                    |   new list       |  
+                    |                  | 
+                    |                  |
+                    |------------------|   
+                    | new insert page  |   
+                    |------------------|   
+                    |   old list       |   
+                    |__________________|   
+            checkpoint:
+              说明:
+                1.当对buffer pool中缓存的数据页进行更改时, 这些更改将在稍后的某个时间点写入数据文件(即fluhing)
+                2.checkpoing是已经成功写入数据文件的更改的记录,  由LSN值表示
+                3.在崩溃恢复期间, innodb会查找写入redo log中的检查点标签.它知道该标签之前对数据库的修改都已经存在于数据库中了, 则扫描该标签之前的redo log, 将其应用到数据库
+              fuzzy checkpointing: 一种从buffer pool中刷新小批量脏页而非所有脏页的技术
+          2.Change Buffer
+            说明: 缓存不在buffer pool中的辅助索引pages的更改, 当pages由其它读操作加载到buffer pool中时更改被合并
+              1.由insert, update, delete操作导致的更改
+              2.不在buffer pool中的辅助索引页面的更改被缓存到change buffer
+              3.当辅助索引页被读取到buffer pool中时会合并更改
+              4.purge操作会周期并高效性地将更新的索引页写入磁盘(在系统空闲/正常关闭数据库)
+              5.更改时不用读取磁盘, 避免大量的随机I/O, 提高写入速度
+              6.change buffer是buffer pool的一部分, 当数据库关闭时, 会持久化到磁盘的系统表空间中
+              7.适合于写多读少的场景, 数据库大部分是非唯一索引;不适用于数据库都是唯一索引, 更新数据后立刻读取
+          3.Adaptive Hash Index
+            说明: InnoDB存储引擎会监控对表上各索引页的查询, 并建立合适的哈希索引, 加速数据页的访问. 
+              1.hash自适应索引会占用innodb buffer pool
+              2.只用于=和<=>操作符(但非常快), 其它操作符不适用
+              3.不能加速ordery by操作
+              4.禁用AHI会立即清空hash表(清空后执行使用hash表的查询直接访问B树索引), 当启用AHI, 在正常操作期间会再次填充hash表
+              5.AHI已分区, 每个索引都绑定到一个特定的分区, 每个分区都由一个单独的锁存器保护
+          4.Log Buffer(日志缓冲区)
+            说明: 是存储写入redo log的数据的内存区域, 记录事务操作变化
+              1.log buffer的内容会周期性的写入redo log
+              2.较大的log buffer可使事务在提交前不用写入磁盘, 以节省I/O
+        innodb磁盘结构
+          表:
+          索引:
+          表空间:
+            1.system表空间
+            2.
+            3.
+            4.undo表空间:
+                1.当MySQL初始化时会创建两个默认的undo表空间(其表空间名称为innodb_undo_001和innodb_undo_002, 文件名为undo_001和undo_002)
+                2.undo表空间的初始大小由innodb_page_size决定: 7M(4K), 8M(8K), 10M(16K), 20M(32K), 40M(64K)
+                3.一个MySQL实例最多支持127个undo表空间(包括默认的2个表空间)
+                4.每个undo表空间包含rollback segment --> undo segment --> undo logs
+              purge system:
+                说明: 每隔innodb_purge_rseg_truncate_frequency次调用purge操作, 则会查找undo表空间. 若发现某个undo表空间被标记inactive, 
+                  则等待undo表空间中rollback segment中的事务完成,然后释放该rollback segment.并将undo表空间置为初始大小. 此时可drop或active
+              截断undo表空间: 管理undo表空间大小, 两种方式可组合使用
+                自动截断:
+                  说明:
+                    1.启用后自动执行脱机, 截断, 重新激活undo表空间(可能在高负载时进行截断, 则影响性能, 最简单的方式是增加undo表空间的数量)
+                    2.至少有两个活动的undo表空间, 才可以确保一个undo表空间保持活动, 另一个处于脱机以进行截断
+                  操作:
+                    > SET GLOBAL innodb_undo_log_truncate=ON;
+                  过程:
+                    1.当默认和用户自定义的undo表空间大小超出被标记截断, 则以循环的方式来截断, 避免每次截断相同的表空间
+                    2.undo表空间的rollback segment被置为inactive, 以便于他们不再被分配新事务.当前存在的事务允许被完成
+                    3.当rollback segment不再被使用后, purge系统则释放它们
+                    4.在所有的rollback segment被释放后, 运行阶段操作并截断至初始状态
+                    5.rollback segment被重新激活以便于可被分配新事务
+                手动截断:
+                  说明: 至少有两个活动的undo表空间, 才可以确保一个undo表空间保持活动, 另一个处于脱机以进行截断
+                  操作:
+                    > alter undo tablespace tablespace_name set inactive;     # 停用undo表空间
+                      > 当表空间被标记为inactive后, 等待该表空间中rollback segment存在的事务完成.之后purge系统在下一次被调用时重置undo表空间
+                      > 同时其state由inactive变为empty(inactive表明其中rollback segment不再被新事务使用, empty表明该undo表空间为empty可被drop或active)
+                    > select name, state from information_schema.innodb_tablespaces where name like tablespace_name; 查看状态(inatcie/empty)
+                    > alter undo tablespace tablespace_name set active;       # 当state变为empty时, 可激活该表空间
+                截断过程监控:
+                  > select name, subsystem, comment from information_schema.innodb_metrics where name like "%truncate%";
+              添加undo表空间: 防止单个表空间因为长时间运行的事务变的太大
+                > select tablespace_name, file_name, file_type from information_schema.files where file_type like "undo log";  # 查看undo表空间
+                > create undo tablespace tablespace_name add datafile 'file_name.ibu';    # 文件名必须以ibu结尾, 默认路径在innodb_undo_directory目录下
+                > select tablespace_name, file_name, file_type from information_schema.files where file_type like "undo log";  # 查看undo表空间
+              移动undo表空间:
+                说明: 
+                  1.由create undo tablespace创建的表空间可以在服务器脱机时移动到任何已知目录(由innodb_directories变量定义的目录)
+                  2.默认undo表空间文件可在服务器脱机时移动, 但必须在innodb_undo_directory目录下, 即修改该变量为新目录
+              删除undo表空间:
+                说明: 
+                  1.支持运行时删除
+                  2.默认undo表空间不能被drop, 但可以被inactive(在inactive之前, 必须有一个undo表空间来替代它, 以支持自动截断(最少需要两个undo表空间))
+                操作:
+                  > select name,state from information_schema.innodb_tablespaces;   # 查看undo表空间
+                  > alter undo tablespace tablespace_name set inactive;             # 将要删除的表空间置为inactive, 并等待state变为empty
+                  > drop undo tablespace tablespace_name;                           # 当state变为empty时, 可drop
+        innodb锁和事务
+          行级锁:
+            1.共享锁和排它锁 
+          表级锁:
+          锁类型:
+           
+            2.
+        innodb配置
+        innodb表和页面压缩
+        innodb row格式
+        innodb磁盘I/O和文件空间管理
+        innodb在线DDL
+        innodb监控:
+          监控类型:
+            说明:
+              1.innodb_status_output和innodb_status_output_locks变量用于innodb标准监控和锁监控定期输出, 默认off.
+              2.该输出影响性能, 一般用于临时启用.当关闭服务时, 变量重置为off
+              3.show engine innodb status会显示标准监控, 若要查看锁监控, 则只需设置innodb_status_output_locks为on即可
+            1.标准监控
+              内容:后台线程完成的工作, 信号量等待, 最近的外键和死锁数据, 事务锁等待, 活动事务持有的表和记录锁, 待处理的I/O操作和相关统计信息
+                change buffer和AHI统计, redo log数据, buffer pool统计, 行操作数据
+            2.锁监控
+
       客户端:
         > sql \c                                # 清空当前输出
         > \C charset_name                   # 更改默认字符集并发送set names语句
@@ -1089,7 +1435,7 @@
       日志:
         > flush error logs              # 刷新错误日志
         > flush logs                    # 刷新所有日志  
-        > purge binary logs             # 删除二进制日志
+        > purge binary logs ...         # 删除二进制日志
       复制:
         > reset master;
         master变量:
@@ -1174,7 +1520,7 @@
                 time_zone_name:             在时区id和名称的映射
                 time_zone_transition, time_zone_transition_type:      时区描述
               6.复制系统表:
-                gtid_executed:             存储GTID值
+                gtid_executed:             存储MySQL上所有GTID值, 除了存储在活动binlog文件中的
                 ndb_binlog_index:          NDB集群的bin日志信息
                 slave_master_info, slave_relay_log_info, slave_worker_info:   在slave上存储的复制信息 
               7.优化器系统表:
@@ -1214,7 +1560,7 @@
               - 在备份服务器上执行远程同步
                 .# nohup mysqlbinlog -ubinlog_user -pbinlog_pass -h 192.168.1.153 --read-from-remlote-server --stop-never --to-last-log --raw binlog.000002 &
           5.在slave上备份(不论使用何种备份方法, 都应该备份master信息和relay log)
-             > mysqldump -RE --single-transaction --flush-logs --master_data=2 --all-databases > backup_sunday_1_PM.sql
+             > mysqldump -RE --triggers --single-transaction --flush-logs --master_data=2 --all-databases > backup_sunday_1_PM.sql
           6.文件系统镜像(在备份镜像时要锁表(flush tables with read; unlock tables))
 
           备份单一数据库: # mysqldump -uuser -ppasswd db_name -RE --triggers > /path/db_name.sql
@@ -1357,7 +1703,7 @@
               - 使用通配符"*"通常会降低检索和应用程序的性能
           where子句
             操作符:
-              = <> != < <= > >= 
+              = <> != < <= > >= <=>(与=相同, 但可以比较null值)
               between     在两个值之间,匹配范围内所有值,包括开始值和结束值
               is null     查询该字段是否不包含值
               in (,)      指定条件值,由,分隔
@@ -1765,4 +2111,16 @@ MySQL三个线程:
   1.master上的binlogdump线程: 将binlog发送到slave上
   2.slave上的I/O线程: 读取master发送的内容并写入本地relay log
   3.slave上的SQL线程: 读取relay log中的内容并在本地执行
+预读(Read-Ahead)
+  说明: 是一个异步预取相关的extent到buffer pool中的I/O请求, 并期待这些page很快被访问. 
+  预读算法: 为了提高I/O
+    线性预读:
+    随机预读:
+锁表:
+information_schema.innodb_trx         ## 当前运行的所有事务
+information_schema.innodb_locks       ## 当前出现的锁
+information_schema.innodb_lock_waits  ## 锁等待的对应关系 
+information_schema.processlist        
+
+  
 

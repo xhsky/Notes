@@ -163,13 +163,11 @@ GlusterFS
 		glusterfs/glusterfsd	客户端进程
 		
 	1.配置/etc/hosts
-		# yum install rpcbind python-argparse
-	  下载glusterfs的yum源	
-		# wget -P /etc/yum.repos.d/ http://download.gluster.org/pub/gluster/glusterfs/LATEST/CentOS/glusterfs-epel.repo
-	  导入epel7的源
+		# yum install rpcbind python-argparse centos-release-gluster
 	2.server端yum安装
 		# yum install glusterfs-server
 		# systemctl start glusterd
+    # systemctl enable glusterd
 	3.在node1上配置整个glusterfs集群
 		添加结点：
 			# gluster peer probe node1
@@ -188,7 +186,7 @@ GlusterFS
 		# gluster volume start data2
 		# gluster volume info				-- 查看状态是否为started，否者可在/var/log/glusterfs/etc-glusterfs-glusterd.vol.log查看错误
 	7.客户端挂载
-		# yum安装
+		# yum install glusterfs-fuse
 		# mkdir -p /data/data{1,2,3}
 		# mount -t glusterfs node1:/data1 /data/data1
 		# df -h
@@ -198,7 +196,7 @@ GlusterFS
 		节点管理		-- 在一个node上操作即可
 			添加
 				# gluster peer probe hostname/ip
-			删除
+	'		删除
 				# gluster peer detach hostname/ip		-- 移除节点时先将其brick移除
 			查看
 				# gluster peer status					-- （显示时不包括本节点）

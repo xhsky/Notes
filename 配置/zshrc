@@ -99,6 +99,8 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 #alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
 alias rm="mv -f --target-directory=/tmp/"
+alias chrome_proxy='google-chrome -user-data-dir="/home/sky/.google-chrome/proxy" --proxy-server=socks5://127.0.0.1:1080 &'
+alias chrome='google-chrome -user-data-dir="/home/sky/.google-chrome/noproxy" &'
 
 # 配置direnv
 eval "$(direnv hook zsh)"

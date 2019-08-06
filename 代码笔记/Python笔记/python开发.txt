@@ -4,17 +4,10 @@ pip安装：
 Virtualven安装：
 	说明：Virtualenv是用来创建一个隔离的Python环境
 	# pip install virtualenv
-
-	
 	优点：
 		1. 在没有权限的情况下安装新套件
 		2. 不同应用可以使用不同的套件版本
 		3. 套件升级不影响其他应用
-	
-	
-	
-	
-	
 	命令：
 		# virtualven [options] DIST_DIR
 			--version             		# 显示版本号
@@ -58,6 +51,35 @@ Virtualven安装：
 	这种写法主要是为了让你的程序在不同的系统上都能适用
 	大部分情况下，/usr/bin/env是优先选择的，因为它提供了灵活性，特别是你想在不同的版本下运行这个脚本；而指定具体位置的方式#!/usr/bin/bash，在某些情况
 	下更安全，因为它限制了代码注入的可能
+
+
+虚拟环境:
+  virtualenv: 
+    安装: pip install virtaulenv
+    说明: 虚拟环境管理工具
+
+  virtualenvwrapper:
+    说明: 虚拟环境管理工具加强版, 管理virtualenv
+  pyenv 
+    说明: python版本管理工具
+  pipenv
+    安装: pip install pipenv
+    说明: 项目环境管理工具
+      1.默认虚拟环境会创建在~/.local/share/virtualenvs/中.若在项目的根目录下保存
+        虚拟环境目录(.venv), 需要在.bashrc或.bash_profile中配置export PIPENV_VENV_IN_PROJECT=1
+    自动激活:
+      autoenv
+        # pip install autoenv
+        # echo "pipenv shell" > .env
+        # echo "source `which activate.sh`" >> ~/.zshrc      自动识别项目目录中的.env文件
+        # cd program
+      direnv:
+        # 
+  venv:
+    说明: Python自带的标准库(pyvenv是随python3一起发布的脚本, 但在3.6中弃用)
+      1.在当前目录下生成Python环境, 但其库与二进制文件是软连接
+  anaconda:
+    说明: 一个包含180+的科学包及其依赖项的发行版本(不只是 Python 可用)
 	
 	
 Socket:
