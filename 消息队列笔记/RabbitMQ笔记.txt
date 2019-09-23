@@ -359,14 +359,6 @@
                                       prefetch_count：
                                       global_prefetch_count
                                       
-                                      
-                                      
-                                      
-                                      
-                                      
-                                      
-                                      
-          
           list_consumers [-p vhost]             # 显示所有consumers。按行显示，字段按\t分隔(queue_name,channel_id,consumer_tag,是否确认预计交付给消费者的信息,prefetch limit,argument)
           purge_queue <queue>               # 清空一个队列(删除里面的所有消息)
           

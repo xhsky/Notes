@@ -24,9 +24,9 @@
   模块
   安装
     Yum安装:
-      .# rpm -ivh https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+      .# rpm -ivh https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
       .# yum install mysql-community-server(libs, libs-compat, client, common, libaio, net-tools)
-      .# mkdir -p /data/{mydata,mylog}; mkdir /data/mylog/{binlog,redolog,undolog}; chown -R mysql:mysql /data/{mydata,mylog}
+      .# mkdir -p /data/{mydata,mylog}; mkdir -p /data/mylog/{binlog,redolog,undolog,relay}; chown -R mysql:mysql /data/{mydata,mylog}
       .# setenforce 0
       .# systemctl start mysqld
       .# grep 'temporary password' /var/log/mysqld.log                     # 查找密码
@@ -93,6 +93,7 @@
           Innodb_buffer_pool_read_ahead                       # 通过后台预读读入buffer pool中的page数
           Innodb_buffer_pool_read_ahead_evicted               # 通过后台预读读入的page没有被查询访问就被清理的page数, 即无效预读数
           Innodb_buffer_pool_read_ahead_rnd                   # 随机预读的数量
+        
     配置: [mysqld]
       引入配置
         !include /path/dir/myopt.cnf        # !include 用来引入其它配置文件. 该指定在哪个选项组下就只引用文件内该选项组的内容,(!includedir指令相同)
@@ -136,6 +137,9 @@
           min_examined_row_limit=N                # 至少扫描了N行的SQL被记录, 默认为0. 两者是and关系
           log_slow_admin_statements=1|0           # 是否将超时的管理SQL语句记录到慢日志(alter table, analyze table, check table, create index, drop index, optimize table, repair table), 默认为0
           log_queries_not_using_indexes=1|0       # 是否将不使用索引的SQL记录到慢日志(和时长无关). 默认为0
+
+          log_slow_slave_statements=1|0                           # 当慢查询日志被启用后, 记录在slave上执行时间超过long_query_time的SQL. 在master上以row format记录的语句不会被记录到slave的慢日志中
+          log_warnings[=level]                                    # 
         二进制日志
           server_id=1
           log_bin=/path/binlog                    # 二进制日志. 会自动在文件名后加序号后缀.若binlog被启用, 则该server_id必须指定. 同时启用binlog. 默认启用
@@ -149,7 +153,7 @@
           binlog_checksum=none|crc32              # 使master写入events的校验值到binlog, 默认crc32. 该值被更改, 则binlog文件被轮替
           master_verify_checksum=0|1              # 当从binlog中读取时,使master使用校验值验证binlog. 若不匹配则报错停止. 默认禁用. 当被禁用时,master使用从binlog中读取event长度来验证events
           max_binlog_size=                        # binlog文件的最大大小. 达到该大小时, 二进制日志被刷新.默认值1G(事务不可分分隔到多个binlog中, 故文件可能超过1G).范围4096-1G(当max_relay_log_size为0,该选项同样适用于relay log)
-          binlog_cache_size=N                     # 一个事务中的binlog缓存大小, 默认32768byte
+          binlog_cache_size=N                     # 一个事务中的binlog缓存大小, 默认32768byte(会话级别)
           binlog_stmt_cache_size=N                # binlog在保存事务中非事务语句的缓存大小. 默认32768byte
           max_binlog_cache_size=                  # 一个事务的最大内存.默认18446744073709551615byte, 最小值4096. 推荐最大值4GB(因为MySQL无法处理超过4GB的binlog的position)
           max_binlog_stmt_cache_size=             # 一个事务中的非事务性语句的最大内存.默认18446744073709547520 bytes.最小4096.
@@ -185,7 +189,7 @@
 
           original_commit_timestamp               # 允许初始提交时间戳在复制集群中传播.当在slave上重新执行事务时, 被设置为在初始服务器上执行的时间
           sql_log_bin=1|0                         # 是否对当前session启用binlog.默认为1.若设为0(set @@session.sql_log_bin=0), 临时禁用binloy
-          transaction_write_set_extraction=       # 
+          transaction_write_set_extraction=XXHASH64             # 定义在一个事务期间用于何种散列算法将写入集合编码, 默认值XXHASH64. 可用值MURMUR32, off. 若使用mgr, 则必须为XXHASH64, 因为当group成员进行冲突检测时需要从事务中提取写入的过程
 
           .### 测试, 不用于生产环境
           max_binlog_dump_events=N                # 默认0
@@ -311,9 +315,9 @@
             rpl_semi_sync_master_wait_for_slave_count=N             # master在超时时间内至少收到的ack的salve数量(确认之后才能继续). 默认为1, 范围1-65536
             rpl_semi_sync_master_wait_no_slave=
             rpl_semi_sync_master_wait_point=
-
         -- client
           log_slave_updates=1|0                                   # 将从master上接收的更改语句写入自己的binlog.默认启用. 该选项常用于slave既是master又是slave的情况
+          sql_slave_skip_counter=N                                # slave应该跳过的来自master上的events的数量. 应用于下一个start slave语句.但同时该值亦归0. 该选项与gtid_mode模式不兼容.若指定的个数是在一个events group的中间, 则slave继续跳过直到一个开始的位置
           
           master_info_repository=table|file                       # 将master状态和连接信息记录到库中的innodb表(mysql.slave_master_info)还是数据目录的文件中.默认table
           master_info_file=file_name                              # 用于slave记录master的信息文件. 需要master_info_repository=file.默认值master.info. 存储在数据目录
@@ -329,10 +333,6 @@
             rpl_semi_sync_slave_trace_level=N                       # 半同步的日志级别(1: 一般信息 16: 详细信息 32: 网络等待信息 64: 函数调试), 默认32
             rpl_stop_slave_timeout=N                                # 默认值31536000(1年), 范围2s-1年(单位秒)
 
-
-          log_slow_slave_statements=1|0                           # 当慢查询日志被启用后, 记录在slave上执行时间超过long_query_time的SQL. 在master上以row format记录的语句不会被记录到slave的慢日志中
-          log_warnings[=level]                                    # 
-          以change master to语句的master_connect_retry设置的间隔默认为60s
           -- relay log
             relay_log=file_name(relay_bin)                          # relay日志的基名称. 添加序列数字为后缀创建relay日志. 默认存在数据目录, 可通过绝对值路径选择其它目录
             relay_log_index=file_name                               # relay日志索引文件名. 未指定则继承上个选项值
@@ -345,40 +345,36 @@
             sync_relay_log=N                                        # 默认10000. 若值大于0,则每N个events写入relay log后MySQL同步relay log到磁盘. 若值为0,则不同步到磁盘,需依赖操作系统的刷新
             sync_relay_log_info=N                                   # 默认10000. 根据relay_log_info_repository的值来选择N个事务后更新表.若值为0,则每个事务后更新表
 
+          -- 指定同步的数据
+            replicate_do_db=channel_1:db_name                       # 指定复制的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
+            replicate_ignore_db=channel_1:db_name                   # 指定忽略的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
+            replicate_do_table=channel_1:dbname.tb1_name            # 指定复制的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
+            replicate_ignore_table=channel_1:dbname.tb1_name        # 指定忽略的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
+            replicate_wild_do_table=db_name.tb1_name                # 指定复制的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库复制,同时支持库级语句.).支持\用于转义
+            replicate_wild_ignore_table=db_name.tb1_name            # 指定忽略的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库忽略).支持\用于转义
+            replicate_rewrite_db="from_name->to_name"               # 转换数据库, 
+            replicate_same_server_id=1|0                            # 默认关闭
 
-  
+          -- slave注册
+            report_host=host_name                                   # slave注册期间报告给master的主机名或ip
+            report_password=password                                # slave注册期间报告给master的密码
+            report_user=user_name                                   # slave注册期间报告给master的用户名
+            report_port=slave_port                                  # slave注册期间报告给master的端口, 默认3306
+          -- 多线程slave
+            slave_checkpoint_group=N                                # 隔多少事务做一次checkpoint.默认512.范围8-524280.其值为8的倍数.多线程不启用则slave不受影响. NDB集群不支持多线程slaves
+            slave_checkpoint_period=N                               # 隔多长时间做一次checkpoint.默认300.单位毫秒,范围1-4G. 它同上个group选项结合使用, 当任一超过限制, 则执行checkpoint. 并重置相关参数
+            slave_parallel_workers=N                                # 在slave上启用多线程并设置并行处理复制事务的线程数(另加一个coordinateor线程来管理这N个线程).范围0-1024.若使用多个复制channels, 则每个channel都有这个线程数.当值为0时,则slave只有一个应用线程
+            slave_parallel_type=type                                # 哪种事务可以被并发执行.默认database
+                                                                    > logical_clock: 同一个binglog组的一部分的事务可以在salve上并行.事务之间的依赖关系根据他们的时间戳来跟踪.若使用了多个层次的slave,离master越远的slave执行的并行化越少,可通过在master上设置binlog_transaction_dependency_tracking指定write sets替代时间戳来减少这种影响
+                                                                    > database: 并行更新不同数据库的事务.不能存在跨数据库的约束
+                                                                    > 当slave_preserver_commit_order=1时, 只能使用logic_clock
+            slave_pending_jobs_size_max=N                           # 在多线程slave上,允许保存等待events的队列的内存大小(byte). 默认128M,为1024的倍数.范围(1024-16EiB). 该值为软限制.若有超过该值的event,则该事务被暂存,等待所有线程都有空队列再处理.等该事务处理完后再处理后续事务
+            slave_preserver_commit_order=0|1                        # 默认为0.若设为1,则在多线程slave上确保执行的事务和relay log中出现的顺序相同.若设为1, 则log_bin, log_slave_updates被启用,且slave_parallel_types被设为logical_clok
 
-          replicate_do_db=channel_1:db_name                       # 指定复制的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
-          replicate_ignore_db=channel_1:db_name                   # 指定忽略的数据库.若要指定多个数据库, 则多次指定该选项. 也可用于多源复制. 不允许跨库操作
-          replicate_do_table=channel_1:dbname.tb1_name            # 指定复制的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
-          replicate_ignore_table=channel_1:dbname.tb1_name        # 指定忽略的表,若要指定多个表,则多次指定该选项.也可用于多源复制, 不允许跨库操作
-          replicate_wild_do_table=db_name.tb1_name                # 指定复制的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库复制,同时支持库级语句.).支持\用于转义
-          replicate_wild_ignore_table=db_name.tb1_name            # 指定忽略的数据库和表, 若要指定多个, 则多次指定该选项.也可用于多源复制.允许跨库操作.同时支持%和_通配符(db_name.%表示该库忽略).支持\用于转义
-          replicate_rewrite_db="from_name->to_name"               # 转换数据库, 
-          replicate_same_server_id=1|0                            # 默认关闭
+            slave_transaction_retries=N                             # slave的SQL线程在停止之前自动尝试失败的事务的次数,默认10. 0代表禁用自动尝试. 若一个slave的SQL线程因为innode死锁或执行时间超时,它会自动重试该值的次数.最后停止报错.非临时错误的事务不重试
+            slave_type_conversions=                                 # 当使用row-based模式时,控制slave的类型转换模式.值为逗号分隔的列表,可以有0或多个
+                                                                    > 可用的值: all_lossy, all_non_lossy, all_signed, all_unsigned
 
-          report_host=host_name                                   # slave注册期间报告给master的主机名或ip
-          report_password=password                                # slave注册期间报告给master的密码
-          report_user=user_name                                   # slave注册期间报告给master的用户名
-          report_port=slave_port                                  # slave注册期间报告给master的端口, 默认3306
-          .###多线程slave
-          slave_checkpoint_group=N                                # 隔多少事务做一次checkpoint.默认512.范围8-524280.其值为8的倍数.多线程不启用则slave不受影响. NDB集群不支持多线程slaves
-          slave_checkpoint_period=N                               # 隔多长时间做一次checkpoint.默认300.单位毫秒,范围1-4G. 它同上个group选项结合使用, 当任一超过限制, 则执行checkpoint. 并重置相关参数
-          slave_parallel_workers=N                                # 在slave上启用多线程并设置并行处理复制事务的线程数(另加一个coordinateor线程来管理这N个线程).范围0-1024.若使用多个复制channels, 则每个channel都有这个线程数.当值为0时,则slave只有一个应用线程
-          slave_parallel_type=type                                # 哪种事务可以被并发执行.默认database
-                                                                  > logical_clock: 同一个binglog组的一部分的事务可以在salve上并行.事务之间的依赖关系根据他们的时间戳来跟踪.若使用了多个层次的slave,离master越远的slave执行的并行化越少,可通过在master上设置binlog_transaction_dependency_tracking指定write sets替代时间戳来减少这种影响
-                                                                  > database: 并行更新不同数据库的事务.不能存在跨数据库的约束
-                                                                  > 当slave_preserver_commit_order=1时, 只能使用logic_clock
-          slave_pending_jobs_size_max=N                           # 在多线程slave上,允许保存等待events的队列的内存大小(byte). 默认128M,为1024的倍数.范围(1024-16EiB). 该值为软限制.若有超过该值的event,则该事务被暂存,等待所有线程都有空队列再处理.等该事务处理完后再处理后续事务
-          slave_preserver_commit_order=0|1                        # 默认为0.若设为1,则在多线程slave上确保执行的事务和relay log中出现的顺序相同.若设为1, 则log_bin, log_slave_updates被启用,且slave_parallel_types被设为logical_clok
-
-          slave_transaction_retries=N                             # slave的SQL线程在停止之前自动尝试失败的事务的次数,默认10. 0代表禁用自动尝试. 若一个slave的SQL线程因为innode死锁或执行时间超时,它会自动重试该值的次数.最后停止报错.非临时错误的事务不重试
-          slave_type_conversions=                                 # 当使用row-based模式时,控制slave的类型转换模式.值为逗号分隔的列表,可以有0或多个
-                                                                  > 可用的值: all_lossy, all_non_lossy, all_signed, all_unsigned
-          sql_slave_skip_counter=N                                # slave应该跳过的来自master上的events的数量. 应用于下一个start slave语句.但同时该值亦归0. 该选项与gtid_mode模式不兼容.若指定的个数是在一个events group的中间, 则slave继续跳过直到一个开始的位置
-
-
-          
 
           skip_slave_start=1|0                                    # slave启动时是否启动slave线程(可手动启动: > start slave)
           slave_compressed_protocol=0|1                           # 在slave和master协议间是否启用压缩.默认为0
@@ -400,10 +396,6 @@
           .# 用于复制测试, 不用于生产环境  
           abort_slave_event_count=N                               # 默认为0.若设置为正值,则当SQL线程启动后只执行N个events,不再接收更多的events.slave线程继续运行,且show slave status的两个线程显示均为YES
           disconnect_slave_event_count=N                          # 默认为0.
-
-
-
-
 
             [mysql]                             # 应用于mysql客户端程序
             [mysqld_safe]
@@ -446,13 +438,29 @@
             [client]                            # 应用于所有的MySQL客户端程序
               max_allowed_packet=16M                  # 客户端通信缓冲的最大大小, 单纯数字以字节表示
             [mysql]
-        数据文件:
-          说明:MySQL服务器会将每个数据库映射到MySQL数据目录下的一个目录中, 并将数据库中的表映射到数据库目录下的文件名
-          表格式文件: .frm(表结构文件)
-          MyISAM引擎: .MYD(数据文件)  .MYI(存放索引)
-          Innodb引擎: 日志文件(ib_logfile0, ib_logfile1),表空间文件(ibdata1)
-          服务器日志状态文件
-    进程/端口: 3306/tcp
+        -- MGR, group replication(均以group_replication为前缀)
+          plugin_load_add="group_replication.so"                          # 启动时自动加载group_replication.so插件
+          group_replication_group_name="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"       # 此sever所属的group名称(必须是有效的UUID, 可通过select uuid()来获取). 在binlog中为组复制事件设置GTID时, 将在内部时候用此UUID
+          group_replication_single_primary_mode=on                        # 指定group选择一个server作为读写primary, 默认on. on为单主模式, off为多主模式. 所有group成员的值必须相同, 不可能以不同模式部署group成员
+          group_replication_start_on_boot=on                              # MySQL启动时是否启动组复制, 默认on 
+          group_replication_bootstrap_group=off                           # 开启引导模式, 用于第一次建立mgr或重建mgr时使用, 只需在集群内的其中一台上开始. 默认值off
+          group_replication_enforce_update_everywhere_checks=off          # 对多主模式的所有更新启用严格一致性检查. 默认off. 单主模式下必须为off, 多主模式下则启用(可以禁用). 所有group成员的值必须相同
+
+          group_replication_local_address="ip:port"                       # 该server为其它server连接提供的地址. 用于组通信引擎在远程XCom实例通信. 建议端口为33061
+          group_replication_group_seeds="ip1:port,ip2:port,ip3:port"      # group成员local_address的列表, 可只写子集. 建立连接后可通过performance_schema.replication_group_members查看成员信息
+          group_replication_ip_whitelist=automatic                        # 允许哪些成员与该server进行通信. 默认值automatic(Xcom自动扫描server上的活动接口, 并识别具有私有子网上地址的接口). 可手动指定(此时不会再添加私有地址), eg: "ip1,hostname,ip2"
+
+          group_replication_member_expel_timeout=0                        # server因失联被group驱逐的超时时间. 默认为0, 范围0-3600秒. 当失联开始的最初五秒进入检测周期, 且该时间不计入超时时间
+          group_replication_autorejoin_tries=0                            # server被group驱逐后自动尝试重新加入group的次数. 默认0, 范围0-2016
+          group_replication_allow_local_lower_version_join=0              # 允许当前运行的低版本MySQL加入该组. 默认off(版本不一致会有问题)
+          group_replication_auto_increment_increment
+    数据文件:
+      说明:MySQL服务器会将每个数据库映射到MySQL数据目录下的一个目录中, 并将数据库中的表映射到数据库目录下的文件名
+      表格式文件: .frm(表结构文件)
+      MyISAM引擎: .MYD(数据文件)  .MYI(存放索引)
+      Innodb引擎: 日志文件(ib_logfile0, ib_logfile1),表空间文件(ibdata1)
+      服务器日志状态文件
+    进程/端口: 3306/tcp 33060(x plugin) 33061(mgr)
     内存结构
       1.多线程结构(每个线程分配一段内存 Thread headlers)
       2.数据缓存(内存中有三种表(提高搜索效率): 权限表, 索引表, 表结构缓存, 查询结果缓存)
@@ -461,7 +469,6 @@
       5.每个客户端连接都会被分配一段缓冲
       6.内存引擎表(存储在内存中)
       7.临时表(存储在内存中)
-
     编程接口
       JDBC:            Java通用的数据库接口,可移植性好
       ODBC:            C中广泛采用的数据库接口,具有一定可移植性
@@ -1159,25 +1166,6 @@
         1.SBR(Statement Based Replication): 复制完整的SQL语句
         2.RBR(Row Based Replication): 只复制更改的行
         3.MBR(Mixed Based Replication): 混合复制
-      复制控制SQL:
-        控制master:
-          1. show binary|master logs;                                     # 列出服务器上的binlog
-          2. purge binary logs {to 'log_name'|before '2018-08-03 15:00:00'}     # 删除某些binlog
-          3. reset master [to binlog_index_number];                       # 将重置binlog文件, gtid_purged和gtid_executed变量和mysql.gtid_executed表. 指定to则将binlog重置以该索引号起始
-          2. show binlog events in 'binlog_name' from pos limit N;        # 列出binlog中的event, 若未指定, 则显示第一个binlog的内容
-          3. show master status;                                          # master上的binlog信息
-          4. show slave hosts;                                            # 显示当前连接到master的slave信息
-          7. set sql_log_bin=1|0                                          # 当前session的数据更改是否记录到binlog
-        控制slave
-          1. show slave status [for channel channel_name];                # 提供slave线程的信息
-          2. show relaylog event [in 'relay_file'] [from pos] [limit M, N] [channel_option]   # 列出relay log中的event
-          3. change master to {option}
-          4. change replication filter 
-          5. select master_pos_wait('master_log_file', master_log_pos[, timeout][, channel])
-          6. reset slave [all] [for channel channel_name]                 # 重置slave信息. 常用于slave干净启动(清空master info和relay log info,重置relay log文件(即使未被SQL线程完成).将master_delay重置为0), 该语句不会更改gtid_executed和gtid_purged
-                                                                          # reset slave不会更改任何复制连接参数(包括复制fiter), reset slave all则清除复制连接参数(包括filter) 
-          7. set global sql_slave_skip_counter=N                          # 该语句跳过来自master的下N个events
-        控制组复制:
       多源复制:
         说明:
          1.允许从多个master并行复制
@@ -1213,6 +1201,163 @@
           方式:
             1.show slave status for channel 'master_2'\G
             2.select * from performance_schema.replication_connection_status\G
+    组复制(MGR):
+      说明: 
+        1.MySQL Group Replication是一个MySQL Server内置插件, 用于创建弹性, 高可用, 容错的复制集群
+        2.内置组成员服务: 在给定的任意时间点维护group的一致性和可用性视图, 并提供给所有的server使用. 任何server加入或离开group, 该视图都会自动更改
+        3.由多个server组成, 每个server可以在获得group批准后独立执行事务(只读事务不需要在group内进行协调, 可立即提交)
+        4.集群数量为奇数(最少3台, 最多9台), 当正常server无法达到决策数量时会自动阻塞
+        5.mgr只支持innodb引擎, 使用其它引擎可能会导致组复制出错
+      架构:
+        说明: MGR是一个MySQL插件, 它基于现有的MySQL复制基础, 利用了binlog, base_row, GTID等功能
+      组复制服务:
+        1.group membership service: 定义哪些server在线并且加入了group(监控状态并实时更新). 该列表被称为view, group中所有server具有一致的view
+        2.failure detection service: 查看并报告哪些服务器是静默的(已死机). 从而将其驱逐出group(当某个server与其它server隔离, 则会怀疑其它所有server都已失败, 但其无法达成协议, 故怀疑没有结果, 且当该server以此种方式与group隔离时, 它无法执行任何本地事务)
+        3.fault-tolerance service: 基于Paxos算法, 在服务器之间提供分布式协调, 直接决定容错的故障数量(三台服务器可容错一台)
+        4.observability service: 可查看系统的整个状态
+      分类:
+        1.单主模式
+          说明: 
+            1. 只有一个primary, 其它都是secondary
+            2. 自动选取primary, 只有该primary能接受更新, 其它自动设置为只读模式
+          部署:
+            1.安装MySQL(每台都操作)
+            2. # vim /etc/my.cnf(每台都操作)
+              server_id=1               # 每台不一样 
+              gtid_mode=on
+              enforce_gtid_consistency=on
+
+              log_bin=/path/binlog
+              log_slave_updates=1
+              binlog_format=row
+              master_info_repository=table
+              relay_log_info_repository=table
+
+              disabled_storage_engines="myisam, blackhole, federated, archive, memory"
+              transaction_write_set_extraction=XXHASH64
+              plugin_load_add="group_replication.so"
+              group_replication_group_name="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+              group_replication_single_primary_mode=on
+
+              group_replication_start_on_boot=off
+              group_replication_bootstrap_group=off
+
+              group_replication_local_address="master1:33061"                               # 每台新ip
+              group_replication_group_seeds="master1:33061,master2:33061,master3:33061"
+
+              binlog_checksum=none
+              group_replication_enforce_update_everywhere_checks=off
+            3.创建用户(每台都操作)
+              > set sql_log_bin=0;
+              > create user repl@'%' identified with mysql_native_password by "DreamSoft@123456";
+              > grant replication slave on *.* to repl@'%';
+              > grant backup_admin on *.* to repl@'%';
+              > reset master;
+              > set sql_log_bin=1;
+              > change master to master_user='repl', master_password='DreamSoft@123456' for channel 'group_replication_recovery';
+            4.引导group(其中一台)
+              > set global group_replication_bootstrap_group=on;
+              > start group_replication;
+              > set global group_replication_bootstrap_group=off;
+              > select * from performance_schema.replication_group_members;
+            5.将其它server入group
+              > start group_replication;
+            6.最终查看
+              > select * from performance_schema.replication_group_members;
+        2.多主模式
+          说明: 
+            1. 没有成员具有特殊角色, 都是primary
+            2. 所有server都是读写模式, 即使它们是并发的
+          部署:
+            1.安装MySQL
+            2. # vim /etc/my.cnf
+              group_replication_single_primary_mode=off
+              group_replication_start_on_boot=on
+              group_replication_enforce_update_everywhere_checks=on
+          注:
+            1.将由group_replication_enforce_update_everywhere_checks执行一致性检查: 1, 若事务在serializable隔离级别下执行, 则在组同步时其提交失败. 2, 若针对具有级联约束的外键的表执行事务, 则在组同步时提交失败
+            2.若新加入的成员版本高于group中的最低版本, 则新加入的成员将处于只读模式
+      维护:
+        > select * from performance_schema.replication_group_member_stats\G                 # group的每个成员同步情况
+        > select * from performance_schema.replication_group_members;                       # 查看group成员
+        > select * from performance_schema.replication_connection_status\G                  # 当前server中各个channel的使用情况
+        > select * from performance_schema.replication_applier_status;                      # 当前server的各个channel是否启用
+      组复制channel:
+        - group_replication_recovery: 用于分布式恢复阶段的复制更改
+        - group_replication_applier: 用于应用来自group的事务
+      组复制成员状态:
+        online: 该成员已准备完全, 可随时连接. group已同步
+        recovering: 该成员处于group内, 但处于恢复状态. group未同步
+        offline: 已加载组复制插件, 但不属于group成员. group未同步
+        error: 该server处于错误状态
+        unreachable: 当本地故障检测器怀疑某个服务器无法访问时显示
+      切换:
+        切换primary:
+          - 当现有primary离开group, 则自动选举新的primary
+            算法:
+              1.优先低版本节点
+              2.若版本相同, 优先权重大的节点
+              3.若权重相同, 按照server uuid的字母顺序选择
+          - 使用UDF(group_replication_set_as_primary())将特定成员指定为primary
+            操作:
+              1.member_uuid为新primary的uuid(可在group内任意成员上执行)
+                > select group_replication_set_as_primary("<member_uuid>")
+              2.查看转换进度
+                > select event_name,  work_completed,  work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";
+              3.查看最新信息
+                > select * from performance_schema.replication_group_members;
+        切换单/多主:
+          - 使用UDF(group_replication_switch_to_single_primary_mode()), 将多主模式改为单主模式
+            > select group_replication_switch_to_single_primary_mode(<"member_uuid">)         # 在任意成员上执行, 若存在member_uuid, 则将其转为primary. 若无, 则自动选举
+            > select event_name,work_completed,work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";      # 查看进度
+            > select * from performance_schema.replication_group_members;
+          - 使用UDF(group_replication_switch_to_multi_primary_mode()), 将单主模式改为多主模式
+            > select group_replication_switch_to_multi_primary_mode()   # 在任意成员上执行
+            > select event_name,work_completed,work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";      # 查看进度
+            > select * from performance_schema.replication_group_members;
+
+      数据不同步:
+        说明:
+          1.单主模式下切换primary, 新primary可能会有积压数据未处理
+          2.多主模式下, 较慢的成员也可能有事务积压
+        解决:
+          1.流量控制机制, 减少各个成员间的差异
+          2.使用group_replication_consistency系统变量来选择合适的负载设置, 及读写的优先级
+    复制控制SQL:
+      控制master:
+        1. show binary|master logs;                                     # 列出服务器上的binlog
+        2. purge binary logs {to 'log_name'|before '2018-08-03 15:00:00'}     # 删除某些binlog
+        3. reset master [to binlog_index_number];                       # 将重置binlog文件, gtid_purged和gtid_executed变量和mysql.gtid_executed表. 指定to则将binlog重置以该索引号起始
+        2. show binlog events in 'binlog_name' from pos limit N;        # 列出binlog中的event, 若未指定, 则显示第一个binlog的内容
+        3. show master status;                                          # master上的binlog信息
+        4. show slave hosts;                                            # 显示当前连接到master的slave信息
+        7. set sql_log_bin=1|0                                          # 当前session的数据更改是否记录到binlog
+      控制slave
+        1. show slave status [for channel channel_name];                # 提供slave线程的信息
+        2. show relaylog event [in 'relay_file'] [from pos] [limit M, N] [channel_option]   # 列出relay log中的event
+        3. change master to {option}
+        4. change replication filter 
+        5. select master_pos_wait('master_log_file', master_log_pos[, timeout][, channel])
+        6. reset slave [all] [for channel channel_name]                 # 重置slave信息. 常用于slave干净启动(清空master info和relay log info,重置relay log文件(即使未被SQL线程完成).将master_delay重置为0), 该语句不会更改gtid_executed和gtid_purged
+                                                                        # reset slave不会更改任何复制连接参数(包括复制fiter), reset slave all则清除复制连接参数(包括filter) 
+        7. set global sql_slave_skip_counter=N                          # 该语句跳过来自master的下N个events
+      控制组复制:
+        1. > start group_replication;                                   # 启动复制组
+        2. > stop group_replication;                                    # 停止复制组
+    多种复制过程:
+      主从异步复制: master写入binlog后异步发送数据给slave, 同时提交
+        master:   sql ---> execute ---> binlog ---> commit
+        slave1:                                ↘   ---> relay log ---> apply ---> binlog --- commit
+        slave2:                                 ↘  ---> relay log ---> apply ---> binlog --- commit
+      主从半同步复制: master写入binlog后异步发送给某些slave, 等待slave写入relay log后发送的ack信息再提交
+        master:   sql ---> execute ---> binlog ----------------------------> commit
+        slave1:                                 ↘  ---> relay log ↗ (ack) ---> apply ---> binlog --- commit
+        slave2:                                 ↘  ---> relay log ↗ (ack) ---> apply ---> binlog --- commit
+        slave3:                                 ↘  ---> relay log ---> apply ---> binlog --- commit
+      组复制:
+        master1:  sql ---> execute ---> certify ---> binlog ---> commit
+    Innodb集群:
+      说明: 
     原理
   内部命令
     管理:
@@ -1618,6 +1763,13 @@
           --, #
         多行注释:
           /* .. */
+    性能表(performance_schema):
+      说明: 一种低级别监控MySQL服务器执行状况
+      性能架构表:
+        杂项:
+          1.host_cache: 存储访问MySQL的主机的缓存, 用于避免域名系统查找(使用flush host; truncate table host_cache;可清空该表)
+        
+        
    SQL:
     说明:
       1.句末用 ; 和 \g 相同,但\G可使结果更美观.无论什么语句,均可加分号结束
