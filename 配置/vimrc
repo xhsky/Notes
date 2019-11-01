@@ -2,7 +2,8 @@ call plug#begin('~/.vim/plugged')
 Plug 'Valloric/YouCompleteMe'
 Plug 'davidhalter/jedi-vim'
 Plug 'mattn/emmet-vim'      " html, css插件
-Plug 'iamcco/markdown-preview.vim'
+"Plug 'iamcco/markdown-preview.vim'
+"Plug 'plasticboy/vim-markdown'   " 语法高亮
 "Plug 'ferreum/completor-tmux'
 call plug#end()
 filetype plugin indent on

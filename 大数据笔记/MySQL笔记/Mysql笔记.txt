@@ -28,6 +28,7 @@
       .# yum install mysql-community-server(libs, libs-compat, client, common, libaio, net-tools)
       .# mkdir -p /data/{mydata,mylog}; mkdir -p /data/mylog/{binlog,redolog,undolog,relay}; chown -R mysql:mysql /data/{mydata,mylog}
       .# setenforce 0
+      .# vim /etc/my.cnf
       .# systemctl start mysqld
       .# grep 'temporary password' /var/log/mysqld.log                     # 查找密码
       .# mysql -uroot -p
@@ -1204,6 +1205,14 @@
           方式:
             1.show slave status for channel 'master_2'\G
             2.select * from performance_schema.replication_connection_status\G
+      跳过错误:
+        binlog:
+        GTID:
+          > stop slave;
+          > SET @@SESSION.GTID_NEXT='466cb1e3-f60c-11e9-aec4-fa163e107393:1';
+          > begin; commit;
+          > set gtid_next='AUTOMATIC';
+          > start slave;
     组复制(MGR):
       说明: 
         1.MySQL Group Replication是一个MySQL Server内置插件, 用于创建弹性, 高可用, 容错的复制集群

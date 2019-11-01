@@ -65,8 +65,7 @@ Virtualven安装：
   pipenv
     安装: pip install pipenv
     说明: 项目环境管理工具
-      1.默认虚拟环境会创建在~/.local/share/virtualenvs/中.若在项目的根目录下保存
-        虚拟环境目录(.venv), 需要在.bashrc或.bash_profile中配置export PIPENV_VENV_IN_PROJECT=1
+      1.默认虚拟环境会创建在~/.local/share/virtualenvs/中.若在项目的根目录下保存虚拟环境目录(.venv), 需要在.bashrc或.bash_profile中配置export PIPENV_VENV_IN_PROJECT=1
     自动激活:
       autoenv
         # pip install autoenv
