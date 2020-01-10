@@ -1,0 +1,337 @@
+简介
+	时间，作者，开发语言，定义
+    Elasticsearch是一个分布式的开源搜索和分析引擎, 适用于所有类型的数据, 包括文本, 数字, 地理空间, 结构化和非结构化数据. 
+    Elasticsearch在Apache Lucene的基础上由java开发而成, 由Elastic公司于2010年首次发布
+	官网: https://www.elastic.co/
+	版本
+	协议
+适用性(优缺)
+    Elastic Stack包括Elasticsearch, Kibana, Beats和Logstash. 能够安全可靠地获取任何来源, 任何格式的数据. 然后实时地对数据进行搜索, 分析和可视化
+    完整的Elastic Stack包括Beats, APM Server, Elasticsearch, Elasticsearch Hadoop, Kibana, Logstash
+  Elasticsearch:
+    1.Elasticsearch是Elastic Stack核心的分布式搜索和分析引擎
+  Logstash:
+  Beats
+    1.收集, 聚合, 丰富数据并将其存储到Elasticsearch
+  Kibana:
+    1.交互式的浏览, 对数据可视化和分享, 并且管理和监控整个stack
+  X-Pack:
+    X-Pack是Elastic Stack扩展, 提供安全性, 警报, 监视, 报告, 机器学习和许多其他功能. 默认情况下, 安装Elasticsearch时, 会安装X-Pack. 
+    可以开始30天的试用期. 在试用期结束, 可以购买订阅以继续使用X-Pack组件的全部功能
+
+  1.Elasticsearch是一个全文搜索引擎
+  1.Elasticsearch是一个分布式文档存储, 存储已序列化为json文档的数据结构
+  2.文本数据存储在倒排索引中, 数字字段和地理字段存储在BKD树中
+  3.elasticsearch提供RSET API, 用于管理集群以及索引和搜索数据
+  4.REST API支持结构化查询语言, 全文查询以及结合了两者的复杂查询
+  5.elasticsearch的聚合能够构建数据的复杂摘要, 并深入了解关键指标, 模式和趋势
+架构
+	模块
+	安装
+    - Elastic Stack各产品版本必须相同
+    - 安装顺序(保证每个产品依赖的组件都已到位): Elasticsearch -> Kibana -> Logstash -> Beats -> APM Server -> Elasticsearch Hadoop
+    安装jdk
+      .# 7.X版本已经将jdk包含到安装包中使用
+      .# 可通过配置JAVA_HOME环境变量来自定义Elastic使用的Java版本)
+    安装elasticsearch
+      .# useradd elastic
+      .# vim /etc/security/limits.conf
+        elastic     -       memlock         unlimited
+        elastic     -       fsize           unlimited
+        elastic     -       as              unlimited
+        elastic     -       nofile          65536
+        elastic     -       nproc           65536
+      .# vim /etc/sysctl.conf
+        vm.max_map_count=262144
+      .# sysctl -p
+      .# su - elastic
+      $ wget -c https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.5.0-linux-x86_64.tar.gz
+      $ tar -xf ; ln -sv ; cd
+      $ 修改配置文件
+      $ ./bin/elasticsearch -d -p elasticsearch.pid
+      $ curl -X GET "localhost:9200/?pretty"
+      $ kill `cat elasticsearch.pid`
+	结构
+		目录结构
+			源码目录
+			安装目录
+        ./elasticsearch                   # elasticsearch家目录($ES_HOME), 即解压目录
+        ./elasticsearch/bin               # 二进制脚本目录($ES_HOME/bin)
+        ./elasticsearch/conf              # 配置文件目录($ES_HOME/config)
+          elasticsearch.keystore
+          elasticsearch.yml               # 用于配置Elasticsearch
+            .# 集群
+            cluster.name: my-application      # 集群名称, 默认elasticsearch
+            cluster.remote.connect: false     # 远程集群连接
+            .# 节点
+            node.name: node-1                 # 节点名称, 默认使用主机名
+            node.attr.rack: r1
+            node.master: true                 # 是否有资格为master, 默认true
+            node.voting_only: false           # 是否为选举节点, 默认false(置为true, 则node.master必须为True)
+            node.data: true                   # 数据节点, 默认true
+            node.ingest: true                 # 提取节点, 默认true
+            .# indices                        # 针对所有索引进行全局管理, 而非在单个索引级别
+
+            .# 路径
+            path.data: /path/to/data          # 数据目录, 多个目录以","分隔
+            path.logs: /path/to/logs          # 日志目录
+            .# 内存
+            bootstrap.memory_lock: true       # 启动时锁定内存(内核jvm都不会换出到磁盘上)
+            .# network
+            network.host: 0.0.0.0             # 绑定的地址, 并发布该地址到集群中的其它节点. 默认_local_
+                                              # _[networkInterface]_: 网络接口的地址
+                                              # _local_: loopback地址
+                                              # _site_: 本地内网地址
+                                              # _global_
+            network.bind_host:                # 指定应绑定的网络接口. 默认network.host
+            network.publish_host:             # 向集群中其它节点发布的地址. 默认network.host
+            network.tcp.no_delay: true        # 默认为true
+            network.tcp.keep_alive: true      # 默认为true
+            network.tcp.reuse_address: true   # 地址是否可用被重用
+            network.tcp.send_buffer_size: N   # TCP发送缓冲区大小. 默认未指定(可指定单位k/m/g/t/p)
+            network.tcp.receive_buffer_size: N# TCP接收缓冲区大小. 默认未指定
+            .# http
+            http.port: 9200                   # 绑定的端口[范围], 默认值9200-9300. 若指定了范围, 则绑定到该范围的第一个可用端口
+            http.publish_port: N              # 与该节点通信时, 客户端应使用的端口, 默认为通过http.port分配的端口(常用于有代理或防火墙)
+            http.publish_host:                # 与该节点通信时, 客户端应使用的IP. 默认为http.host或network.publish_host
+            http.bind_host:                   # 绑定http服务的主机地址, 默认为http.host或network.bind_host
+            http.host:                        # 用于设置http.bind_host和http.publish_host
+            http.max_content_length: 100mb    # http请求的最大内容. 默认为100mb
+            http.max_initial_line_length: 4kb # http URL的最大长度, 默认4kb
+            http.max_header_size: 8kb         # header的最大大小, 默认8kb
+            http.compression: true            # 若支持压缩则压缩. 默认为true
+            http.compression_level: N         # 用于http相应的压缩级别, 范围1-9, 默认为3
+            http.cors.enabled: false          # 是否启用跨域资源共享. 默认为false
+            http.cors.allow-origin
+            http.cors.max-age
+            http.cors.allow-methods:          # 允许哪些方法. 默认OPTIONS, HEAD, GET, POST, PUT, DELETE
+            http.cors.allow-headers:          # 允许哪些header. 默认X-Requested-With, Content-Type, Content-Length
+            http.cors.allow-credentials
+            http.detailed_errors.enabled
+            http.pipelining.max_events: N     # 内存中排队的最大事件数, 超过则关闭http连接
+            http.max_warning_header_count
+            http.max_warning_header_size
+            .# 集群发现                       # 以便集群中的节点可以彼此发现并选举一个主节点
+            discovery.seed_hosts: ["ip1", "ip2"]        # ES根据列表中的ip其发现其它节点, 格式为host:port或host.
+            #discovery.seed_providers: file              # ES根据文件($ES_PATH_CONF/unicast_hosts.txt)中的ip其发现其它节点
+            discovery.find_peers_interval:              # 集群发现过程的间隔
+            discovery.seed_resolver.max_concurrent_resolvers
+            discovery.seed_resolver.timeout
+            transport.port: 9300                        # 集群通信端口[范围], 默认值9300-9400. 若指定了范围, 则绑定到该范围的第一个可用端口
+            transport.profiles.default.port             # 
+            cluster.initial_master_nodes: ["node-1", "node-2"]  # 使用初始节点来引导集群(可作为master的节点) 节点名应为node.name
+            .# gateway                                  # 在整个集群重启时存储集群状态和分片数据(即该设置仅在整个集群重启时才生效)
+            gateway.expected_nodes: N                   # 预期在集群中的节点数(主节点或数据节点). 当预期数量的节点加入集群后将开始恢复本地分片. 默认为0
+            gateway.expected_master_nodes: N            # 预期在集群中的主节点数. 当预期数量的主节点加入集群后将开始恢复本地分片. 默认为0
+            gateway.expected_data_nodes: N              # 预期在集群中的数据节点数. 当预期数量的数据节点加入集群后将开始恢复本地分片. 默认为0
+            gateway.recover_after_time: 5m              # 等待expected_nodes的超时时间. 超过该时间且满足以下条件, 则尝试恢复本地分片. 默认5m
+            gateway.recover_after_nodes: N              # 只要加入N个节点即可开始恢复
+            gateway.recover_after_master_nodes: N       # 只要加入N个主节点即开始恢复
+            gateway.recover_after_data_nodes: N         # 只要加入N个数据节点即开始恢复
+            .# 其它
+            action.destructive_requires_name: true              # 删除索引时需要明确的名称
+
+
+          jvm.options                     # 用于配置jvm, 且最大值不应该超过物理内存的50%(ES需要额外的jvm额外的内存. eg: 需要缓冲区进行有效的网络通信, 依靠操作系统缓存来有效的访问文件)
+            -Xms1g                        # 该配置等同于设置jvm的options变量, 最大不要超过32GB, 在26GB左右最好.
+            -Xmx1g
+          log4j2.properties               # 用于配置日志
+          role_mapping.yml
+          roles.yml
+          users
+          users_roles
+        ./elasticsearch/data              # 数据目录($ES_HOME/data)
+        ./elasticsearch/logs              # 日志目录($ES_HOME/logs)
+        ./elasticsearch/plugins           # 插件目录, 每个插件是个子目录($ES_HOME/plugins)
+        ./elasticsearch/jdk               # 自带的openjdk目录
+		进程/端口
+      9200:
+      9300:
+		编程接口
+		管理软件
+	命令
+		服务器
+      ./bin/elasticsearch [option]          # 启动elasticsearch
+        -E <KeyValuePair>   # 配置一个设置 
+        -V                  # 打印版本信息
+        -d                  # 后台运行
+        -h                  # 显示帮助
+        -p <Path>           # 启动时创建一个pid文件 
+        -q                  # 关闭在console上的输出流
+        -s                  # 显示最小输出
+        -v                  # 更详细的输出
+		客户端
+	日志
+	优化
+    系统优化:
+      1.设置Jvm堆大小
+        config/jvm.options
+      2.禁用swapping
+        bootstrap.memory_lock: true
+      3.增加文件描述符和最大线程数
+        user_name - nofile 65536
+        user_name - nproc 65536
+      4.虚拟内存(ES默认使用mmapfs目录存储指标)
+        vm.max_map_count=262144
+	安全
+	集群: 高可用分片集群
+    说明:
+      1.是一组具有相同cluster.name属性的节点, 当节点加入或离开集群, ES集群会自动组织以在可用节点之间平均分配数据
+      2.elasticsearch会自动在所有可用节点之间分配数据和查询负载
+      3.elastsearch的分片数量一旦指定则不可变更, 除非重新索引. 副本数量可随时更改
+    操作:
+      1.部署一个新的ES实例
+      2.在conf/elasticsearch.yml配置文件中配置和其它节点相同的cluster.name
+      3.启动实例, 该节点会自动发现并加入到指定的集群
+    分片:
+      说明: 
+        1.分片越多, 维护这些索引的开销就越大. 分片大小越大, 当ES需要重新平衡集群时, 分片移动所需要时间就越长; 分片大小越小, 则每个分片的处理速度更快, 但查询越多开销越多
+        2.一般将单个分片大小保持在几十G之内
+        3.节点可容纳的分片数量与可用heap成比例: 每GB heap中的分片数量应少于20
+      主分片:
+      副本分片:
+        是主分片的副本, 提供数据的冗余, 并增加处理读取请求(搜索或检索)的能力
+		颜色状态:
+			红色: 主分片并未全部都分配
+			黄色: 主分片都已分配, 但副本分片未分配
+			绿色: 所有主分片和副本分片均为活跃状态
+    节点类型:
+      说明: 默认情况下, 每个节点都可以处理http(只被外部reset客户端使用)和transport(专门用于nodes和Java TransportClient通信)
+      分类:
+        master-eligible node(有资格成为master的节点):
+          有资格成为控制集群的master, 负责集群范围内的轻量级的操作: 
+            1.创建/删除index
+            2.跟踪哪些节点是集群的一部分
+            3.决定分配被分配到哪个节点
+          磁盘数据:
+            1.集群中每个索引的索引元数据
+            2.整个集群范围内的元数据
+        voting-only master-eligible节点(参与master选举, 但不会成为master的节点):
+        data node(数据节点): 
+          存储数据并执行数据相关操作, eg: CRUD, search, aggregations
+            1.分配给该节点的分片数据
+            2.分配给该节点的每个分片的索引元数据
+            3.整个集群范围内的元数据
+        ingest node(提取节点):
+          通过inget pipeline对文档进行预处理操作, 以便在索引文档之前对文档进行转换或者增强
+        machine node(机器学习节点)
+          使用机器学习能力(需要购买)
+        coordinated node(协调节点)
+          客户端请求在两个阶段中执行, 这两个阶段由接收客户端请求的节点(协调节点)协调
+          在scatter阶段, 协调节点将请求发送到数据节点, 每个数据节点在本地执行该请求, 并将结果返回协调节点
+          在gather阶段, 协调节点将每个数据节点的结果汇集为单个全局结果集
+          每个节点都是一个隐式的协调节点, 将node.master, node.data和node.ingest均设为false, 则该节点则只扮演协调节点(不能被禁用, 且需要大量内存和CPU处理gather阶段)
+    集群重启:
+			说明:
+        1.在关闭节点时, 重新分配过程将等待index.unassigned.node_left.delayed_timeout(默认1min), 
+          然后再开始将该节点上的分配复制到集群中的其它节点上去(有I/O). 但若该节点将于不久后重启,
+          则此I/O是不必要的, 故在关闭节点之前可禁用副本分配
+      全集群重启: 关闭并重启集群中所有节点
+        1.禁用副本分配
+          .# curl -X PUT "localhost:9200/_cluster/settings?pretty" -H 'Content-Type: application/json' -d'
+          {
+            "persistent": {
+              "cluster.routing.allocation.enable": "primaries"
+            }
+          } '
+        2.停止索引并执行同步
+          .# curl -X POST "localhost:9200/_flush/synced?pretty"
+        3.关闭所有节点
+        4.执行需要的更改
+        5.重启所有节点(先启动主节点, 等待形成集群并选举出主节点. 然后在启动数据节点), 并查看
+          在形成一个集群过程中, 节点加入到集群后, 它开始恢复本地所有的主分片, 此时集群状态为red
+          当所有节点都恢复本地的主分片之后, 集群状态为yellow
+          集群开始将副本分片分配给数据节点, 分配完成后集群状态为green
+          .# curl -X GET "localhost:9200/_cat/health?pretty"
+          .# curl -X GET "localhost:9200/_cat/nodes?pretty"
+        6.待集群状态为yellow之后, 开启副本分片分配并查看
+          .# curl -X PUT "localhost:9200/_cluster/settings?pretty" -H 'Content-Type: application/json' -d'
+            {
+              "persistent": {
+                "cluster.routing.allocation.enable": null
+              }
+            } '
+          .# curl -X GET "localhost:9200/_cat/health?pretty"
+          .# curl -X GET "localhost:9200/_cat/recovery?pretty"
+      滚动重启: 一次仅重启一个节点(服务不会中断)
+        1.禁用副本分配
+        2.停止索引并执行同步
+        3.关闭某个节点
+        4.执行需要的更改
+        5.启动该节点并查看:  # curl -X GET "localhost:9200/_cat/nodes?pretty"
+        6.启用副本分配
+        7.待集群稳定后, 其它节点的重启则重复1-6步
+    更改节点角色:
+      说明: 每个节点在启动时都会检查其数据路径的内容, 如果发现意外数据(不属于该节点角色的数据), 它将拒绝启动
+    CCR(跨集群复制)
+      说明:
+        1.CCR可自动将索引从主集群同步到备份集群(不同数据中心). 若主集群发生故障, 则备份集群可以接管
+        2.CCR是主动-被动的. 
+  插件:
+    说明:
+    分类:
+      IK中文分词器:
+        说明:
+          1.ik版本和es版本需相同
+        安装:
+          .# wget -c https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v7.5.1/elasticsearch-analysis-ik-7.5.1.zip  
+          .# cd /data/es/plugins/ && mkdir ik
+          .# unzip ~/elasticsearch-analysis-ik-7.5.1.zip -d ik/
+          .# chown -R elastic:elastic ik
+          .# su - elastic
+          .$ 重启ES
+具体服务相关
+	概念:
+    引导检查:
+
+    开发模式和生产模式:
+      1.默认情况下, ES会假定当前处于开发模式下, 若没有正确配置, 将在日志文件中写入警告, 但仍能启动
+      2.若配置了网络设置(eg: network.host), ES则认为当前处于生产模式, 会将上述警告升级为异常, 这些异常将阻止启动.
+      3.这项措施主要是为了因服务器配置错误而丢失数据
+    REST API:
+      说明: 可以直接调用从而配置和访问ES功能
+    Dangling indices:
+    集群发现:
+      说明: 是集群形成模块查找与之形成集群的其它节点的过程. 当启动ES节点或某个节点认为master故障时, 将开始发现过程, 直到找到master或选举出新的master
+      过程:
+        1.每个节点通过依次连接到discovery.seed_hosts中的地址并尝试验证seed node是否为master-eligible
+        2.若连接成功, 则与其共享自身知道的符合master-eligible node且该sedd node也共享其信息. 接着node则验证刚刚获取的信息中的节点并获取其信息
+        2.1.若seed node不是master-eligible, 则node继续此发现过程直到发现了master节点. 若未发现master节点则在discovery.find_peers_interval秒后重复
+        2.2.若seed node是master-eligible, 则node继续此发现过程直到发现master node或node已经找到足够的非master的node来完成选举. 经过discovery.find_peers_interval秒重复
+    字段类型:
+      text:
+      keyword:
+      date:
+      long:
+      double:
+      boolean:
+      ip:
+    Mapping:
+      说明: 定义文档及其字段的存储, 索引方式的过程
+      分类:
+        动态映射:
+        显式映射:
+      配置:
+        index.mapping.total_fields.limit: 1000                      # 索引中最大字段数, 默认1000. 包含字段, 映射和字段别名
+        index.mapping.depth.limit: 20                               # 一个字段的最大深度
+        index.mapping.nested_fields.limit: 50
+        index.mapping.nested_objects.limit
+
+
+
+
+
+
+        
+    
+
+
+    RDBMS     Elasticsearch
+    table       index
+    row         document
+    cloumn      field
+    schema      mapping
+    sql         dsl
+
+		原理
+	内部命令

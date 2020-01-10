@@ -52,8 +52,7 @@
     # YUM安装
     # yum install epel-release -y
     # yum install socat openssl
-    # rpm -ivh https://dl.bintray.com/rabbitmq/rpm/erlang/20/el/6/x86_64/erlang-20.1.2-1.el6.x86_64.rpm 
-    # rpm -ivh https://dl.bintray.com/rabbitmq/rpm/erlang/21/el/7/x86_64/erlang-21.1.2-1.el7.centos.x86_64.rpm(由rabbitmq打包的组件,只提供运行mq所需的组件)
+    # rpm -ivh https://github.com/rabbitmq/erlang-rpm/releases/download/v22.1.6/erlang-22.1.6-1.el7.x86_64.rpm(由rabbitmq打包的组件,只提供运行mq所需的组件)
     # rpm -ivh https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.9/rabbitmq-server-3.7.9-1.el7.noarch.rpm
     # cp /usr/share/doc/rabbitmq-server-3.7.0/rabbitmq.config.example /etc/rabbitmq/rabbitmq.config
     调整系统权限和内核参数：

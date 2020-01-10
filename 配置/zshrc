@@ -53,7 +53,7 @@ DISABLE_AUTO_UPDATE="true"
 # "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
 # or set a custom format using the strftime function format specifications,
 # see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
+HIST_STAMPS="yyyy-mm-dd"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
@@ -64,8 +64,16 @@ DISABLE_AUTO_UPDATE="true"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-  git
+  git 
+  zsh-syntax-highlighting 
+  #zsh-autosuggestions 
+  safe-paste
+  extract
+  z
+  vi-mode
+  web-search
 )
+
 
 source $ZSH/oh-my-zsh.sh
 
@@ -99,8 +107,10 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 #alias ssh_company="ssh -p '996' 'root@117.184.59.230'"
 alias rm="mv -f --target-directory=/tmp/"
-alias chrome_proxy='google-chrome -user-data-dir="/home/sky/.google-chrome/proxy" --proxy-server=socks5://127.0.0.1:1080 &'
-alias chrome='google-chrome -user-data-dir="/home/sky/.google-chrome/noproxy" &'
+alias proxy="export http_proxy='socks5://127.0.0.1:1080'; export https_proxy='socks5://127.0.0.1:1080'"
+#alias proxy="export ALL_PROXY='socks5://127.0.0.1:1080'"
+#alias chrome_proxy='google-chrome -user-data-dir="/home/sky/.google-chrome/proxy" --proxy-server=socks5://127.0.0.1:1080 &'
+#alias chrome='google-chrome -user-data-dir="/home/sky/.google-chrome/noproxy" &'
 
 # 配置direnv
 eval "$(direnv hook zsh)"
@@ -110,5 +120,41 @@ show_virtual_env() {
   fi
 }
 export PROMPT='$(show_virtual_env)'$PROMPT 
+
+# 按键绑定
+bindkey ',' autosuggest-accept
+bindkey '^P' history-search-backward
+bindkey '^N' history-search-forward
+
+# 显示编辑模式
+#VIMODE='-- INSERT --'
+#function zle-line-init zle-keymap-select {
+#    VIMODE="${${KEYMAP/vicmd/-- NORMAL --}/(main|viins)/-- INSERT --}"
+#    zle reset-prompt
+#}
+#zle -N zle-line-init 
+#zle -N zle-keymap-select
+#RPROMPT='%{$fg[green]%}${VIMODE}%{$reset_color%}'
+
+
+# Modal cursor color for vi's insert/normal modes. 
+# 游标显示编辑模式
+#zle-keymap-select() { 
+#	if [ $KEYMAP = vicmd ]; then 
+#    echo -ne "\033]12;Yellow\007" 
+#    echo -ne "\033[2 q" 
+#	else 
+#    echo -ne "\033]12;Red\007" 
+#    echo -ne "\033[4 q" 
+#    fi 
+#} 
+#zle -N zle-keymap-select 
+#zle-line-init() { 
+#	zle -K viins 
+#	echo -ne "\033]12;Red\007" 
+#	echo -ne "\033[4 q" 
+#} 
+#zle -N zle-line-init 
+
 #export -f show_virtual_env
 #PROMPT='$(show_virtual_env)'$PROMPT

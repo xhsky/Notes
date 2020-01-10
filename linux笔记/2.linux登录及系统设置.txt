@@ -439,8 +439,7 @@ shell登录
 		设置：通过/etc/security/limits.conf文件进行限制
 			格式：username|@groupname type resource limit
 				username|@groupname：	设置需要被限制的用户名，组名前面加@和用户名区别。也可以用通配符*来做所有用户的限制
-				type：					有soft，hard和-，soft指的是当前系统生效的设置值。hard表明系统中所能设定的最大值。soft的限制不能比
-										har限制高。用 - 就表明同时设置了soft和hard 的值
+				type：					有soft，hard和-，soft指的是当前系统生效的设置值。hard表明系统中所能设定的最大值。soft的限制不能比har限制高。用 - 就表明同时设置了soft和hard的值
 				resource：
 				　　core 		- 限制内核文件的大小
 				　　date 		- 最大数据大小
@@ -463,7 +462,7 @@ shell登录
         - stack - max stack size (KB)                                  -s
         - cpu - max CPU time (MIN)                                     -t
         - nproc - max number of processes                              -u
-        - as - address space limit (KB)                                -v
+         - as - address space limit (KB)                                -v
         - maxlogins - max number of logins for this user
         - maxsyslogins - max number of logins on the system
         - priority - the priority to run user process with

@@ -538,7 +538,7 @@
 	
 			/etc/fstab文件的作用 
 				记录了计算机上硬盘分区的相关信息，启动 Linux 的时候，检查分区的fsck命令，和挂载分区的 mount 命令，
-				都需要 fstab 中的信息，来正确的检查和挂载硬盘。修改完/etc/fstab文件后务必测试一下(# umont /home ; #mount -a)。
+				都需要 fstab 中的信息，来正确的检查和挂载硬盘。修改完/etc/fstab文件后务必测试一下(# umount /home ; #mount -a)。
 				发生错误尚来得及纠正。否则会发生无法开机完全的情况。切记切记！
 				/etc/fstab只有添加新的一行后，mount -a才会执行
 					第五列：能否被dump备份命令作用

@@ -2,11 +2,12 @@
 	时间，作者，开发语言，定义
 		意为humongous,由C++语言编写,是一个开源文档数据库，提供高性能、高可用和自动扩展的功能
 	官网：https://www.mongodb.com/
-	版本
-    MongoDB发布为两个版本:
-      社区版: 开源版本
-      企业版: 企业版提供额外的管理,认证和监控功能
-      安装方式因版本而异,且在3.4后不再支持32位系统
+	版本: 安装方式因版本而异,且在3.4后不再支持32位系统
+    社区版: 开源版本
+    企业版: 企业版提供以企业为中心的功能, eg: LDAP和Kerberos支持, 磁盘加密和审计功能
+
+    MongoDB Atlas是一种云托管的数据库即服务
+    MongoDB Cloud Manager(托管服务)和Ops Manager(本地解决方案)提供MongoDB实例的监视, 备份和自动化
 	协议
 适用性(优缺)
   1.模式自由,支持动态查询,完全索引,可轻易查询文档中内嵌的对象及数组
@@ -48,51 +49,66 @@
 			2.数据冗余
 	1.支持数据汇总，文本搜索和地理空间查询
   2.不支持join和复杂的多行事务
+
+  主要功能:
+    1.高性能: 提供高性能的数据持久性
+      - 支持减少数据库系统上I/O活动的嵌入式数据模型
+      - 支持和快速查询, 包括来自嵌入式文档和数组的键
+    2.丰富的查询语言: 支持读写操作
+      - 资料汇总
+      - 文本搜索和地理空间查询
+    3.高可用性: replica set提供
+      - 自动故障转移
+      - 数据冗余
+    4.水平扩展: 是mongodb核心功能的一部分
+      - 在集群上切片分发数据
+      - 从3.4版本开始, mongodb支持基于shard key创建数据区域. 且近将数据区域内的读写定向到区域内的分片
+    5.支持多种存储引擎
+      - WiredTiger(包括对静态加密的支持)
+      - In-Memory
+      - 可插拔的存储引擎API, 允许第三方为mongodb开发存储引擎
 架构
 	模块
 	安装：
-		说明：MongoDB官网提供rpm包安装和二进制tar包安装。rpm包内嵌了性能改进和TLS/SSL支持，而tar包只有通用功能(不包含TLS/SSL支持和性能改进)。
-		Yum安装：
-      1.关闭selinux或更改为permission 或:
-			  配置SELinux启用mongodb的相关端口(当位force时)
-          # semanage port -a -t mongod_port_t -p tcp 27017
-      2.配置环境
-        # echo never > /sys/kernel/mm/transparent_hugepage/enabled
-        # echo never > /sys/kernel/mm/transparent_hugepage/defrag
-        并写入/etc/rc.local
-        # vim /etc/security/limits.conf
-          mongod  -       fsize   unlimited
-          mongod  -       cpu     unlimited
-          mongod  -       as      unlimited
-          mongod  -       memlock unlimited
-          mongod  -       nofile  64000
-          mongod  -       rss     unlimited
-          mongod  -       nproc   64000
-			3.配置repo文件
-				# vim /etc/yum.repos.d/mongodb-org.repo
-          [mongodb-org-4.0]
-          name=MongoDB Repository
-          baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/4.0/x86_64/
-          gpgcheck=1
-          enabled=1
-          gpgkey=https://www.mongodb.org/static/pgp/server-4.0.asc
-			4.安装
-				# yum install -y mongodb-org(共下载5个软件包)
-			5.启动
-				# service mongod start
-        # chkconfig mongod on
-			6.关闭
-				# service mongod stop
-      7.卸载
-        # 关闭服务
-        # 删除5个软件包
-        # 删除/var/lib/mongo和/var/log/mongodb目录
+    1.关闭selinux或更改为permission 或:
+      配置SELinux启用mongodb的相关端口(当位force时): # semanage port -a -t mongod_port_t -p tcp 27017
+    2.配置环境
+      .# chmod u+x /etc/rc.local ; vim /etc/rc.local
+        echo never > /sys/kernel/mm/transparent_hugepage/enabled
+        echo never > /sys/kernel/mm/transparent_hugepage/defrag
+      .# vim /etc/security/limits.conf
+        mongod  -       fsize   unlimited
+        mongod  -       cpu     unlimited
+        mongod  -       as      unlimited
+        mongod  -       memlock unlimited
+        mongod  -       nofile  64000
+        mongod  -       rss     unlimited
+        mongod  -       nproc   64000
+    3.配置repo文件
+      .# vim /etc/yum.repos.d/mongodb-org.repo
+        [mongodb-org-4.2]
+        name=MongoDB Repository
+        baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/4.2/x86_64/
+        gpgcheck=1
+        enabled=1
+        gpgkey=https://www.mongodb.org/static/pgp/server-4.2.asc
+    4.安装
+      .# yum install -y mongodb-org(共下载5个软件包)
+    5.修改配置文件并将文件中的路径用户改为mongod
+      .# chown -R mongod /path/dir
+    6.启动
+      .# systemctl start mongod
+      .# systemctl enable mongod
+  卸载:
+    .# 关闭服务
+    .# 删除5个软件包(# yum erase $(rpm -qa | grep mongodb-org))
+    .# 删除/var/lib/mongo和/var/log/mongodb目录
 
-       ARNING: Access control is not enabled for the database ??????
-      注:
-        1.最好关闭selinux,它对端口和数据目录等都有限制
-			  2.如果更改数据路径，则如果不更改安全上下文，则默认的SELinux策略将阻止mongod对新数据路径进行写入访问
-        3.默认使用mongod用户运行
+     ARNING: Access control is not enabled for the database ??????
+    注:
+      1.最好关闭selinux,它对端口和数据目录等都有限制
+      2.如果更改数据路径，则如果不更改安全上下文，则默认的SELinux策略将阻止mongod对新数据路径进行写入访问
+      3.默认使用mongod用户运行, 使用的默认数据目录为/var/lib/mongo, 日志目录为/var/log/mongodb
 	结构
 		目录结构
 			安装目录(五个安装包)
@@ -101,8 +117,8 @@
 					/usr/bin/mongos
 				3.mongodb-org-shell：           # 包含mongo shell
 					/usr/bin/mongo
-					~/.dbshell                      # shell连接时创建，显式保存当前用户下的sql记录
-					~/.mongorc.js                   # shell连接时创建，启动shell是自动运行该js
+					~/.dbshell                      # shell连接时创建, 显式保存当前用户下的sql记录
+					~/.mongorc.js                   # shell连接时创建, 启动shell时自动运行该js(在显示提示符前)
 				4.mongodb-org-server：          # 包含mongod守护程序及关联的配置、init脚本
 					/etc/init.d/mongod
 					/etc/mongod.conf                # 配置文件
@@ -137,7 +153,7 @@
         syslogFacility:<string>                 # 记录到操作系统日志时的设备级别,默认值为user.且destination的值须为syslog
         path:<string>                           # 指定mongod和mongos的运行日志文件
         logAppend:<boolean>                     # 当mongod和mongs重启时,日志的写入方式.默认False.True则追加,False则备份原日志文件并重新生成日志文件
-        logRotate<string>                       # 日志轮替的方式.默认rename.rename则重新命名日志文件.reopen则使用linux系统设备的轮替行为,然后关闭再重新打开日志文件.如果使用reopen则logAppend必须为True
+        logRotate: <string>                     # 日志轮替的方式.默认rename.rename则重新命名日志文件.reopen则使用linux系统设备的轮替行为,然后关闭再重新打开日志文件.如果使用reopen则logAppend必须为True
         timeStampFormat:<string>                # 日志信息中的时间戳格式.默认iso8601-local
                                                   ctime: 格式为Wed Dec 31 18:17:54.811.
                                                   iso8601-utc: 以UTC格式显示,1970-01-01T00:00:00.000Z
@@ -240,10 +256,8 @@
                                                   1.默认值: A_tmp_repairDatabase_<num>,该目录下dbPath目录下
                                                   2.该选项仅适用于MMAPv1引擎
         journal:
-          enabled:<bool>                        # 启用持久性日志,以恢复数据文件,默认启用
-                                                  1.必须设置storage.dbPath
-                                                  2.只适用于in-memory引擎
-          commitIntervalMs:<num>                # 
+          enabled:<bool>                        # 启用journal日志(redo log), 不适用于in-memory引擎
+          commitIntervalMs:<num>                # 将journal从buffer同步到磁盘的频率, 默认100, 范围1-500
         directoryPerDB:<bool>                   # 当为true时,mongodb使用单独目录来存储每个数据库,每个目录名为数据库名.默认为false.若要更改已部署环境中的该值,则必须使用新的dbPath来重新启动
                                                   1.若为standalone模式,可先导出数据,然后更改重启并导入
                                                   2.若为replica模式, 
@@ -255,16 +269,6 @@
         engine:<string>                         # 指定数据库引擎,默认wiredTiger
                                                   1.可选wiredTiger或inMemory,MMAPv1将丢弃
                                                   2.若数据文件中的引擎和该选项不同,则mongodb拒绝启动
-        mmapv1:
-          preallocDataFiles:<bool>
-          nsSize:<int>
-          quota:
-            enforced:<bool>
-            maxFilesPerDB:<int>
-          smallFile:<bool>
-          journal:
-            debugFlags:<int>
-            commitInervalMs:<num>
         wiredTiger:
           engineConfig:
             cacheSizeGB:<float>                 # 用于所有数据的内部缓存大小,可用值在256M-10T之间
@@ -284,7 +288,7 @@
             inMemorySizeGB:<num>                # 内存引擎数据使用最大的内存值.默认值50%*(RAM-1G)
       operationProfiling:
         mode:<string>                           # 指定哪种操作应该被分析.默认值off
-                                                  1.可用值: off: 关闭分析器,不收集任何数据 .slowOp: 只收集操作时间比slowOpThresholdMs长的数据. all: 为所有操作收集数据
+                                                  1.可用值: off: 关闭分析器,不收集任何数据. slowOp: 只收集操作时间比slowOpThresholdMs长的数据. all: 为所有操作收集数据
                                                   2.开启分析器会影响性能并通过系统日志共享设置
         slowOpThresholdMs:<int>                 # 慢操作时间,单位毫秒.默认值100
         slowOpSampleRate:<double>               # 慢操作应该被记录或分析的部分.默认值为1,可用值0或1
@@ -316,7 +320,6 @@
         master:<bool>                           # 当值为true,snmp作为master运行
       basisTech                                 # 只适用于Enterprise版本
         rootDirectory:<string>                  # 支持文本搜索的语言的安装路径
-      
 	命令
 		服务器
       mongod --bind_ip 0.0.0.0 --port 27017 
@@ -366,27 +369,27 @@
           1.用文件描述符和线程来跟踪每个进入的连接
           2.跟踪每个内部线程
 		客户端：
-        统一选项
-            --help                            # 帮助
-            --quiet                           # 静默模式,无日志信息
-            --version                         # 版本
-            -v                                # 详细信息,多个v更详细
-            --host=<hostname>                 # 连接的服务器,集群模式则为setname/host1,host2
-            --port=<port>                     # 
-            -u <name>
-            -p <passwd>
-            --authenticationDatabase=<database-name>    # 保存用户凭证的数据库
-            --authenticationMechanism=<mechanism>       # 认证方式
-            --ssl                         # 对连接使用ssl
-            --sslCAFile arg               # ssl证书文件
-            --sslPEMKeyFile arg
-            --sslPEMKeyPassword arg
-            --sslCRLFile arg
-            --sslAllowInvalidHostnames
-            --sslAllowInvalidCertificates
-            --sslFIPSMode
-            --sslDisabledProtocols arg
-			# mongo							# 是一个可交互的连接Mongodb的javascript接口,还可以运行任何的JavaScript程序.默认访问localhost:27017/test
+      统一选项
+          --help                            # 帮助
+          --quiet                           # 静默模式,无日志信息
+          --version                         # 版本
+          -v                                # 详细信息,多个v更详细
+          --host=<hostname>                 # 连接的服务器,replica set模式则为set_tname/host1:port1,host2
+          --port=<port>                     # 连接的端口
+          -u <name>
+          -p <passwd>
+          --authenticationDatabase=<database-name>    # 保存用户凭证的数据库
+          --authenticationMechanism=<mechanism>       # 认证方式
+          --ssl                         # 对连接使用ssl
+          --sslCAFile arg               # ssl证书文件
+          --sslPEMKeyFile arg
+          --sslPEMKeyPassword arg
+          --sslCRLFile arg
+          --sslAllowInvalidHostnames
+          --sslAllowInvalidCertificates
+          --sslFIPSMode
+          --sslDisabledProtocols arg
+			# mongo							# 是一个可交互的连接Mongodb的javascript接口(执行数据查询与更新, 以及管理操作), 还可以运行任何的JavaScript程序.默认访问localhost:27017/test
         mongo [option] [db address] [file names]
           options:
             --shell                     
@@ -491,11 +494,17 @@
 
 	日志： /var/log/mongodb/mongod.log
 	优化：
-		这些限制可能会对MongoDB操作产生负面影响 UNIX ulimit设置。
+		1.db Profiler
+      1.分析级别
+      2.启用配置数据库分析
+      3.查看profiler数据
+      4.profiler开销
+    2.禁用THP
+    3.UNIX ulimit设置
 	安全
 	集群
     replica set:
-      说明: 从4.0版本开始不再支持主从集群,一律使用replica set(有自动故障恢复功能的主从集群).实则是一组包含相同数据的mongod的进程
+      说明: 从4.0版本开始不再支持主从集群,一律使用replica set(有自动故障恢复功能的主从集群).实则是一组包含相同数据的mongod的进程(提供数据冗余以增加数据可用性)
         1.replica set包含数个数据节点和1个可选的仲裁节点.数据节点中只有1个是primary节点,其余为secondary节点.
         2.最多可有50个数据节点,7个投票成员.
         3.确保有奇数个投票成员(包含arbiter)
@@ -714,18 +723,12 @@
           2.重载
             > rs.reconfig(cfg)
 
-
-
-            
-
-
-
-
     sharded cluster:
         
         mongos不会与hidden成员交互
         mongos会将write concern和read preference传递给shards
-具体服务相关 概念:
+具体服务相关 
+  概念:
     数据类型:
       string:               字符串
         说明: 编码都是utf-8
@@ -751,6 +754,8 @@
 				1.文档对应于许多编程语言的native数据类型
 				2.内嵌的文档和数组减少了昂贵的连接需求
 				3.Dynamic schema supports fluent polymorphism
+      集合:
+        说明: document存储于collection
     插入原理:
       当执行插入的时候,使用的驱动程序(客户端)会将数据转成BSON的形式,然后将其送入数据库中.数据库解析BSON,检验是否包含"_id"键和文档的大小.除此之外不做其它验证
       只是简答地将文档原样存入数据库中
@@ -770,12 +775,12 @@
       rdbms和mongodb对应的术语:
         RDBMS               MongoDB
         database            database
-        table,view          collection
+        table, view         collection
         row                 document
         column              field
         index               index
         join                embedded
-        主键                主键 (MongoDB 提供了 key 为 _id )
+        主键                主键 (MongoDB提供key为_id)
         partition           shard
         partition sky       shared sky
     集合;
@@ -828,6 +833,24 @@
     事务:
       说明: 多文档事务可用于replica set
         1.所有的事务操作必须在同一个成员上(read priference必须设置primary)
+    Journal: 预写日志
+      说明: mongodb使用预写日志记录到磁盘日志文件, 以便在发生故障时提供持久性. 不支持In-Memory引擎
+      WiredTiger预写日志:
+        说明: 
+          1.WiredTiger使用checkpoint提供数据一致性, 并允许从最后一个checkpoin恢复
+          2.mongodb为每个client启动的写操作创建一个journal记录, 且使用内存buffer存储journal记录, 最多可缓存128kb的记录
+        预写日志恢复过程:
+          1.在数据文件中找到最后一个checkpoint的标识符
+          2.在journal日志文件中找到匹配最后一个checkpoint的记录
+          3.从最后一个checkpoint开始, 应用joural中的操作
+        journal同步磁盘的时机:
+          1.
+          2.如果写操作包含一个write concern: j: true
+          3.每storage.journal.commitIntervalMs毫秒
+          4.当WiredTiger创建新的journal文件时(每隔100M)
+        journal文件:
+          1.在dbPath目录下的jouarnal目录, 文件名格式为WiredTigerLog.<sequence>
+          2.文件最大大小限制为100M, 过超过则会创建一个新文件, 则会自动删除旧的journal文件
     oplog(operations log)
       说明: 是一个特殊的固定集合(容量达到上限会将最早的数据删掉),它保存数据库中的所有修改滚动记录.mongodb在primary上应用oplog.而secondaries会通过一个异步进程拷贝并在其数据即中应用oplog
         1.所有的replica set成员都在local.oplog.rs集合中维持一份oplog
@@ -869,49 +892,46 @@
         2.之后安装复制同步操作进行
     sharding:
       说明: 
-                                                                                          
-
 	内部命令
     数据库命令:
-      说明: 除了CURD的操作外,其它功能都是作为命令实现的
-        1.mongodb的命令其实是作为一种特殊类型的查询来实现的.runCommand仅仅是接受命令文档,执行等价查询(db.$cmd.findone({drop:"c1"})).当mongodb服务器得到$cmd集合的请求时,会启动一套特殊的逻辑来处理,而不是交给普通的查询代码来执行
+      说明: 除了CRUD的操作外,其它功能都是作为命令实现的
+        1.mongodb的命令其实是作为一种特殊类型的查询来实现的.runCommand仅仅是接受命令文档,执行等价查询(db.$cmd.findone({drop:"c1"})).
+        2.当mongodb服务器得到$cmd集合的请求时,会启动一套特殊的逻辑来处理,而不是交给普通的查询代码来执行
       命令参考:
-        # db.listCommands()
-
+        .# db.listCommands()
     帮助文档:
       1.mongo shell本身内置了帮助文档,可使用help进行查看
       2.在输入函数命令的时候不加(),可显示出该函数的JavaScript源代码
-      
-      
     管理:
       关闭数据库:
-        1.# kill pid                        #
-        2.# use admin
-          # db.shutdownServer()
+        1.# kill pid
+        2.> use admin
+          > db.shutdownServer()
       监控:
-        1.db.runCommand({"serverStatus":1})   # 查看服务器信息
-        2../bin/mongostat                     # 实时显示重要的服务器信息
+        1.> db.runCommand({"serverStatus":1})   # 查看服务器信息
+        2.# ./bin/mongostat                     # 实时显示重要的服务器信息
         3.第三方插件
+      信息:
+        > db.version()                      # 当前mongodb服务器的版本
+        > db.getMongo()                     # 服务器地址
+        
       备份恢复
-          1.工具备份
-            说明: 运行时备份可使用mongodump/mongorestore这对备份/恢复工具
-              使用普通的查询机制,所以产生的数据不一定是服务器数据的实时快照,且对性能有影响
-          2.副本备份
-            说明: mongodb的所有数据文件都在数据目录下,所以只要简单地创建数据目录的副本即可(在运行时创建副本并不安全)
-            1.将所有缓冲写入磁盘并上锁(写操作被暂时阻塞)
-              # use admin
-              # db.runCommand({fsync: 1, lock: 1})
-            2.创建副本(cp)
-            3.解锁
-              # db.fsyncUnlock()
-        
-        
-      
+        1.工具备份
+          说明: 运行时备份可使用mongodump/mongorestore这对备份/恢复工具
+            使用普通的查询机制,所以产生的数据不一定是服务器数据的实时快照,且对性能有影响
+        2.副本备份
+          说明: mongodb的所有数据文件都在数据目录下,所以只要简单地创建数据目录的副本即可(在运行时创建副本并不安全)
+          1.将所有缓冲写入磁盘并上锁(写操作被暂时阻塞)
+            > use admin
+            > db.runCommand({fsync: 1, lock: 1})
+          2.创建副本(cp)
+          3.解锁
+            > db.fsyncUnlock()
     用户:
       说明:
       命令: 
-        # show users            # 显示用户
-        # db.addUser
+        > show users            # 显示用户
+        > db.addUser
 
         > use admin;
         > db.createUser({user:'root', pwd:'DreamSoft_123', roles:['userAdminAnyDatabase']});  
@@ -929,19 +949,18 @@
         config: 当mongo用于分片设置时,config数据库用来在内部使用保存分片的相关信息
       命名空间: 将数据库名放到集合名前,即为该集合的命名空间
 			命令:
-				# use db_name                       # 若数据库存在，则直接切换数据库。否则，当第一次存储该数据库数据时创建该数据库
-				# db                                # 显示当前数据库
-        # db.getName()                      # 同db
-        # show dbs                          # 显示所有数据库
-        # db.dropDatabase()                 # 删除当前数据库
-        # db.cloneDatabase("")              # 克隆数据库
-        # db.repairDatabase()               # 修复当前数据库
-        # db.stats()                        # 显示当前数据库状态
-        # db.version()                      # 当前mongodb服务器的版本
-        # db.getMongo()                     # 服务器地址
+				> use db_name                       # 若数据库存在，则直接切换数据库。否则，当第一次存储该数据库数据时创建该数据库
+				> db                                # 显示当前数据库
+        > db.getName()                      # 同db
+        > show dbs                          # 显示所有数据库
+        > db.dropDatabase()                 # 删除当前数据库
+        > db.cloneDatabase("")              # 克隆数据库
+        > db.repairDatabase()               # 修复当前数据库
+        > db.stats()                        # 显示当前数据库状态
 		集合(collection)：
 			说明：document存储在collection中，collection类似于关系数据库的table
         1.集合是无模式的.多个不同的文档可以存储在同一个集合内(键值均可不同).但不推荐
+        2.如果collection不存在, 则当第一次为该collection存储数据时会自动创建该collection(同db)
       命令规则:
         1.为字符串
         2.不能含有空字符和$字符
@@ -954,20 +973,31 @@
           $set        用来指定一个键的值,若不存在则创建
           $inc        用来增加或减少已有键的值或者在键不存在时创建一个键.修改的对象只能是数字类型
           $push       会向已有的数组末尾加入一个元素.若该数组不存在则创建
-
 			命令：
-        # db.ct_name.insertOne()						  # 隐式创建ct
-        # db.ct_name.createIndex()						# 当相应的ct_name不存在时，这两个操作可以创建相应的ct_name
-        # db.createCollection()							  # 显式创建ct，可以设置最大size或文档验证规则。若不需要，则直接隐式创建即可
-        # db.createCollection("coll_name",{key1:value,key2:value})    # 创建一个集合
-        # show collections                    # 显示当前数据库下所有集合
-        # db.getCollectionNames()             # 同show collections,但结果以列表显示
-        # db.collection.drop()                # 删除
-        # db.coll_name.insert("doc")          # 向集合coll_name插入一条doc
-        # db.coll_name.find()                 # 显示出coll_name集合中的文档,默认20条
-        # db.coll_name.findOne()              # 显示出coll_name集合中的一条文档
-        # db.coll_name.remove()               # 删除文档(该删除是永久性的,不可撤销和恢复).该删除不会删除集合本身,原有的索引也会保留(删除文档的速度远远比不上直接删除集合,然后重建索引)
-        # db.coll_name.update()               # 更新操作是原子的.且先达到服务器的操作先执行,最后的更新会覆盖前面的更新
+        > show collections                    # 显示当前数据库下所有集合
+        > db.getCollectionNames()             # 同show collections,但结果以列表显示
+
+        > db.ct_name.createIndex()						# 当相应的ct_name不存在时，这两个操作可以创建相应的ct_name
+        > db.createCollection()							  # 显式创建collection，可以设置最大size或文档验证规则。若不需要，则直接隐式创建即可
+        > db.createCollection("coll_name",{key1:value,key2:value})    # 创建一个集合
+        > db.coll_name.drop()                # 删除collection
+
+        > db.coll_name.insert(doc)            # 向集合coll_name插入一条或多条doc
+        > db.coll_name.insertOne({})					# 向集合coll_name插入一条doc
+        > db.coll_name.insertMany([{}, {}])   # 向集合coll_name插入多条doc
+
+        > db.coll_name.find()                 # 显示出coll_name集合中的文档,默认20条. 可通过更改DBQuery.shellBatchSize=N来更改返回数量
+        > db.coll_name.find().pretty()        # 格式化显示出coll_name集合中的文档,默认20条
+        > db.coll_name.findOne()              # 显示出coll_name集合中的一条文档
+
+        > db.coll_name.update()               # 更新操作是原子的.且先达到服务器的操作先执行,最后的更新会覆盖前面的更新
+        > db.coll_name.updateOne()
+        > db.coll_name.updateMany()
+        > db.coll_name.replaceOne()           # 替换document
+
+        > db.coll_name.deleteOne()            # 删除一个doc
+        > db.coll_name.deleteMany()           # 删除多个doc
+        > db.coll_name.remove()               # 删除文档(该删除是永久性的,不可撤销和恢复).该删除不会删除集合本身,原有的索引也会保留(删除文档的速度远远比不上直接删除集合,然后重建索引)
         查询:
           说明: 对文档查询使用find函数.查询结果返回集合中的子集.find的第一个参数
           命令:
@@ -975,31 +1005,32 @@
               query: 条件查询   查询条件中的值必须是常量(即不能引用文档中的其它键的值)
                 1.逻辑运算: $and,$or,$not,$nor
                   在文档中添加键值对,则按键值对的条件进行过滤返回,多个键值对以,分隔解释为and.
-                  db.users.find({$or:[{id:1},{name:"sky"}]})          # 查询id为1或name为sky的文档.多个键值的选择($or).且第一个条件尽可能多的匹配文档才是最有效的
-                  db.users.find(age:{$not:{}})                        # "$not"是元条件句,可以用在其它任何条件之上
+                  db.users.find({$or: [{id: 1}, {name: "sky"}]})          # 查询id为1或name为sky的文档.多个键值的选择($or).且第一个条件尽可能多的匹配文档才是最有效的
+                  db.users.find(age: {$not:{}})                           # "$not"是元条件句,可以用在其它任何条件之上
                 2.比较操作符: "$lt": <  "$lte": <=   "$gt": >  "$gte": >=   "$ne": !=(能用于所有类型的数据)
-                  db.users.find({age:{$gte:18,$lte:30}})              # 查询18-30岁的用户
-                  db.users.find({username:{$ne:"joe"}})               # 查询名字不为joe的用户
+                  db.users.find({age: {$gte: 18, $lte: 30}})              # 查询18-30岁的用户
+                  db.users.find({username: {$ne: "joe"}})                 # 查询名字不为joe的用户
                 3.in查询: 单个键的多个值选择("$in","$nin")
-                  db.users.find({name:{$in:["sky1","sky2"]}})         # 查询name为sky1或sky2的文档.当"$in"对应的数字只有一个值时则和直接匹配的效果是相同的
-                  db.users.find({name:{$nin:["sky1","sky2"]}})        # 查询name不是sky1和sky2的文档
+                  db.users.find({name: {$in: ["sky1", "sky2"]}})          # 查询name为sky1或sky2的文档.当"$in"对应的数字只有一个值时则和直接匹配的效果是相同的
+                  db.users.find({name: {$nin: ["sky1", "sky2"]}})         # 查询name不是sky1和sky2的文档
                 4.元素查询: $exists,$mod,$type
                   根据指定字段存在性查询文档: {field: {$exists: <bool>}} 
                     bool值为true,则返回存在在字段的文档;为false,则返回不存在该字段的文档
                   将指定字段的值进行取模运算,并返回其余数为指定值的文档: {field: {$mod [divisor,remainder]}}
                   返回指定字段的值类型为指定类型的文档: {field: {$type: <bosn type>}}
 
-                  db.users.find({z:{$in:[null],$exists:true}})     # z字段存在且等于null的文档
+                  db.users.find({z: {$in: [null], $exists: true}})     # z字段存在且等于null的文档
                 7.正则匹配
                 8.数组查询: 每一个元素都是整个键的值
-                  
-
               fields: 指定返回({"key":1})/不返回({"key":0})的字段(默认情况下_id键总会被返回)
             注:
               1.若某个key的值为null,则当以此为条件查询时,不仅能匹配到该值的文档,也能匹配到该值不存在的文档
+              2.嵌入式document查询中(eg: 数组), 顺序相同才匹配
         条件句的规则:
           条件句是内层文档的键,修改器是外层文档的键
-		view：
+		视图(view):
+      只读视图(read-only views)
+      按需实例化视图(On-Demand Materialized Views)
 		文档(document)：
 			说明：Mongodb将数据记录存储为BSON(JSON文档的二进制表示形式，比JSON包含更多的数据类型)的格式.
         1.document由key和value组成，value可以为任何的BSON格式,而key为string类型
@@ -1028,24 +1059,33 @@
         唯一索引
       创建索引:
         db.coll_name.createIndex(<key和索引类型>,<option>)
+      重建索引:
+        db.coll_name.reIndex()                 
       查看索引:
-        db.coll_name.getIndexes()
+        db.coll_name.getIndexes()             # 查看集合所有索引
+        db.coll_name.getIndexKeys()           # 查看索引key
+        db.coll_name.totalIndexSize()         # 查看索引总大小
       删除索引:
-        db.collection.dropIndexes()              # 删除所有索引
-        db.collection.dropIndex()              # 删除所有索引
+        db.collection.dropIndexes()           # 删除所有索引
+        db.collection.dropIndex("key_name")   # 删除所有索引
     分析器(profile)
       # show profile
+    批量写入:
+      分类:
+        db.collection.insertMany(): 批量插入
+        db.collection.blukWrite(): 批量插入, 更新和删除
+      有序/无序操作:
+        若参数{ordered: true}, 默认, 则为有序写入, mongodb串行执行操作(每个操作必须等待上一个操作完成), 若某个操作发生错误, 则返回错误且不处理后续列表中的数据
+        若参数{ordered: false}, 则为无序写入, mongodb并行执行操作, 若某个操作发生错误, 则继续处理列表中剩余的数据
     日志(log)
       # show logs
       # show log [name]
          
-        
-
 		document验证：
 			说明:
 		修改document结构：
 		退出：
 			# quit();
     导入导出:
-      # mongorestore -d db_name dir (内含json和bson文件)
+      .# mongorestore -d db_name dir (内含json和bson文件)
 			

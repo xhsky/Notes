@@ -5,7 +5,6 @@
 	作者：意大利人 Salvatore，Pieter Noordhuis
 		2009年，开发完成。2010年，VMware开始赞助Redis的开发，2015/4/2 3.0.0正式发布(cluster)
 	Redis是REmote DIctionary Server(远程字典服务器)的缩写
-	
 外：
 	编译安装：
 		# wget http://download.redis.io/releases/redis-4.0.7.tar.gz
@@ -30,15 +29,6 @@
 				禁用，它对内存使用和延迟有非常大的负面影响
     # sysctl -p
 		#  redis-server redis.conf
-		
-		将redis做成服务
-			# cp redis-4.0.7/utils/redis_init_script /etc/init.d/redis
-			# vim /etc/init.d/redis
-				# chkconfig: 2345 80 90					# 第二行添加
-				# 更改原文件EXEC、CLIEXEC、PIDFILE、CONF等参数
-			# chkconfig --add redis
-			# /etc/init.d/redis start|stop
-				
 		
 	物理结构：
 		数据库 ---> 键值对 ---> 五种数据类型
@@ -285,7 +275,6 @@
 			·创建一个定期任务（cron job）， 每小时将一个 RDB 文件备份到一个文件夹， 并且每天将一个 RDB 文件备份到另一个文件夹。
 			·确保快照的备份都带有相应的日期和时间信息， 每次执行定期任务脚本时， 使用 find 命令来删除过期的快照： 比如说， 你可以保留最近 48 小时内的每小时快照， 还可以保留最近一两个月的每日快照。
 			·至少每天一次， 将 RDB 备份到你的数据中心之外， 或者至少是备份到你运行 Redis 服务器的物理机器之外。
-		
 	安全：
 		说明：Redis的安全设计是在"Redis运行在安全的可信环境"这个前提下做出的
 		1.限制连接：
@@ -361,7 +350,6 @@
 			5.如果服务器和客户端都运行在同一个机器上面，那么 TCP/IP loopback 和 unix domain sockets 都可以使用。对 
 			  Linux 来说，使用 unix socket 可以比 TCP/IP loopback 快 50%。 默认 redis-benchmark 是使用 TCP/IP loopback。 
 			  当大量使用 pipelining 时候，unix domain sockets 的优势就不那么明显了
-			
 内：	
 	命令返回值：
 		说明：命令返回值有5种
@@ -380,8 +368,6 @@
 		*：		匹配任意个字符
 		[]：	匹配括号中的任意字符
 		\x：	用于转义
-		
-	
 	Redis的三种定位
 		Memory Cache
 			说明：把数据存储在内存中的高速缓存，用来在应用和数据库间提供缓冲，替代memcachd
@@ -407,7 +393,6 @@
 			
 		2.key value store.				以key-value形式存储的数据库，定位直指MySQL，用来作为唯一的存储系统。
 		3.data structrue server			把支持对复杂数据结构的高速操作作为卖点，提供某些特殊业务场景的计算和展现需求。比如排行榜应用，Top 10之类的。
-	
 	存储结构：
 		说明：
 			Redis以字典结构存储数据，并允许其它应用通过TCP/IP协议读写字典中的内容
@@ -430,7 +415,6 @@
 			字符串哈希(hashes)
 				Redis的哈希值是字符串字段和字符串值之间的映射，所以他们是表示对象的完美数据类型。在Redis中的哈希值，
 				可存储(2＾32-1)键值对--超过四十亿。
-
 	内存存储与持久化：
 		说明：Redis的所有数据都存储在内存中，可提高性能，但易丢失数据。Redis提供了持久化支持，可将内存中数据异步写
 			入磁盘或将修改操作追加入文件，同时不影响继续提供服务。Redis启动后会读取RDB快照文件，将数据从硬盘载入内
@@ -547,10 +531,6 @@
 			2.Redis不支持为每个数据库设置不同的访问密码，故一个客户端要么可以访问所有数据库，要么均无法访问
 			3.多个数据库之间并非完全隔离，不适宜存不同应用程序的数据。不同的应用应该使用不同的Redis实例存储。可用0号数据库存储应用生产
 			  环境的数据，1号数据库存储测试环境的数据。一个空Redis实例只占用1M左右内存
-			
-		
-		
-	
 集群：
 	复制(replication)
 		说明：
@@ -805,7 +785,36 @@ Redis的主从
           1.停止要删除的sentinel
           2.发送 # sentinel reset * 命令给其它所有的sentinel实例.*可以指定为某个master名字.要一个一个发,间隔在30s以上
           3.# sentinel master <name> 查看是否有一致的sentinel数
+Redis的发布订阅:
+  说明: 
+    1.是进程间的一种消息通信模式: pub, channel, sub
+    2.发布订阅与key space无关, 跨数据库级别
+  原理:
+    1.发布者将的信息发送到一个或多个channel, 若订阅者可以订阅任意的channel, 从中接收信息
+    2.发布者和订阅者之间没有关系, 也不知道对方的存在
+  消息推送的格式:
+    说明:
+      1.订阅和取消订阅的操作答复也以消息的形式发送, 以便客户端可以读取连贯的消息流
+    分类:
+      普通消息推送: 消息为三个元素的数组回复, 第一个元素为消息的类型
+        订阅消息回复:
+          ["subscribe", "订阅的channel名称", "当前订阅的channel数量"]
+        取消订阅消息回复:
+          ["unsubscribe", "取消的channel名称", "当前订阅的channel数量"]
+        消息:
+          ["message", "发出消息的channel名称", "实际的消息信息"]
+      模式消息推送: 第一个元素为消息的类型
+        订阅消息回复:
+          ["psubscribe", "订阅的channel模式", "当前订阅的channel数量"]
+        取消订阅消息回复:
+          ["punsubscribe", "取消的channel名称", "当前订阅的channel数量"]
+        消息:
+          ["pmessage", "发出消息的channel模式", "发出消息的channel名称", "实际的消息信息"]
 
+
+
+
+    
 Redis的事务	
 	说明：事务是指“一个完整的动作，要么全部执行，要么什么也没有做”
 		1.Redis中开启事务后，所有命令进入队列等待执行，执行后的返回值是这些命令的返回值组成的列表
@@ -836,7 +845,6 @@ Redis的事务
 				事务中若有命令运行出错，其它命令依然执行
 				
 			注：redis事物中没有回滚功能，为此开发者必须在事物执行出错后自行解决回滚。
-			
 Redis特点：
 	1.Redis数据库完全在内存中，使用磁盘仅用于持久性
 	2.相比许多键值数据存储，Redis拥有一套较为丰富的数据类型
@@ -850,9 +858,6 @@ Redis特点：
 			  使用config set slave-read-only no，允许写slave
 			4.配置你所有的客户端以便使用新的实例（即slave）
 			5.当确认master不再接收到任何请求(可用monitor命令监视)，使用slaveof no one命令切换slave为master，然后关闭原先的master
-			
-	
-	
 redis的桌面管理器：用于管理Redis的键和数据
 			http://redisdesktop.com/download 
 			
@@ -860,9 +865,6 @@ redis的桌面管理器：用于管理Redis的键和数据
 		
 	以非daemon方式运行，默认端口tcp/6379
 	make成功后会在src文件夹下产生一些二进制可执行文件
-	
-	
-	
 命令
 	启动
 		# ./src/redis-server [/path/redis.conf] &
@@ -1116,10 +1118,15 @@ redis的桌面管理器：用于管理Redis的键和数据
 			# hlen h_name									获取哈希的字段数
 
 			# hscan h_name cursor [match pattern] [cont cunt]		增量迭代哈希字段及相关值
-	
-	
-	
-	
+  pub/sub命令
+    > subscribe channel_name1 channel_name2 ...                     # 订阅频道
+    > psubscribe pattern pattern ...                                # 以模式方式订阅频道. eg: chan?le, cha*l, chan[an]l
+    > unsubscribe [channel_name1 channel_name2] ...                 # 取消订阅. 若无参数, 则取消所有频道
+    > punsubscribe [pattern pattern] ...                            # 取消模式订阅. 若无参数, 则取消所有模式频道
+    > publish channel_name "message"                                # 将消息发送给指定的channel, 返回值为收到信息的客户端数量
+    > pubsub channels                                               # 列出当前活动的频道(不包含模式频道)
+    > pubsub numsub channel_name1 channel_name2 ...                 # 返回指定频道的订阅者数量
+    > pubsub numpat                                                 # 返回模式频道的数量
 参考文件：
 	http://blog.csdn.net/gqtcgq/article/details/51588259
 	

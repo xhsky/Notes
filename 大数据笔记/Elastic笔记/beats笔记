@@ -1,0 +1,49 @@
+简介
+	时间，作者，开发语言，定义
+    轻量级数据采集器. beats平台集合了多种单一用途的数据采集器, 它们会从本地的机器上向Logstash或ES发送数据
+    
+	官网
+	版本
+	协议
+适用性(优缺)
+架构
+	模块
+    分类:
+      Audit data: Auditbeat
+      Log files: Filebeat
+      Cloud data: Functionbeat
+      Availability: hearbeat
+      Systemd journals: Journalbeat
+      Metrics: Metricbeat
+      Network traffic: Packetbeat
+      Windows event logs: Winlogbeat
+	安装
+    Metricbeat
+      # curl -L -O https://artifacts.elastic.co/downloads/beats/metricbeat/metricbeat-7.5.1-linux-x86_64.tar.gz
+      # tar xzvf metricbeat-7.5.1-linux-x86_64.tar.gz
+
+
+    # curl -L -O https://artifacts.elastic.co/downloads/beats/auditbeat/auditbeat-7.5.1-linux-x86_64.tar.gz
+    # tar -xf auditbeat-7.5.1-linux-x86_64.tar.gz
+	结构
+		目录结构
+			源码目录
+			安装目录
+		        配置文件
+		进程/端口
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+    说明: 
+      1.beats可将数据直接发送到ES或通过Logstash(进一步处理和增强数据)发送, 然后再在Kibana中进行可视化
+		
+具体服务相关
+	概念:
+		原理
+	内部命令

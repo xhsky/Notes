@@ -1,36 +1,34 @@
 简介
 	时间，作者，开发语言，定义
-		SQLite是一个自包含的、高可靠的、嵌入式的关系数据库引擎
+		SQLite是一个小型, 快速, 自包含的, 高可靠的, 功能齐全的关系数据库引擎, 使用C开发
 	官网：https://www.sqlite.org
-		
-	版本
+	版本: 官网提供两种源代码的方式 
+    amalgamation: 将sqlite的所有源文件集成到了sqlite3.c文件中, 且只单独编译出一个shell版本的sqlite3, 它并不会编译出Linux里面的开发库
+    autoconf: 是使用linux上面常见的./configure make make install方式来编译sqlite3的, 可以编译出所有需要的依赖库
 	协议
 适用性(优缺)
 	特点：
-		1.事务性：
-			即使在程序崩溃、操作系统崩溃或电源故障发生时，事务也是原子的
-		2.零配置：
-			sqlite没有配置过程。没有服务器进程。没有访问权限。不需要故障恢复
+		1.事务性: 即使在程序崩溃, 操作系统崩溃或电源故障发生时, 事务也是ACID
+		2.零配置: sqlite没有配置过程, 没有服务器进程, 没有访问权限, 不需要故障恢复
 		3.功能齐全：SQLite具有全功能的SQL实现
-		4.完整的数据库存储在单个跨平台磁盘文件中。非常适合用作应用程序文件格式
-		5.自包含：具有很少的依赖性，不使用外部库或接口
+		4.完整的数据库: 存储在单个跨平台磁盘文件中, 非常适合用作应用程序文件格式
+		5.自包含：无外部依赖关系(不使用外部库或接口)
 		6.高可靠：内存不足和I/O错误的报告将备份到应用程序，不会影响sqlite工作。恶意输入不会导致崩溃
 		7.嵌入式：访问数据库的进程直接从磁盘上的数据库文件读取和写入。没有中间服务器进程
+  用途:
+    物联网数据库: 常用于手机, PDA, MP3等电子产品的数据库引擎
+    应用程序格式文件: 与其使用fopen()写入xml, json, csv等, 不如使用sqlite. 不必编写解析器进行故障排除, 且数据更易于访问和跨平台, 更新也具有事务性
 		
-	主要为各个应用程序和设备提供本地数据存储。SQLite强调经济，效率，可靠性，独立性和简单性
-	适用于：
-		嵌入式设备和物联网
-		应用文件格式
+    1.主要为单个应用程序和设备提供本地数据存储。SQLite强调经济，效率，可靠性，独立性和简单性
+    2.sqlite不与数据库服务器竞争, 它于fopen()竞争
+
+    多个进程可以同时打开同一个数据库. 多个进程可以同时执行SELECT. 但是, 在任何时候, 只有一个进程可以对数据库进行更改
 		
-		具有低写入并发性和小于TB级内容的设备本地存储，快速可靠，无需配置和维护
-	
 架构
 	模块
-	编译：
+	编译： 3min
 		# yum install readline-devel -y
-		# wget https://www.sqlite.org/2017/sqlite-autoconf-3180000.tar.gz
-		# tar -xf sqlite-autoconf-3180000.tar.gz
-		# cd sqlite-autoconf-3180000
+    # wget https://www.sqlite.org/2019/sqlite-autoconf-3300100.tar.gz
 		# ./configure --prefix=/path/dir
 		# make
 		# make install
@@ -47,7 +45,6 @@
 				/usr/share/doc/sqlite-3.6.20/README
 				/usr/share/man/man1/sqlite3.1.gz
 				~/.sqlite_history						# 保存当前用户的sql历史
-
 		进程/端口：
 			无进程/端口
 		编程接口：
@@ -58,28 +55,40 @@
 		客户端：
 			# sqlite3 [options] filename [sql]
 				options：
-					-init filename       read/process named file
-					-echo                在交互界面执行命令前打印出命令
-					-[no]header          是否显示字段名，默认禁止
-					-bail                stop after hitting an error
-					-interactive         force interactive I/O
-					-batch               force batch I/O
-					-column              set output mode to 'column'
-					-csv                 set output mode to 'csv'
-					-html                set output mode to HTML
-					-line                set output mode to 'line'
-					-list                set output mode to 'list'
-					-separator 'x'       set output field separator (|)
-					-nullvalue 'text'    set text string for NULL values
-					
-					-help				# 显示帮助信息
-					-version           	# 显示版本号
+          -append           # 在文件末尾追加数据库
+          -readonly         # 只读模式打开数据库
 
-				filename：				# 一个与数据库名相同的文件名，该文件不存在时被创建(即数据库被创建)
-				sql：					# 外部命令行执行的sql
-				
-				如果在命令行中未指定数据库文件，则会创建临时数据库(在内存中)，然后在程序退出时删除。
-				
+          -[no]header       # 是否输出字段名
+          -echo             # 在执行之前打印命令
+
+          -newline SEP      # 设置输出行的分隔符, 默认'\n'
+          -separator SEP    # 设置输出列的分隔符, 默认'|'
+          -nullvalue TEXT   # 设置NULL的输出, 默认''
+
+          -lookaside SIZE N # 
+          -pagecache SIZE N # 
+
+          -list             # 输出模式为list, 默认
+          -ascii            # 输出模式为ascii
+          -column           # 输出模式为column
+          -csv              # 输出模式为csv
+          -html             # 输出模式为html
+          -line             # 输出模式为line
+          -quote            # 输出模式为quote
+
+          -init filename    #
+          -cmd Command      # 进入数据库后运行Command
+          -bail             # 触发错误后停止
+          -batch            # 强制批量I/O
+          -interactive      # 强制交互式I/O
+          -memtrace
+          -mmap N
+          -stats
+          -vfs NAME         # 
+          -help
+          -version
+				filename：				  # 一个与数据库名相同的文件名，该文件不存在时被创建(即数据库被创建). 若未提供文件名, 则会进入一个临时的内存数据库中
+				sql：					      # 外部命令行执行的sql
 	日志
 	优化
 	安全
@@ -87,145 +96,79 @@
 		
 具体服务相关
 	概念:
-		访问权限：
-			由于SQLite读写普通磁盘文件，所以该数据库的唯一访问权限是底层操作系统的正常文件访问权限。故没有grant和revoke语句
-	内部命令：
-		SQL：
-			说明：
-				1.sqlite3只是读取输入行，并将它们传递给SQLite库以供执行
-				2.输入的SQL以;结尾，也可使用"GO/go"或"/"来强制结束命令
-				3.并且可以在任何地方都有空格和注释
-			示例：
-				库：
-					无
-				表：
-					
-				查询：
-				
-					注：在join中，只有left outer join被实现，其它均无
-				类型：
-				索引：
-				触发器：
-				事务：
-				视图：
-				函数：
-				
-		. 命令：
-			说明：以 . 开头的输入行被sqlite3程序本身截取和解释。这些 . 命令通常用于更改查询的输出格式或执行某些预先打包的查询语句。
-				. 命令可以通过 .help来查看所有列表
-				
-			示例：
-				
-				.backup  file			# 以二进制模式备份数据库到file文件		Backup DB (default "main") to FILE
-				.dump [tb_name]			# 以sql语句模式备份数据库，若指定表，则只备份该表。适用于不同数据库迁移
-										# sqlite3 db_name | gzip -c > bak.dump.gz
-				.save FILE             	# 将内存数据库写入一个文件
-				.output file     		# 将输出发送至file文件。stdout则输出值屏幕
-				.import file table		# 将file数据导入table中。file格式与mode格式相同
-				
-				.read filename        	# 执行filename中的sql
-				.load FILE ?ENTRY?    	# 加载一个扩展库
-				
-				
-				
-				.databases 				# 列出数据库名称和文件
-				.dbinfo ?DB?           	# 显示数据库信息
-				.tables [table]        	# 列出所有table
-				.schema [table]      	# 显示创表语句，若指定table，则只显示该表的
-										  Add --indent for pretty-printing
-				.indexes [table]		# 显示所有索引名，若指定表名，则只显示该表索引名
-				
-				
-				
-				.log FILE|off			# 开启日志
-				
-				.show                  	# 显示当前各种设置
-				.bail on|off           	# 发生错误后停止，默认off
-				.echo on|off 			# 在交互界面执行命令前打印出命令，默认off
-				.headers on|off			# 是否开启头部显示
-				.mode MODE [table]     	# 设置显示格式：有8种显示格式：	默认|分隔
-											csv(,分隔)		column(左对齐列)		html(html代码显示)		insert(insert语句显示)
-											line(一值一行)	list(.separator分隔)	tabs(\t分隔)			tcl("包含)
-				.separator COL ?ROW?   	# 改变输出和.import使用的分隔符 
-				.width NUM1 NUM2 ...  	# 为column模式设置列宽度
-				.nullvalue STRING     	# 在 NULL 值的地方输出 STRING 字符串
-				.print STRING...      	# 逐个输出字符串
-				.prompt sqlite3 ...  	# 替换标准提示符
-				.stats on|off	      	# 是否开启统计
-				.timeout MS            	# 尝试在MS毫秒内打开锁定的表
-				.timer on|off          	# 是否开启sql计时
-				.changes on|off        	# 显示sql更改的行数
-				.auth ON|OFF           	# 显示授权
-				
-				.explain on|off|auto	# 是否开启explain				
-				
-				.exit					# 退出
-				.quit					# 退出
-				
-				
-				
-				
-				.binary on|off         Turn binary output on or off.  Default OFF
-				
-				.check GLOB            Fail if output since .testcase does not match
-				.clone NEWDB           Clone data into NEWDB from the existing database
-				            List names and files of attached databases
-				
-				
-				
-				.eqp on|off|full       Enable or disable automatic EXPLAIN QUERY PLAN
-				                  Exit this program
-				
-				.fullschema ?--indent? Show schema and the content of sqlite_stat tables
-				        Turn display of headers on or off
-				
-				.imposter INDEX TABLE  Create imposter table TABLE on index INDEX
-				 
-				.limit ?LIMIT? ?VAL?   Display or change the value of an SQLITE_LIMIT
-				.lint OPTIONS          Report potential schema issues. Options:
-										 fkey-indexes     Find missing foreign key indexes
-				
-				
-				.once FILENAME         Output for the next SQL command only to FILENAME
-				.open ?--new? ?FILE?   Close existing database and reopen FILE
-										 The --new starts with an empty file
-				.restore ?DB? FILE     Restore content of DB (default "main") from FILE
-				
-				.scanstats on|off      Turn sqlite3_stmt_scanstatus() metrics on or off
-				
-				.selftest ?--init?     Run tests defined in the SELFTEST table
-				
-				.sha3sum ?OPTIONS...?  Compute a SHA3 hash of database content
-				.shell CMD ARGS...     Run CMD ARGS... in a system shell
-				
-				
-				.system CMD ARGS...    Run CMD ARGS... in a system shell
-				
-				.testcase NAME         Begin redirecting output to 'testcase-out.txt'
-				
-				
-				.trace FILE|off        Output each SQL statement as it is run
-				.vfsinfo ?AUX?         Information about the top-level VFS
-				.vfslist               List all available VFSes
-				.vfsname ?AUX?         Print the name of the VFS stack
-				
+		访问权限: 由于SQLite读写普通磁盘文件，所以该数据库的唯一访问权限是底层操作系统的正常文件访问权限。故没有grant和revoke语句
+	内部命令:
+    分类:
+      SQL：
+        说明：
+          1.sqlite3程序只是读取输入行，并将它们传递给sqlite lib以供执行
+          2.输入的SQL以;结尾，也可使用"GO/go"或"/"来强制结束命令
+          3.并且可以在任何地方都有空格和注释
+        示例：
+          库：
+            无
+          表：
+            
+          查询：
+          
+            注：在join中，只有left outer join被实现，其它均无
+          类型：
+          索引：
+          触发器：
+          事务：
+          视图：
+          函数：
+      .命令：
+        说明: 
+          1.以"."开头的输入行被sqlite3程序本身截取和解释.
+          2."."命令通常用于更改查询的输出格式或执行某些预先打包的查询语句
+        示例：
+          .auth on|off
+          -- 数据库输出
+          .backup [db] file			  # 以二进制模式备份数据库到file文件, db为默认为main
+          .dump [tb_name] ...	    # 以sql语句模式备份数据库. 若指定表, 则只备份该表. 适用于不同数据库迁移
+          .save file             	# 将内存数据库写入一个文件
+          .output file     		    # 将输出发送至file文件, stdout则输出值屏幕
+          .import file table		  # 将file数据导入table中. file格式与mode格式相同
+          -- 数据库输入
+          .read filename        	# 执行filename中的sql
+          .load FILE ?ENTRY?    	# 加载一个扩展库
+          -- 显示数据库信息
+          .databases 				      # 列出数据库名称和文件
+          .dbinfo [db]           	# 显示数据库信息
+          .tables [table]        	# 列出所有table
+          .schema [table]      	  # 显示创表语句, 若指定table, 则只显示该表的 --indent for pretty-printing
+          .indexes [table]		    # 显示所有索引名，若指定表名, 则只显示该表索引名
+          -- 日志
+          .log FILE|off			      # 开启日志
+          -- 设置
+          .show                  	# 显示当前各种设置
+          .bail on|off           	# 发生错误后停止，默认off
+          .echo on|off 			      # 在交互界面执行命令前打印出命令，默认off
+          .headers on|off			    # 是否开启头部显示
+          .mode MODE [table]     	# 设置显示格式：有8种显示格式：	默认|分隔
+                        csv(,分隔)		column(左对齐列)		html(html代码显示)		insert(insert语句显示)
+                        line(一值一行)	list(.separator分隔)	tabs(\t分隔)			tcl("包含)
+          .separator COL ?ROW?   	# 改变输出和.import使用的分隔符 
+          .width NUM1 NUM2 ...  	# 为column模式设置列宽度
+          .nullvalue STRING     	# 在 NULL 值的地方输出 STRING 字符串
+          .print STRING...      	# 逐个输出字符串
+          .prompt sqlite3 ...  	  # 替换标准提示符
+          .stats on|off	      	  # 是否开启统计
+          .timeout MS            	# 尝试在MS毫秒内打开锁定的表
+          .timer on|off          	# 是否开启sql计时
+          .changes on|off        	# 显示sql更改的行数
+          .auth ON|OFF           	# 显示授权
+          
+          
+          .explain on|off|auto	  # 是否开启explain				
+          
+          .exit					          # 退出
+          .quit					          # 退出
 
-			
-			
-			
-			
-			
-			
-			
+          .binary on|off          # 是否打开二进制输出, 默认off
+          .cd dir                 # 切换工作目录
+
 
 				
 				
-				
-				
-				
-				
-				
-				
-	使用服务器的数据库引擎可以更好地保护客户端应用程序中的错误 
-		- 客户端中的杂散指针不能损坏服务器上的内存。而且由于服务器是一个单一的持久性进程，它能够以更精确的方式控制数据库访问，
-		  从而实现更细化的锁定和更好的并发性				

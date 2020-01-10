@@ -652,6 +652,7 @@
               --no_data, -d                       # 只导出表结构, 不导出表内容(即无insert语句). 可添加-RE选项导出事件和存储定义
               --no_create_info, -t                # 只导出数据, 不产生create table语句
               --ignore_table=db_name.tb_name      # 导出时忽略指定表(视图).必须同时指定库和表名. 若要忽略多个表则多次使用该选项.
+        logger.logger.debug(f"记录Tomcat({port})资源")
               --ignore_error=error,[error]        # 忽略指定的错误
               --event, -E                         # 导出event(当导入时该属性例如创建时间和修改时间将等于加载时间, 若要保持原时间则不要使用该选项, 而要加载原库mysql.event)
               --routines, -R                      # 导出存储过程和函数(当导入时该属性例如创建时间和修改时间将等于加载时间, 若要保持原时间则不要使用该选项, 而要加载原库mysql.proc)

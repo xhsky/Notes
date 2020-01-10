@@ -57,7 +57,7 @@
 		linux：系统已自带python环境(# yum install python)
 			源码编译：	10分钟
 				python
-					# yum install readline-devel zlib-devel bz2-devel openssl-devel libffi-devel sqlite3-devel tck-devel tk-devel	  
+					# yum install readline-devel zlib-devel bzip2-devel xz-devel openssl-devel ncurses-devel libffi-devel sqlite-devel tcl-devel tk-devel	  
 					# wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
 					# tar -xf Python-3.7.11.tar.xz
 					# cd Python-3.7.1

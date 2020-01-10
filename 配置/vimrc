@@ -1,46 +1,49 @@
 call plug#begin('~/.vim/plugged')
-Plug 'Valloric/YouCompleteMe'
+"Plug 'Valloric/YouCompleteMe'
 Plug 'davidhalter/jedi-vim'
-Plug 'mattn/emmet-vim'      " html, css插件
-"Plug 'iamcco/markdown-preview.vim'
-"Plug 'plasticboy/vim-markdown'   " 语法高亮
+"Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
+Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install_sync() } }
+Plug 'plasticboy/vim-markdown'   " 语法高亮
+"Plug 'mattn/emmet-vim'      " html, css插件
 "Plug 'ferreum/completor-tmux'
+Plug 'yianwillis/vimcdoc'
 call plug#end()
 filetype plugin indent on
 
 " jedi sets
-"let g:jedi#completions_command = "<C-N>"   " 往下选择
-""let g:jedi#popup_select_first = 3
-""let g:jedi#auto_initialization = 0
-""let g:jedi#auto_vim_configuration = 0
-""let g:jedi#use_tabs_not_buffers = 1
-""let g:jedi#use_splits_not_buffers = "left"
+let g:jedi#completions_command = "<C-N>"   " 往下选择
+let g:jedi#popup_select_first = 3
+let g:jedi#auto_initialization = 0
+let g:jedi#auto_vim_configuration = 0
+let g:jedi#use_tabs_not_buffers = 1
+let g:jedi#use_splits_not_buffers = "left"
 
 "-d: 转向定义, c-o返回"
 
 " YCM sets
-let g:ycm_min_num_of_chars_for_completion = 2
-let g:ycm_autoclose_preview_window_after_completion = 1
-let g:ycm_seed_identifiers_with_syntax = 1
+""let g:ycm_min_num_of_chars_for_completion = 2
+""let g:ycm_autoclose_preview_window_after_completion = 1
+""let g:ycm_seed_identifiers_with_syntax = 1
 
-map <leader>g  :YcmCompleter GoToDefinitionElseDeclaration<CR>
+""map <leader>g  :YcmCompleter GoToDefinitionElseDeclaration<CR>
 
 
 " emmet-vim 配置 """"""""""""""""""""""""""""""""""""""""""""
-let g:user_emmet_mode='inv'                   " 在所有模式中启用emmet
-let g:user_emmet_leader_key='<C-Y>'           " 定义关键key
+""let g:user_emmet_mode='inv'                   " 在所有模式中启用emmet
+""let g:user_emmet_leader_key='<C-Y>'           " 定义关键key
 " 仅为html/css启用
-let g:user_emmet_install_global = 0
-autocmd FileType html,css EmmetInstall
+""let g:user_emmet_install_global = 0
+""autocmd FileType html,css EmmetInstall
 
 " emmet-vim 配置 """"""""""""""""""""""""""""""""""""""""""""
 
 " markdown set
-let g:mkdp_path_to_chrome = "google-chrome"
+let g:mkdp_browser = '/usr/bin/google-chrome'
+"let g:mkdp_path_to_chrome = "google-chrome"
 " 设置 chrome 浏览器的路径（或是启动 chrome（或其他现代浏览器）的命令）
 " 如果设置了该参数, g:mkdp_browserfunc 将被忽略
 
-let g:mkdp_browserfunc = 'MKDP_browserfunc_default'
+"let g:mkdp_browserfunc = 'MKDP_browserfunc_default'
 " vim 回调函数, 参数为要打开的 url
 
 let g:mkdp_auto_start = 1
@@ -51,7 +54,7 @@ let g:mkdp_auto_open = 1
 " 设置为 1 在编辑 markdown 的时候检查预览窗口是否已经打开，否则自动打开预
 " 览窗口
 
-let g:mkdp_auto_close = 1
+let g:mkdp_auto_close = 0
 " 在切换 buffer 的时候自动关闭预览窗口，设置为 0 则在切换 buffer 的时候不
 " 自动关闭预览窗口
 
@@ -215,6 +218,6 @@ noremap! ， ,
 noremap! 。 . 
 noremap! × *
 noremap! ” ""<left>
-"noremap! （ ()<left>
+noremap! （ ()<left>
 
 

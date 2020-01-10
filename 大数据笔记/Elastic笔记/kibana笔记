@@ -1,0 +1,54 @@
+简介
+	时间，作者，开发语言，定义
+    和ES一同使用的开源分析和可视化平台
+	官网
+	版本
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    说明: Kibana运行在Node.js上, 但该软件已包含. 不支持自定义的Node.js
+    # curl -O https://artifacts.elastic.co/downloads/kibana/kibana-7.5.1-linux-x86_64.tar.gz
+    # tar -xzf kibana-7.5.1-linux-x86_64.tar.gz
+    # vim config/
+    # ./bin/kibana
+	结构
+		目录结构
+			源码目录
+			安装目录
+        bin
+        built_assets
+        config:
+          config/kibana.yml:
+           erver.port: 5601                       # 指定端口
+           server.host: "0.0.0.0"                 # 指定ip
+           server.name: "kibana_show"             # kibana对外显示的名称
+           elasticsearch.hosts: ["http://localhost:9200"]         # 连接的ES URL
+           
+
+        data
+        node
+        node_modules
+        optimize
+        package.json
+        plugins
+        srcwebpackShims
+        x-pack
+		进程/端口
+      5601
+		编程接口
+		管理软件
+	命令
+		服务器
+      ./bin/kibana
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		原理
+	内部命令

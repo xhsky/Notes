@@ -1,0 +1,393 @@
+简介
+	时间，作者，开发语言，定义
+    开源的服务器端数据处理管道, 能同时从多个source采集数据, 转换数据, 然后将数据发送到相应的多个存储中
+	官网
+	版本
+	协议
+适用性(优缺)
+  1.利用Grok从非结构化数据中派生出结构, 从IP地址中解析出地理坐标, 匿名化或排除敏感字段, 简化整体处理过程
+  2.
+架构
+	模块
+	安装
+    .#安装Java8
+    .# wget -c https://artifacts.elastic.co/downloads/logstash/logstash-7.5.1.tar.gz
+    .# tar -xf ; ln ; cd
+    .# vim config/logstash-my.conf
+    .# ./bin/logstash -c config/logstash-my.conf -t
+    .# nohup ./bin/logstash -f config/logstash-my.conf &> /dev/null &
+	结构
+		目录结构
+			安装目录
+        bin/              # 二进制文件目录
+        config/           # 配置文件目录
+        logs/             # 日志目录
+        data/             # 数据目录
+      配置文件
+        说明: logstash主要有两种类型的配置文件: 管道配置文件, 设置文件
+        logstash.yml: logstash配置文件
+          node.name: str                      # 节点的名称, 默认hostname
+          path.data: dir                      # 用于存储logstash和插件的数据目录, 默认LOGSTASH_HOME/data
+          pipeline.id: main                   # 管道id, 默认main
+          pipeline.java_execution: true       # 是否使用Java执行引擎, 默认true
+          pipeline.workers: N                 # 并行执行filter和output的工作线程数, 默认CPU的核心数
+          pipeline.batch.size: 125            # 单个工作线程从inputs中收集的最大事件数量, 默认125
+          pipeline.batch.delay: 50            # 在创建管道批处理事件(125个)时等待的毫秒数, 超时则将较小的批处理(不足125的事件打包)分派给filter+output
+          pipeline.unsafe_shutdown: false     # 若设置为true, 则在关闭期间强制logstash退出(即使内存中还有还在运行事件), 该选项有丢失数据的风险. 默认情况下是等待数据全部到output后才退出
+          path.config: dir                    # 管道配置文件目录
+          config.string
+          config.test_and_exit: false         # 是否在启动前检查配置文件
+          config.reload.automatic: false      # 是否自动根据配置文件更改来自动重启logstash
+          config.reload.interval: 3s          # Logstash多长时间检查一次配置文件中的更改, 默认3s
+          config.debug: false                 # 是否启用debug模式, 默认false
+          config.support_escapes: false       # 是否支持转义
+          modules: None                       # 定义modules
+          queue.type: memory                  # 用于缓冲数据的内部队列类型, 默认使用内存队列, persisted则使用磁盘队列
+          path.queue: dir                     # 当queue.type为persisted时, 队列数据存储的目录. 默认path.data/queue
+          queue.page_capacity: 64mb           # 当queue.type为persisted时, 队列数据存储的文件大小, 默认64m
+          queue.max_events: 0                 # 当queue.type为persisted时, 队列中未读事件的最大大小, 默认0(无限制)
+          queue.max_bytes: 1024mb             # 当queue.type为persisted时, 队列的总大小. 默认1024m. 若同时定义了max_events, 则取先达到的数值
+          queue.checkpoint.acks: 1024         # 当queue.type为persisted时, 当ack数量达到指定数目时启动强制checkpoint. 默认1024个, 0表示无限制
+          queue.checkpoint.writes: 1024       # 当queue.type为persisted时, 当写入的event到达指定数目时启动强制checkpoint. 默认1024个, 0表示无限制
+          queue.checkpoint.retry: false       # 
+          queue.drain: false
+          dead_letter_queue.enable: false     # 是否启用DLQ特性, 默认false
+          dead_letter_queue.max_bytes: 1024mb # 每个dead-letter队列的最大大小, 超过的数据将会被丢弃. 默认1024mb
+          path.dead_letter_queue: dir         # dead-letter队列的存储目录, 默认path.data/dead_letter_queue
+          http.host: "127.0.0.1"              # reset endpoint的地址, 默认127
+          http.port: 9600                     # reset endpoint的端口, 默认9600
+          log.level: info                     # logstash日志级别, 默认info, 可用fatal, error, warn, info, debug, trace
+          log.format: plain                   # 日志格式, 也可使用json格式
+          path.logs: LOGSTASH_HOME/logs       # 日志目录
+          pipeline.separate_logs: false       # 每个管道对应一个日志文件, 文件名使用pipeline.id
+        pipelines.yml: 单个logstash示例运行多个管道的配置. 
+          说明:
+            1.每个阶段可以包含一个或多个配置插件
+            2.插件需要某个value为某种类型, eg: boolean, list, hash, byte(k, m, g等), number, url, path, str(单引号或双引号)
+            3.注释以#开头, 不必在行首
+          .# 输入配置
+          input {
+            input_plugin_name {
+              .# 以下配置适用于所有输入插件
+              add_field => {}                                     # event添加一个字段
+              codec => "plain"                                    # 在数据输入之前解码的格式
+              enable_metric => true                               # 
+              id => "str"                                         # 插件配置id, 默认自动生成
+              tag => []                                           # 添加任意数量的标签到event中, 便于后续处理
+              type => "str"                                       # 向每个事件中添加一个字段. 主要用于过滤器过滤
+              .# 每个输入插件的独特配置
+              }
+            }
+          .# 过滤配置
+          .# 输出配置
+          output {
+            .# stdout输出
+            output_plugin_name {
+              .# 以下配置适用于所有输入插件
+              enable_metric => true                               # 
+              id => ""                                            # 插件id
+
+
+              .# 每个输入插件的独特配置
+              .#stdout
+              codec => rubydebug|json                             # 解码器, 默认为rubydebug
+            }
+          }
+        jvm.options:  jvm配置
+          -Xms1g
+          -Xmx1g
+        log4j2.properties: 日志配置文件
+        startup.options: 用于使用系统安装包安装时的初始化配置
+
+		进程/端口
+      5044: beats数据接收端口
+      9600
+		编程接口
+		管理软件
+	命令
+		服务器
+      ./bin/logstash [option]
+        -n name                       # 指定当前logstash instance名称. 若为指定, 则使用hostname
+        -f filename                   # 指定配置文件
+        -e str                        # 指定配置
+        -t                            # 检查配置文件然后退出
+        -r                            # 若配置文件发生变换, 则自动reload
+        --modules mod1, mod2          # 加载logstash模块
+        --setup                       # 加载索引模板到ES
+        --pipeline.id ID              # 设置pipeline id, 默认main
+        -w N                          # 每个pipeline的数量
+        --log.level LEVEL             # 日志级别(fatal, error, warn, info, debug, trace), 默认info
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+    logstash的工作原理:
+      1.logstash事件处理管道包括三个阶段: inputs -> filters -> outputs. inputs会生成事件, filters会对其进行修改, outputs会将他们发送到其他地方. 
+      2.管道中的每个输入阶段都有自己的线程. 输入将事件写入内存(默认)或磁盘中的队列. 管道中的工作线程会从队列中取出一批数据, 经过配置的filters, 然后输出新信息到配置的输出
+      2.input和output支持codecs, 可在数据进入和离开管道时对其进行编码或解码, 而不必使用单独的filter
+    input插件:
+      说明:
+        1.用于获取数据进入logstash
+      分类:
+        file: 从文件系统上读取文件
+        syslog: 在514端口上监听syslog信息, 并通过RFC3164格式进行解析
+        redis: 使用redis channle和list从redis中获取数据
+        beats: 
+          说明: 处理通过beats发送的事件
+          beats {
+            host => "0.0.0.0"                                 # 要监听的ip地址
+            port => 5044                                      # 监听的端口
+            client_inactivity_timeout => 60                   # N秒不活动后关闭空闲客户端, 默认60
+            include_codec_tag => true                         # 默认为true
+            }
+        jdbc: 
+          说明:
+            1.使用jdbc接口的方式从数据库获取数据传入logstash
+            2.可使用cron语法定时获取数据
+            3.结果集中的每一行都变成一个事件, 结果集中的列都会转成事件中的字段
+            4.该插件未与jdbc驱动一同打包, 故需要jdbc_driver_library和jdbc_driver_class显式指定
+          预定义参数:
+            sql_last_value: 用于计算要查询行的值.
+              1.每次sql语句被执行, 都会更该存储文件. 下一次管道启动时, 都会从文件中更新该值
+          配置:
+            jdbc {
+              jdbc_driver_class => "com.mysql.cj.jdbc.Driver"           # jdbc驱动程序类
+              jdbc_driver_library => "/data/logstash/mysql-connector-java-8.0.18.jar"                                               # 第三方驱动程序路径
+              jdbc_connection_string => "jdbc:mysql://ip:3306/db_name?serverTimezone=GMT&useUnicode=true&characterEncoding=utf8"    # 数据库连接串
+              jdbc_user => "user"                                       # 数据库用户
+              jdbc_password => "str"                                    # 数据库密码
+
+              jdbc_default_timezone =>                                  # 时区转换
+              plugin_timezone => "utc"                                  # 插件时区, 默认utc, 可选local
+              connection_retry_attempts => 1                            # 最大重连数据库的次数, 默认1
+              connection_retry_attempts_wait_time => 0.5                # 两次重连之间的间隔, 默认0.5s
+              columns_charset => { "column0" => "ISO-8859-1" }          # 覆盖某个字段的编码
+              sequel_opts => {}                                         # 
+
+              lowercase_column_names => true                            # 是否强制使用小写标识
+
+              jdbc_fetch_size => N                                      # jdbc提取大小. 默认值为各自驱动程序默认
+              jdbc_paging_enabled => false                              # jdbc是否启用分页, 默认false.  若启用则导致sql语句分为多个查询, 每个查询使用limit和offset从完整的结果集中检索数据. limit大小为jdbc_page_size. 且不保证查询之间的顺序
+              jdbc_page_size => 100000                                  # jdbc page大小, 默认100000
+
+
+              jdbc_pool_timeout => 5                                    # 连接池配置, 引发PoolTimeoutError之前等待获取连接的秒数, 默认5
+              jdbc_validate_connection => false                         # 连接池配置, 使用前验证链接, 默认false
+              jdbc_validation_timeout => 3600                           # 连接池配置, 验证超时时间, 单位秒, 默认3600
+
+              record_last_run => true                                   # 是否在last_run_metadata中保存状态
+              clean_run => false                                         # logstash启动时是否将last_run_metadata_path中状态清除, 默认false. 若为true, 值会被设置为1970元年或0
+              last_run_metadata_path => "$HOME/.logstash_jdbc_last_run" # 状态的路径文件, 默认$HOME/.logstash_jdbc_last_run. 
+
+              use_column_value => false                                 # 若为true, 则tracking_column定义的字段名的值作为:sql_last_value. 若为false(默认), :sql_last_value为上次查询被执行的时间
+              tracking_column => "column_name"                          # 被跟踪的列名, 该列名必须在statement语句中的select中存在
+              tracking_column_type => "numeric"                         # 被跟踪的列名的类型, 当前只支持"numeric"和"timestamp"
+
+              use_prepared_statements => false                          # 是否使用prepare statement. 默认false
+              prepared_statement_bind_values => []                      # 语句的绑定值的数组. :sql_last_value是保留的预定义字符串
+              prepared_statement_name => ""                             # 语句的名称
+
+              parameters => {}                                          # 定义sql语句的变量, 可通过:arg1来使用 , eg: { "arg1" => "value" }
+              statement => "sql"                                        # sql语句. 若要使用多个sql语句, 则需定义多个input插件(last_run_metadata_path需要不同)
+              statement_filepath => "/path/sql"                         # 包含sql语句的文件路径, 里面只能包含一个sql. 且sql语句和文件只能有一个选项
+              schedule => "* * * * *"                                   # 定时运行语句, 类似cron语法. 若未定义则在logstash启动后直接运行一次然后退出
+              sql_log_level => "info"                                   # 记录sql语句的日志级别, 默认info, 可选fatal, error, warn, info, debug
+              }
+          MySQL通过jdbc插件同ES同步:
+            1.建立表结构
+              > create table table_name(
+                id int primary key,                 # 主键
+                col int,                            # 实际业务字段, 可有多个
+                update_time timestamp not null default current_timestamp on update current_timestamp,         # insert或update数据, 则该字段会自动更新为当前时间
+                is_deleted bool default 0           # 该记录是否已删除(实现delete同步, 实质为软删除)
+                )
+            2.配置通过logstash同步
+              input{
+                jdbc{
+                  statement => "select id, update_time, is_deleted, ... from table_name where update_time > :sql_last_value and update_time < now()"         
+                                                              # 每次同步新时间的数据(实现insert数据同步), < now()则防止大并发插入数据时查询丢失数据
+                  tracking_column => "update_time"            # 记录每次同步的最新的时间
+                  schedule => "/5 * * * *"                    # 每5分钟查询同步
+                  }
+                }
+              filter{
+                mutate{
+                  remove_field => ["@version", "@timestamp", "update_time"]       # 该过滤可选, 将不属于表中的字段去掉
+                  }
+                }
+              output{
+                elasticsearch{
+                  document_id => "%{id}"                      # 将表中主键id变为ES中的_id, 则MySQL中update操作数据同步后自动覆盖原_id记录, 实现update数据同步
+                  }
+                }
+            3.启动logstash, 等待开始同步
+        redis:
+          说明: 
+            1.支持redis channel和list两种类型
+            2.logstash获取list数据的命令为blpop(从左边取出列表数据), 获取channel数据的命令为subscribe/psubscribe
+            3.只支持redis服务, 不支持sentinel
+          配置:
+            redis {
+              batch_count => 125                # 使用eval从redis中获取事件的数量
+              path => ""                        # redis的unix socket路径
+              host => "127.0.0.1"               # 指定redis的ip
+              port => 6379                      # redis port
+              ssl => false                      # 是否启用ssl, 默认false
+              password => ""                    # redis密码
+              db => 0                           # 指定数据库, 默认为0
+              data_type => ""                   # 指定从redis中获取数据的类型, 可用: list, channel, patter_channel
+              key => ""                         # redis list或channel的名称
+
+              threads => 1                      # 默认为1
+              timeout => 5                      # 初始连接的超时时间, 单位秒. 默认5
+              command_map => {}                 # 重命名redis命令
+              }
+    filter插件:
+      说明:
+        1.若事件符合特定条件, 则可将filter和条件语句结合对事件进行操作
+        1.过滤模式可在https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns中查询
+      分类:
+        grok: 解析并构造任意文本, 将非结构化日志数据解析为结构化可查询的内容
+          说明:
+            1.grok过滤器插件会在传入的日志数据中按模式匹配
+            2.默认情况下, 转换后的数据均为字符串, 若要更改类型, 可用语法: %{NUMBER:num:int}, 目前只支持转为int或float
+            3.模式https://github.com/logstash-plugins/logstash-patterns-core/blob/master/patterns/grok-patterns
+            4.语法: %{SYNTAX:SEMANTIC}
+          常用模式:
+            IP, HOSTNAME, WORD, NUMBER, EMAILADDRESS, INT, SPACE, UUID, PATH, URI, TIMESTAMP
+          grok {
+            break_on_match => true                          # 默认为true
+            keep_empty_captures => false                    # 是否将空字段保留为event字段, 默认false
+            named_captures_only => true                     # 是否只存储来自grok的命名捕获, 默认为true
+            match => { "message" => "%{}" }                 # 指定查找位置和映射的模式
+            overwrite => []                                 # 将匹配中定义的字段覆盖已存在的字段
+            }
+        mutate: 对事件中的字段进行常规的处理操作, 包括rename, remove, replace, modify
+        drop: 完全drop一个事件
+        clone: 对事件进行拷贝, 可能添加或移除一些字段
+        geoip: 添加有关IP地址地理位置的信息
+    output插件:
+      说明:
+        1.一个事件可通过多个输出, 一旦完成所有输出处理, 该事件即完成
+      分类:
+        elasticsearch: 
+          说明: 将事件发送到ES
+          配置:
+            elasticsearch{
+              hosts => ["ip:port", "ip"]                      # ES的数据节点或客户端节点
+              action => "index"                               # ES要执行的动作, 默认index
+                                                              # index: 将事件索引至ES, delete: 根据_id删除一个doc, create: 建立一个索引, update: 根据_id更新一个doc
+              doc_as_upsert => false                          # 对action=update模式启用doc_as_upsert, 默认false. 若_id不存在则创建该doc
+              upsert => ""                                    # 
+              index => "logstash-%{+YYYY.MM.dd}"              # 写入事件的索引名
+              document_id => ""                               # index的_id
+              timeout => 60                                   # 网络操作和发送ES请求的超时时间, 默认60, 单位秒
+
+              bulk_path =>                                    # 
+              cacert =>                                       # .cer或.pem文件的路径
+              validate_after_inactivity => 10000              #
+              version => ""                                   # 用于indexing的版本
+              version_type => ""                              # indexing的version_type, 可选internal, external, external_gt, external_gte, force
+
+              failure_type_logging_whitelist => []            # 
+              custom_headers => {}
+              healthcheck_path => ""
+              http_compression => false                       # 对请求启用gzip压缩, 默认false.
+
+              ilm_enabled => "auto"                           # 根据ES机器版本自动选择是否启用ilm. 默认auto, 可选: true, false, auto
+              ilm_pattern => ""                               # 用于生成ilm的索引的模式
+              ilm_policy => "logstash"                        # 
+              ilm_rollover_alias => "logstash"
+              manage_template => true   
+              parameters => {}
+              parent ""
+              path
+              pipeline
+              pool_max => 1000                                # output能创建的最大连接数, 默认1000
+              pool_max_per_route => 100                       # 每个endpoin的最大连接数量
+              resurrect_delay => 5                            # 当标记endpoint为down后, 再次检查其是否activ的间隔秒数, 默认5
+              retry_initial_interval => 2
+              retry_max_interval => 64
+              retry_on_conflict => 1
+              routing => ""
+              script => ""
+              script_lang => ""
+              script_type => 
+              script_var_name => "event"
+              scripted_upsert => false
+              sniffing => false
+              sniffing_delay => 5
+              sniffing_path => ""
+              template => " "
+              template_name => "logstash"
+              template_overwrite => false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              }
+        file: 将数据写入文件
+        graphite: 
+    codecs:
+      说明:
+        1.编解码器是流过滤器, 可作为input和output的一部分进行操作
+      分类:
+        json: 以json格式编码/解码数据
+        multiline: 将多行文本事件(eg: java exception)合并为一个事件
+
+    数据弹性:
+      Persistent Queues:
+        说明: 
+          1.默认情况下, logstash在管道阶段使用内中的有界队列来缓存事件, 若logstash意外终止, 则内存中的事件都将丢失. 故可将logstash中的事件持久化保存到磁盘
+          3.默认禁用, 需要配置文件中启用
+      Dead Letter Queues:
+        说明: 
+          1.为Logstash无法output的事件提供磁盘存储, 并重新通过DLQ管道处理死信队列中的事件. 
+          2.当前仅对ES输出支持DLQ功能, 且仅在相应代码为400或404的情况下使用
+          3.默认禁用, 需要配置文件中启用
+        示意图:
+              inputs -> filters -> outputs                ------------>      ES
+                                      ↓                                      ↑
+                                "dead events"                                 |
+                                      ↓                                       |
+                                 file.log(DLQ)                                |
+                                      ↓                                       |
+                                    DLQ input -> filters -> output ------------
+                                            (DLQ Pipeline)
+
+    logstash关闭过程:
+      1.停止所有inputs, filters, outputs
+      2.处理完所有运行中的事件
+      3.终止logstash
+		原理
+	内部命令
