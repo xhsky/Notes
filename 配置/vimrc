@@ -1,5 +1,6 @@
 call plug#begin('~/.vim/plugged')
 "Plug 'Valloric/YouCompleteMe'
+Plug 'ycm-core/YouCompleteMe'
 Plug 'davidhalter/jedi-vim'
 "Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
 Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install_sync() } }
@@ -9,6 +10,18 @@ Plug 'plasticboy/vim-markdown'   " 语法高亮
 Plug 'yianwillis/vimcdoc'
 call plug#end()
 filetype plugin indent on
+
+
+" ycm
+" 补全后自动关闭预览窗口
+let g:ycm_autoclose_preview_window_after_completion = 1
+" 离开插入模式后自动关闭预览窗口
+autocmd InsertLeave * if pumvisible() == 0|pclose|endif
+" 补全完成时预览窗口自动消失
+augroup complete
+   autocmd!
+     autocmd CompleteDone * pclose
+augroup end
 
 " jedi sets
 let g:jedi#completions_command = "<C-N>"   " 往下选择
