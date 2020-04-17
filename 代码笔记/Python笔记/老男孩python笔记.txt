@@ -741,6 +741,11 @@ python开发规范: 一行最好不要超过80个字符
     -- ChangeLog.txt                                
 
 异常:
+  "web1":{
+    "ip":"192.168.1.172", 
+    "root_passord":"dreamsoftt", 
+    "port":22
+  }
   try:
     code
   except error_type1 as e:

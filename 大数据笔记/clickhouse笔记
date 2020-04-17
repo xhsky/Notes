@@ -20,11 +20,11 @@
     clickhouse-common：包含ClickHouse可执行文件
     clickhouse-server：包含运行的服务器程序和配置文件
   安装: 安装必须为x86_64且支持SSE 4.2架构，否则需要重新编译clickhouse
-    # grep -q sse4_2 /proc/cpuinfo && echo "SSE 4.2 supported" || echo "SSE 4.2 not supported"
-    # yum install yum-utils
-    # yum-config-manager --add-repo https://repo.yandex.ru/clickhouse/rpm/stable/x86_64
-    # yum install clickhouse-server clickhouse-client
-    # systemctl start clickhouse-server
+    .# grep -q sse4_2 /proc/cpuinfo && echo "SSE 4.2 supported" || echo "SSE 4.2 not supported"
+    .# yum install yum-utils
+    .# yum-config-manager --add-repo https://repo.yandex.ru/clickhouse/rpm/stable/x86_64
+    .# yum install clickhouse-server clickhouse-client
+    .# systemctl start clickhouse-server
     注: 安装过程会添加clickhouse用户, 用来启动clickhouse服务
   结构
     目录结构
@@ -333,7 +333,6 @@
       /usr/bin/clickhouse-server      # 服务运行程序
       /usr/bin/clickhouse-copier      # 将数据从一个集群复制到另一个集群
       /usr/bin/clickhouse-report
-      
     客户端
       /usr/bin/clickhouse-benchmark
       /usr/bin/clickhouse-client      # 客户端程序
@@ -647,7 +646,6 @@
     说明: 
       1.clickhouse本身并不监控硬件资源的状态
       2.system.metrics, system.events, system.asynchronous_metrics用于通用统计信息
-    
   安全
   集群
     说明：
@@ -708,15 +706,15 @@
           1. 正常单机安装
           2. 修改配置文件(端口，目录)
           3. 启动
-            # sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck11/ck.pid
-            # sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck12/ck.pid
+            .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck11/ck.pid
+            .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck12/ck.pid
+      
     部署:
       1.在每个节点上安装ck
       2.每个节点设置集群配置
         # vim 
       3.在每个实例上创建本地表
       4.创建分布式表
-  
 具体服务相关
   概念:
     用户:
@@ -762,7 +760,6 @@
         Nested(Name1 Type1, Name2 Type2, ...)：嵌套数据结构类
         IPv4：如116.253.40.133
         IPv6：如2a02:aa08:e000:3100::2
-
     原生数据库：
       default: 默认数据库，测试数据库，为空
       system: 
@@ -814,7 +811,6 @@
     设置:
       说明：配置在user.xml文件中的<profiles>
       优先级：user.xml中的<profiles> --> 会话设置(set key=value) --> 查询设置(客户端启动参数 --key=value)
-     
     引擎：
       说明： 
         1
@@ -1007,7 +1003,6 @@
                   1.该引擎本身不存储数据，但允许在多台服务器上执行分布式查询
                   2.自动并行化读取，在读取期间，索引使用远程服务器上索引
                 语法: Distributed(config_name, db_name, tb_name[, sharding_key[, policy_name]]) # 配置的集群名称，数据库名，表名，分片键，用于存储临时文件以进行异步发送的策略名称
- 
       虚拟列：
         说明：
           1.是表引擎的属性
@@ -1102,8 +1097,8 @@
   内部命令
     HTTP API：
       监控：
-        1.查看服务器可用性： # curl -X GET http://ip:8123/  返回ok
-        2.监控集群配置：# curl -X GET http://ip:8123/replicas_status 若副本可用且未延迟，则返回ok
+        1.查看服务器可用性： # curl -X GET http://ip:8123/ping              返回ok
+        2.监控集群配置：     # curl -X GET http://ip:8123/replicas_status   若副本可用且未延迟，则返回ok
     SQL语句
       说明:
         1.
@@ -1180,9 +1175,8 @@
         > drop dictionary [if exists] dict_name
         
   
-  
- 方式一：交互式
-select * from tableName into outfile 'path/file'
+方式一：交互式
+select * from tableName into outfile 'path/file format CSV'
 方式二：非交互式
 clickhouse-client  --database bdName -u default --password password --query='select * from tableName' > abc 
   
