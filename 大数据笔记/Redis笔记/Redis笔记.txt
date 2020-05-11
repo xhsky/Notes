@@ -1,18 +1,18 @@
 说明：
-	Redis是一个C语言编写的，基于key-value的高速缓存系统，支持复杂的数据结构，并且有持久化的功能，是可扩展Web应用程序的解决方案
+	Redis是一个C语言编写的, 基于key-value的高速缓存系统, 支持复杂的数据结构, 并且有持久化的功能, 是可扩展Web应用程序的解决方案
 	官网：		http://redis.io
 	中文官网：	http://redis.cn
-	作者：意大利人 Salvatore，Pieter Noordhuis
-		2009年，开发完成。2010年，VMware开始赞助Redis的开发，2015/4/2 3.0.0正式发布(cluster)
+	作者：意大利人 Salvatore, Pieter Noordhuis
+		2009年, 开发完成. 2010年, VMware开始赞助Redis的开发, 2015/4/2 3.0.0正式发布(cluster)
 	Redis是REmote DIctionary Server(远程字典服务器)的缩写
 外：
 	编译安装：
 		# wget http://download.redis.io/releases/redis-4.0.7.tar.gz
 		# tar ;
 		# cd redis
-		# make 									编译安装，大概1分钟
-		# make PREFIX=/path/redis install		将编译安装生成的六个可执行文件复制到/path/dir/bin(默认/usr/local/bin/下，方便执行)
-			# make test							测试编译是否正确，需依赖包 # yum install ctl
+		# make 									编译安装, 大概1分钟
+		# make PREFIX=/path/redis install		将编译安装生成的六个可执行文件复制到/path/dir/bin(默认/usr/local/bin/下, 方便执行)
+			# make test							测试编译是否正确, 需依赖包 # yum install ctl
 		# mkdir /path/redis/conf
 		# cp redis.conf sentinel.conf /path/redis/conf			# 编译完成
 		# vim ~/.bashrc
@@ -22,11 +22,11 @@
 		# 更改系统参数：
       1.# echo 1024 > /proc/sys/net/core/somaxconn 或 直接写入/etc/sysctl.conf文件(net.core.somaxconn= 1024)
 			2.# sysctl vm.overcommit_memory=1  或 直接写入/etc/sysctl.conf文件(vm.overcommit_memory=1)
-				0：表示内核将检查是否有足够的可用内存供应用进程使用；若有足够的可用内存，内存申请允许；否则，内存申请失败，并把错误返回给应用进程。 
-				1：表示内核允许分配所有的物理内存，而不管当前的内存状态如何。
+				0：表示内核将检查是否有足够的可用内存供应用进程使用；若有足够的可用内存, 内存申请允许；否则, 内存申请失败, 并把错误返回给应用进程.  
+				1：表示内核允许分配所有的物理内存, 而不管当前的内存状态如何. 
 				2：表示内核允许分配超过所有物理内存和交换空间总和的内存
 			3.# echo never > /sys/kernel/mm/transparent_hugepage/enabled 或 写入/etc/rc.local文件
-				禁用，它对内存使用和延迟有非常大的负面影响
+				禁用, 它对内存使用和延迟有非常大的负面影响
     # sysctl -p
 		#  redis-server redis.conf
 		
@@ -41,116 +41,120 @@
 				
 				./redis-check-dump					RDB文件检查工具
 				./redis-check-aof					AOF文件修复工具
-				./redis-sentinel					Sentinel服务器，用于集群管理
+				./redis-sentinel					Sentinel服务器, 用于集群管理
+  端口:
+    6379: 客户端连接
+    16379: Redis cluster通信端口, 用于用户故障检测, 配置更新, 故障转移授权等
 	配置：
-		# 监听
-			daemonize yes/no					默认redis不作为守护进程运行，使用yes更改
+		> 监听
+			daemonize yes/no					默认redis不作为守护进程运行, 使用yes更改
 			pidfile /var/run/redis.pid			指定redis运行的pid文件路径
-			port 6379							指定redis监听的端口，默认6379。
+			port 6379							指定redis监听的端口, 默认6379. 
 			tcp-backlog 511
-			unixsocket /tmp/redis.sock			指定监听的Unix套接字，若无指定则不监听
+			unixsocket /tmp/redis.sock			指定监听的Unix套接字, 若无指定则不监听
 			unixsocketperm 700
-			timeout 0							指定客户端超时时间，单位秒。超时则断开，0表示不启用该设置
-			tcp-keepalive 0						周期性用SO_KEEPALIVE检测客户端是否处于健康状态，避免服务器阻塞，
-												单位秒。0表示不检测。推荐数字：60
+			timeout 0							指定客户端超时时间, 单位秒. 超时则断开, 0表示不启用该设置
+			tcp-keepalive 0						周期性用SO_KEEPALIVE检测客户端是否处于健康状态, 避免服务器阻塞, 
+												单位秒. 0表示不检测. 推荐数字：60
 												
-			latency-monitor-threshold 0			延迟监控。0默认不启用
+			latency-monitor-threshold 0			延迟监控. 0默认不启用
 			notify-keyspace-events ""
-		# 日志
+		> 日志
 			loglevel notice						指定日志记录的级别：debug/verbose/notice/warning
-			logfile ""							指定日志文件。若为空字符串，则默认输出到 /dev/null(daemonize)
+			logfile ""							指定日志文件. 若为空字符串, 则默认输出到 /dev/null(daemonize)
 			syslog-enabled no					yes则将日志记录到系统日志
 			syslog-ident redis					指定系统日志的身份
 			syslog-facility local0				指定系统日志的设备
 			
-			slowlog-log-slower-than	10000		定义命令超时时间，单位微秒
+			slowlog-log-slower-than	10000		定义命令超时时间, 单位微秒
 			slowlog-max-len	128					定义记录的条数
 			
 			databases 16						设置数据库的个数
-		# RDB持久化
+		> RDB持久化
 			save 900 1							在900s内有1个键值发生变化将会进行快照
-			save 300 10							可通过删除所有save行来禁用快照，或使用
+			save 300 10							可通过删除所有save行来禁用快照, 或使用
 			save 60 10000						save ""来禁用
 			
-			stop-writes-on-bgsave-error yes		当最新一次的快照保存失败，将会禁止写操作
+			stop-writes-on-bgsave-error yes		当最新一次的快照保存失败, 将会禁止写操作
 			rdbcompression yes					rdb持久化时是否进行数据压缩(使用LZF)
 			rdbchecksum yes						保存和加载数据库时是否进行CRC64校验(会有10%的性能损耗)
 			dbfilename dump.rdb					指定rdb存储的文件名
 			
 			
 			dir ./								指定rdb和aof的数据文件的存放目录
-		# AOF持久化
-			appendonly no						开启AOF，默认关闭
+		> AOF持久化
+			appendonly no						开启AOF, 默认关闭
 			appendfilename appendonly.aof		定义AOF文件名,目录在dir下
 			
 			auto-aof-rewrite-percentage 100		当目前的AOF文件大小超过上一次重写时的AOF文件大小的百分之多少时会再次进
-												行重写，若之前没有重写过，则以启动的AOF文件大小为依据
+												行重写, 若之前没有重写过, 则以启动的AOF文件大小为依据
 			auto-aof-rewrite-min-size 64mb		允许重写的最小的AOF文件大小
 			
-			appendfsync everysec				AOF会进行缓存再执行同步磁盘操作，设定同步方式
-													everysec：	每秒执行一次同步操作。推荐
-													always：	每次执行命令都会执行同步操作，慢但安全
-													no：		不主动进行同步操作，交由系统来完成(每30秒一次)。快
+			appendfsync everysec				AOF会进行缓存再执行同步磁盘操作, 设定同步方式
+													everysec：	每秒执行一次同步操作. 推荐
+													always：	每次执行命令都会执行同步操作, 慢但安全
+													no：		不主动进行同步操作, 交由系统来完成(每30秒一次). 快
 			no-appendfsync-on-rewrite no
-			aof-load-truncated yes				AOF文件可能不完整，Redis重启加载AOF文件时
+			aof-load-truncated yes				AOF文件可能不完整, Redis重启加载AOF文件时
 													yes：会发一个log给客户端然后加载正常的数据
 													no：必须手动redis-check-aof修复AOF文件才可以加载
 		
-		# 主从复制
-			# master
-			min-slaves-to-write N				# 设定只有N个或N个以上的slave连接到master时，master才是可写的，否则返回错误
-			min-slaves-max-lag N				    # 允许slave失去连接的最长时间，单位秒。即在N秒内失联的情况被认为尚在连接状态
-			repl-diskless-sync no				yes：	master在与slave进行复制初始化时不再将快照内容存储到硬盘，而是直接通过网络
-													发送给slave，避免了硬盘的性能瓶颈
+		> 主从复制
+			> master
+			min-slaves-to-write N				# 设定只有N个或N个以上的slave连接到master时, master才是可写的, 否则返回错误
+			min-slaves-max-lag N				    # 允许slave失去连接的最长时间, 单位秒. 即在N秒内失联的情况被认为尚在连接状态
+			repl-diskless-sync no				yes：	master在与slave进行复制初始化时不再将快照内容存储到硬盘, 而是直接通过网络
+													发送给slave, 避免了硬盘的性能瓶颈
 												no：	默认关闭无硬盘复制
-			repl-diskless-sync-delay 5			无硬盘备份，master会在开始传送之后等待一段时间（可配置，以秒为单位），希望等待多个子站到达后并行传送
-			repl-backlog-size 1mb				# 用于主从断线再连接时的增量传输。设置积压队列大小(存储命令本身，易于估算)
-			repl-backlog-ttl 3600				# 当所有salve与master断开后，经过多长时间释放积压队列的内存空间，单位秒
-			repl-timeout 60						设置master数据传输时间或者 ping 回复时间间隔，要确保 repl-timeout 大于 repl-ping-slave-period
+			repl-diskless-sync-delay 5			无硬盘备份, master会在开始传送之后等待一段时间（可配置, 以秒为单位）, 希望等待多个子站到达后并行传送
+			repl-backlog-size 1mb				# 用于主从断线再连接时的增量传输. 设置积压队列大小(存储命令本身, 易于估算)
+			repl-backlog-ttl 3600				# 当所有salve与master断开后, 经过多长时间释放积压队列的内存空间, 单位秒
+			repl-timeout 60						设置master数据传输时间或者 ping 回复时间间隔, 要确保 repl-timeout 大于 repl-ping-slave-period
 			
-			repl-disable-tcp-nodelay no			yes：使用延迟，tcp协议栈将会合并小包统一发送，可以节约带宽但会增加数据同步到slave的时间
-												no：禁用延迟，TCP协议栈不会延迟小包的发送时机，数据同步延时会减少但会增加带宽
+			repl-disable-tcp-nodelay no			yes：使用延迟, tcp协议栈将会合并小包统一发送, 可以节约带宽但会增加数据同步到slave的时间
+												no：禁用延迟, TCP协议栈不会延迟小包的发送时机, 数据同步延时会减少但会增加带宽
 			
-			# slave
-			slaveof master_ip port				指定master主机，多slave配置在每台slave上都加上slaveof指向同一master即可
-			masterauth master_passwd			若master有密码设置(requirepass)，需配置密码。slave将会在复制前自动认证
+			> slave
+			slaveof master_ip port				指定master主机, 多slave配置在每台slave上都加上slaveof指向同一master即可
+			masterauth master_passwd			若master有密码设置(requirepass), 需配置密码. slave将会在复制前自动认证
 			slave-read-only	yes					slave数据库只读
 			
 			slave-serve-stale-data yes			当slave正在复制或失去与master连接时
 													no：在同步完成前除了info和slaveof命令外都回复错误：SYNC with master in progress
-													yes：不阻塞客户端访问，但客户端访问的数据可能不正确
-			repl-ping-slave-period 10			slave周期性向master发送ping命令，单位秒							
-			slave-priority 100					当master不能正常工作的时候，Redis Sentinel会从slaves中选出一个新的master，
-												该值越小，就越会被优先选中，但是若是0，则此slave不可能被选中。
+													yes：不阻塞客户端访问, 但客户端访问的数据可能不正确
+			repl-ping-slave-period 10			slave周期性向master发送ping命令, 单位秒							
+			slave-priority 100					当master不能正常工作的时候, Redis Sentinel会从slaves中选出一个新的master, 
+												该值越小, 就越会被优先选中, 但是若是0, 则此slave不可能被选中. 
 		
-		# 虚拟内存
-			vm-enabled yes						# 开启虚拟内存功能，将不经常访问的数据交换到磁盘上
+		> 虚拟内存
+			vm-enabled yes						# 开启虚拟内存功能, 将不经常访问的数据交换到磁盘上
 			vm-swap-file /tmp/redis.swap		# 交换出的value保存的文件路径
 			vm-max-memory 1000000				# redis使用的最大内存上限
-			vm-page-size 32						# 每个页面的大小，单位字节
+			vm-page-size 32						# 每个页面的大小, 单位字节
 			vm-pages 134217728					# 最多使用的页面数
 			vm-max-threads 4					# 用于执行value对象换入的工作线程数
 	
-		# 集群
-			# cluster-enabled yes				# 是否开启集群
-			# cluster-config-file nodes.conf	# 集群配置文件，非手动编辑，默认在工作目录下
-			# cluster-node-timeout 15000		# 集群节点间的超时时间，单位毫秒
-			# cluster-slave-validity-factor 10
-			# cluster-migration-barrier 1
-			# cluster-require-full-coverage yes
+		> 集群
+			cluster-enabled yes				        # 是否开启集群, 否则以单实例模式启动
+			cluster-config-file nodes.conf	  # 集群配置文件, 非手动编辑文件. 在每次发生更改时自动保持集群配置.默认在工作目录下
+			cluster-node-timeout 15000		    # 集群节点间的超时时间, 单位毫秒. 超时则其从节点将其进行故障转移
+			cluster-slave-validity-factor 10  # 若设置为0, 则slave总是尝试故障转移其master. 若设置为整值, 则最大超时时间为cluster-node-timeout * factor
+			cluster-migration-barrier 1       # 一个master保持连接的最少的slave的数量
+			cluster-require-full-coverage yes # 默认yes. 当master宕机且没有相应的从库替代时, 若为yes, 则集群停止写入. 若为no, 则集群依然可用
+      cluster-allow-reads-when-down yes #
 			
 		# 安全
-			# protected-mode yes/no				# 默认开启保护模式，只能从bind绑定的ip上访问。当bind被注释时，只能从localhost上访问
-			# bind ip1 ip2						# 只允许指定ip访问redis，默认全开放
-			# requirepass password				# 设置访问redis密码，默认为空
-			# rename-command CONFIG b840fc02d5	# 将某个命令重命名为一个复杂的名字，若新名字为
+			# protected-mode yes/no				# 默认开启保护模式, 只能从bind绑定的ip上访问. 当bind被注释时, 只能从localhost上访问
+			# bind ip1 ip2						# 只允许指定ip访问redis, 默认全开放
+			# requirepass password				# 设置访问redis密码, 默认为空
+			# rename-command CONFIG b840fc02d5	# 将某个命令重命名为一个复杂的名字, 若新名字为
 												  ""则表示禁用该命令
 												  
 		# 限制：
-			# maxclients 10000					# 设置同一时间客户端最大连接数(受最大文件描述符心智)，一旦达到最大限制，
+			# maxclients 10000					# 设置同一时间客户端最大连接数(受最大文件描述符心智), 一旦达到最大限制, 
 												  redis将关闭所有的新连接并发送一个‘max number of clients reached’
-												  的错误。默认无限制，0也表示无限制
-			# maxmemory bytes					# 指定redis最大可用内存，以便确保实例会报告错误而不是当接近系统内存限制时失败
+												  的错误. 默认无限制, 0也表示无限制
+			# maxmemory bytes					# 指定redis最大可用内存, 以便确保实例会报告错误而不是当接近系统内存限制时失败
 			# maxmemory-policy value
 				该参数指定的策略来删除不要的键值直到redis占用的内存小于指定内存	
 					volatile-lru：		使用LRU算法(最近最少使用)删除键(只针对设置了过期时间的键)
@@ -158,7 +162,7 @@
 					volatile-random：	随机删除键(只针对设置了过期时间的键)
 					allkeys-random：	随机删除键
 					volatile-ttl：		删除过期时间最近的键
-					noeviction：		不删除键，只返回错误
+					noeviction：		不删除键, 只返回错误
 			
 			# maxmemory-samples 5
 			lua-time-limit 5000
@@ -186,18 +190,18 @@
 					# redis-cli  -h hostname -p port -a passwd shutdown
 						-h 默认为127
 						-p 默认为6379
-						说明：redis可能正在将内存中数据同步到硬盘，强行关闭可能会导致数据丢失。使用shutdown命令会先
-							断开所有客户端连接，然后根据配置执行持久化，最后退出。（与 # kill redis_pid 效果相同）
+						说明：redis可能正在将内存中数据同步到硬盘, 强行关闭可能会导致数据丢失. 使用shutdown命令会先
+							断开所有客户端连接, 然后根据配置执行持久化, 最后退出. （与 # kill redis_pid 效果相同）
 				测试连接：
 					# redis-cli ping
-						说明：ping命令来测试客户端和服务器是否连接正常或者用于测量延迟值，若正常会收到回复：PONG
+						说明：ping命令来测试客户端和服务器是否连接正常或者用于测量延迟值, 若正常会收到回复：PONG
 			交互模式：
 				# redis-cli -h hostname -p port 		进入交互
 		redis-server：
 			# redis-server /path/redis.conf
 			命令行传参：
-				说明：通过启动参数传递同名的配置选项会覆盖配置文件中的相应参数，其格式与redis.conf中设置的配置参数的格式
-					  完全一样， 唯一不同的是需要在关键字之前加上前缀--
+				说明：通过启动参数传递同名的配置选项会覆盖配置文件中的相应参数, 其格式与redis.conf中设置的配置参数的格式
+					  完全一样,  唯一不同的是需要在关键字之前加上前缀--
 				eg：# redis-server --port 6380 --slaveof 127.0.0.1 6379
 		# redis-sentinel /path/sentinel.conf
 			与# redis-server /path/sentinel.conf --sentinel	命令相同
@@ -231,38 +235,38 @@
 				# redis-benchmark -h ip -p port -t get -n 100000 -q -P 100			并发100个请求
 				
 	客户端：
-		说明：Redis提供了几十种不同编程语言的客户端库，这些库都很好地封装了Redis的命令，使得在程序
+		说明：Redis提供了几十种不同编程语言的客户端库, 这些库都很好地封装了Redis的命令, 使得在程序
 			中与Redis交互更容易
 		连接：
-			Redis通过在TCP端口上进行监听，或者Unix socket（如果启用）的方式来接受客户端的连接
+			Redis通过在TCP端口上进行监听, 或者Unix socket（如果启用）的方式来接受客户端的连接
 		限制：
 			输出缓冲限制：
 				说明：Redis需要为每个客户端处理可变长度的输出
 				Redis使用两种类型的限制：
-					硬限制是个固定的限制，当大小达到它Redis会以最快的速度关闭掉客户端的连接。
-					软限制依赖于时间，例如每10秒32兆字节意味着加入客户端拥有比32兆字节还大的输出缓冲，持续的在10秒内超过的话连接将被关闭
+					硬限制是个固定的限制, 当大小达到它Redis会以最快的速度关闭掉客户端的连接. 
+					软限制依赖于时间, 例如每10秒32兆字节意味着加入客户端拥有比32兆字节还大的输出缓冲, 持续的在10秒内超过的话连接将被关闭
 			搜索缓冲硬限制：
-				说明：这是个不可配置的硬限制，当客户端搜索缓冲（这是个我们用来积累客户端的命令的缓冲）达到1GB的时候它将关闭连接，这只是个
-				     极限限制，用来避免当客户端或者服务端软件出错导致服务器崩溃的情况
+				说明：这是个不可配置的硬限制, 当客户端搜索缓冲（这是个我们用来积累客户端的命令的缓冲）达到1GB的时候它将关闭连接, 这只是个
+				     极限限制, 用来避免当客户端或者服务端软件出错导致服务器崩溃的情况
 			连接数量限制：
-				说明：Redis通过检查内核中我们可以打开的最多的文件描述符数量，(soft limit被检查)，如果限制小于最大连接客户端连接数，则加
-				      上32(这是Redis储备给内部使用的文件描述符数量)，接着这个最大连接客户端的数量将被Redis修改为系统要求的值，以便符合在
+				说明：Redis通过检查内核中我们可以打开的最多的文件描述符数量, (soft limit被检查), 如果限制小于最大连接客户端连接数, 则加
+				      上32(这是Redis储备给内部使用的文件描述符数量), 接着这个最大连接客户端的数量将被Redis修改为系统要求的值, 以便符合在
 					  当前操作系统限制下的真正能够处理的客户端数量
 				设置：maxclients N
-					# ulimit -Sn 100000 # 这个将只在硬限制足够大的情况下生效。
+					# ulimit -Sn 100000 # 这个将只在硬限制足够大的情况下生效. 
 					# sysctl -w fs.file-max=100000
 		超时：
 			说明：在默认情况下不会在客户端空闲很久后关闭连接；连接将永久保留
 			设置：
-				timeout N				# 超时并非非常准确，可能有一两秒的误差
+				timeout N				# 超时并非非常准确, 可能有一两秒的误差
 					
 	适用场景：
 		1.取最新N个数据的操作
-		2.排行榜应用，取top N操作
+		2.排行榜应用, 取top N操作
 		3.设置精确过期时间的应用
 		4.计数器应用
 		5.Uniq操作
-		6.实时系统，反垃圾系统
+		6.实时系统, 反垃圾系统
 		7.Pub/Sub构建实时消息系统(发布/订阅)
 		8.构建队列系统
 		9.缓存
@@ -270,86 +274,86 @@
 		注：目前redis的应用以缓存和队列为主
 	备份与恢复：
 		1.定时备份RDB文件来实现redis数据库的备份与恢复
-			将RDB文件放入Redis指定的数据目录，启动Redis即可恢复数据
+			将RDB文件放入Redis指定的数据目录, 启动Redis即可恢复数据
 			
-			·创建一个定期任务（cron job）， 每小时将一个 RDB 文件备份到一个文件夹， 并且每天将一个 RDB 文件备份到另一个文件夹。
-			·确保快照的备份都带有相应的日期和时间信息， 每次执行定期任务脚本时， 使用 find 命令来删除过期的快照： 比如说， 你可以保留最近 48 小时内的每小时快照， 还可以保留最近一两个月的每日快照。
-			·至少每天一次， 将 RDB 备份到你的数据中心之外， 或者至少是备份到你运行 Redis 服务器的物理机器之外。
+			·创建一个定期任务（cron job）,  每小时将一个 RDB 文件备份到一个文件夹,  并且每天将一个 RDB 文件备份到另一个文件夹. 
+			·确保快照的备份都带有相应的日期和时间信息,  每次执行定期任务脚本时,  使用 find 命令来删除过期的快照： 比如说,  你可以保留最近 48 小时内的每小时快照,  还可以保留最近一两个月的每日快照. 
+			·至少每天一次,  将 RDB 备份到你的数据中心之外,  或者至少是备份到你运行 Redis 服务器的物理机器之外. 
 	安全：
 		说明：Redis的安全设计是在"Redis运行在安全的可信环境"这个前提下做出的
 		1.限制连接：
-			Redis默认配置会接受任何地址发送来的请求，可在配置文件中设置：bind ip1 ip2(只能被用Redis实现的
-			应用程序的计算机直接访问)。最好使用外部防火墙来进行ACL限制
+			Redis默认配置会接受任何地址发送来的请求, 可在配置文件中设置：bind ip1 ip2(只能被用Redis实现的
+			应用程序的计算机直接访问). 最好使用外部防火墙来进行ACL限制
 		2.Redis密码
-			Redis性能极高，且输入错误密码后并不会进行主动延迟，故可通过穷举法破解(1秒能尝试150k个密码)，故
-			设置时一定要选择复杂的密码，且该密码存储在配置文件中不需要记忆。
+			Redis性能极高, 且输入错误密码后并不会进行主动延迟, 故可通过穷举法破解(1秒能尝试150k个密码), 故
+			设置时一定要选择复杂的密码, 且该密码存储在配置文件中不需要记忆. 
 				requirepass password
 		3.命令重命名
-			可将某些命令重命名为一个比较复杂的名字，以确保只有自己的应用可以使用该命令
+			可将某些命令重命名为一个比较复杂的名字, 以确保只有自己的应用可以使用该命令
 			eg：普通用户不被允许调用CONFIG命令来更改某些配置
 				rename-command config b840fc02d524045429941cc15f59e41cb7be6c52
 				rename-command flushall abcdefg			# 命令重命名
 				rename-command flushall ""				# 命令禁用
-		4.Redis不支持加密。为了实现在网络上或者其它非可信网络访问Redis实例，需要实现新增的保护层，例如SSL代理
-		5.Redis的协议没有字符串转移的概念，因此一般情况下普通客户端无法实现注入的。该协议采用二进制安全的前缀
+		4.Redis不支持加密. 为了实现在网络上或者其它非可信网络访问Redis实例, 需要实现新增的保护层, 例如SSL代理
+		5.Redis的协议没有字符串转移的概念, 因此一般情况下普通客户端无法实现注入的. 该协议采用二进制安全的前缀
 		  长度字符串
-		6.Redis不需要root权限来运行，建议使用仅能运行redis的用户运行
+		6.Redis不需要root权限来运行, 建议使用仅能运行redis的用户运行
 	通信协议
-		说明：是redis客户端和服务器之间交流的语言，规定了命令和返回值的格式
-		Redis支持两种通信协议：  只是命令的格式有区别，返回值的格式相同
+		说明：是redis客户端和服务器之间交流的语言, 规定了命令和返回值的格式
+		Redis支持两种通信协议：  只是命令的格式有区别, 返回值的格式相同
 			1.二进制安全的统一请求协议
 				Redis的AOF文件和主从复制时master向slave发送的内容都使用了统一请求协议
 			2.便于在telnet中输入的简单协议（该协议已经废弃）
-				说明：简单协议适合在telnet程序中和redis通信，其命令格式就是将命令和各个参数用空格分开，
+				说明：简单协议适合在telnet程序中和redis通信, 其命令格式就是将命令和各个参数用空格分开, 
 				     无法输入二进制
 	日志：
-		说明：当命令的执行时间超过限制，redis会将该命令加入耗时命令日志。该日志存储在内存中
-			slowlog-log-slower-than	10000		定义命令超时时间，单位微秒。参数为0，记录所有命令；参数为负，关闭该日志
+		说明：当命令的执行时间超过限制, redis会将该命令加入耗时命令日志. 该日志存储在内存中
+			slowlog-log-slower-than	10000		定义命令超时时间, 单位微秒. 参数为0, 记录所有命令；参数为负, 关闭该日志
 			slowlog-max-len	128					定义记录的条数
 			
 		日志组成：
 			1.该日志的唯一ID
 			2.该命令执行的Unix时间
-			3.该命令的耗时时间，单位微秒
+			3.该命令的耗时时间, 单位微秒
 			4.命令及其参数
 	信号处理：
 		主进程：
 			关闭：
-				sigterm：让Redis安全的关闭，相当于shutdown
+				sigterm：让Redis安全的关闭, 相当于shutdown
 			崩溃：
 				Redis接收到以下几种信号时会崩溃：
-					sigsegv，sigbus，sigfpe，sigill
-				如果以上信号被捕获，Redis会终止所有正在进行的操作，并进行以下操作：
-					1.包括调用栈信息，寄存器信息，以及clients信息会以bug报告的形式写入日志文件。
-					2.自从Redis2.8（当前为开发版本）之后，Redis会在系统崩溃时进行一个快速的内存检测以保证系统的可靠性。
-					3.如果Server是守护进程，PID文件会被移除。
-					4.最后server会取消自己对当前所接收信号的信号处理器的注册，并重新把这个信号发给自己，这是为了保证一些
-					  默认的操作被执行，比如把Redis的核心Dump到文件系统
+					sigsegv, sigbus, sigfpe, sigill
+				如果以上信号被捕获, Redis会终止所有正在进行的操作, 并进行以下操作：
+					1.包括调用栈信息, 寄存器信息, 以及clients信息会以bug报告的形式写入日志文件. 
+					2.自从Redis2.8（当前为开发版本）之后, Redis会在系统崩溃时进行一个快速的内存检测以保证系统的可靠性. 
+					3.如果Server是守护进程, PID文件会被移除. 
+					4.最后server会取消自己对当前所接收信号的信号处理器的注册, 并重新把这个信号发给自己, 这是为了保证一些
+					  默认的操作被执行, 比如把Redis的核心Dump到文件系统
 		子进程：
-			1.当一个正在进行AOF重写的子进程被信号终止，Redis会把它当成一个错误并丢弃这个AOF文件
-			2.当一个正在执行RDB文件保存的子进程被终止，Redis会把它当做一个严重的错误，Redis会进入一种特殊的错误状态，不允许任何写操作
-				·Redis会继续回复所有的读请求。
+			1.当一个正在进行AOF重写的子进程被信号终止, Redis会把它当成一个错误并丢弃这个AOF文件
+			2.当一个正在执行RDB文件保存的子进程被终止, Redis会把它当做一个严重的错误, Redis会进入一种特殊的错误状态, 不允许任何写操作
+				·Redis会继续回复所有的读请求. 
 				·Redis会回复给所有的写请求一个MISCONFIG错误
 				
-				此状态通过重新建立rdb文件可被清除，若要在不触发错误的情况下终止保存RDB文件的子进程，可使用信号SIGUSR1(它会像其他信号一
-				样终止子进程，但是父进程不会检测到这个严重的错误，照常接收所有的用户写请求)
+				此状态通过重新建立rdb文件可被清除, 若要在不触发错误的情况下终止保存RDB文件的子进程, 可使用信号SIGUSR1(它会像其他信号一
+				样终止子进程, 但是父进程不会检测到这个严重的错误, 照常接收所有的用户写请求)
 	性能：
-		说明：一般情况下，Redis 默认参数已经可以提供足够的性能，不需要调优
+		说明：一般情况下, Redis 默认参数已经可以提供足够的性能, 不需要调优
 		策略：
-			1.网络带宽和延迟通常是最大短板。建议在基准测试之前使用 ping 来检查服务端到客户端的延迟。根据带宽，
-			  可以计算出最大吞吐量。比如将4 KB的字符串塞入 Redis，吞吐量是100000q/s，那么实际需要 3.2 Gbits/s 
-			  的带宽，所以需要 10 GBits/s 网络连接， 1 Gbits/s 是不够的。 在很多线上服务中，Redis 吞吐会先被网
-			  络带宽限制住，而不是 CPU。 为了达到高吞吐量突破 TCP/IP 限制，最后采用 10 Gbits/s 的网卡， 或者多
+			1.网络带宽和延迟通常是最大短板. 建议在基准测试之前使用 ping 来检查服务端到客户端的延迟. 根据带宽, 
+			  可以计算出最大吞吐量. 比如将4 KB的字符串塞入 Redis, 吞吐量是100000q/s, 那么实际需要 3.2 Gbits/s 
+			  的带宽, 所以需要 10 GBits/s 网络连接,  1 Gbits/s 是不够的.  在很多线上服务中, Redis 吞吐会先被网
+			  络带宽限制住, 而不是 CPU.  为了达到高吞吐量突破 TCP/IP 限制, 最后采用 10 Gbits/s 的网卡,  或者多
 			  个 1 Gbits/s 网卡
-			2.CPU 是另外一个重要的影响因素，由于是单线程模型，Redis 更喜欢大缓存快速 CPU， 而不是多核。这种场景下
-			  面，比较推荐 Intel CPU。AMD CPU 可能只有 Intel CPU 的一半性能
-			3.在小对象存取时候，内存速度和带宽看上去不是很重要，但是对大对象（> 10 KB）， 它就变得重要起来
-			4.Redis 在 VM 上会变慢。虚拟化对普通操作会有额外的消耗，Redis对系统调用和网络终端不会有太多的overhead。
-			  建议把Redis运行在物理机器上，特别是当你很在意延迟时候。在最先进的虚拟化设备（VMWare）上面，redis-benchmark 
-			  的测试结果比物理机器上慢了一倍，很多 CPU 时间被消费在系统调用和中断上面。
-			5.如果服务器和客户端都运行在同一个机器上面，那么 TCP/IP loopback 和 unix domain sockets 都可以使用。对 
-			  Linux 来说，使用 unix socket 可以比 TCP/IP loopback 快 50%。 默认 redis-benchmark 是使用 TCP/IP loopback。 
-			  当大量使用 pipelining 时候，unix domain sockets 的优势就不那么明显了
+			2.CPU 是另外一个重要的影响因素, 由于是单线程模型, Redis 更喜欢大缓存快速 CPU,  而不是多核. 这种场景下
+			  面, 比较推荐 Intel CPU. AMD CPU 可能只有 Intel CPU 的一半性能
+			3.在小对象存取时候, 内存速度和带宽看上去不是很重要, 但是对大对象（> 10 KB）,  它就变得重要起来
+			4.Redis 在 VM 上会变慢. 虚拟化对普通操作会有额外的消耗, Redis对系统调用和网络终端不会有太多的overhead. 
+			  建议把Redis运行在物理机器上, 特别是当你很在意延迟时候. 在最先进的虚拟化设备（VMWare）上面, redis-benchmark 
+			  的测试结果比物理机器上慢了一倍, 很多 CPU 时间被消费在系统调用和中断上面. 
+			5.如果服务器和客户端都运行在同一个机器上面, 那么 TCP/IP loopback 和 unix domain sockets 都可以使用. 对 
+			  Linux 来说, 使用 unix socket 可以比 TCP/IP loopback 快 50%.  默认 redis-benchmark 是使用 TCP/IP loopback.  
+			  当大量使用 pipelining 时候, unix domain sockets 的优势就不那么明显了
 内：	
 	命令返回值：
 		说明：命令返回值有5种
@@ -359,7 +363,7 @@
 		整数回复(integer reply)：
 			对整数操作命令的回复
 		字符串回复(bulk reply)：
-			当请求一个字符串类型的键值或一个其它类型键值中的某个元素就会得到一个字符串回复，其回复在""内
+			当请求一个字符串类型的键值或一个其它类型键值中的某个元素就会得到一个字符串回复, 其回复在""内
 			注：特殊情况是当请求不存在时会得到一个空结果(nil)
 		多行字符串回复(multi-bulk reply)：
 			多行字符串回复中的每行字符串都以一个序号开头
@@ -370,69 +374,69 @@
 		\x：	用于转义
 	Redis的三种定位
 		Memory Cache
-			说明：把数据存储在内存中的高速缓存，用来在应用和数据库间提供缓冲，替代memcachd
-				Redis可为每个键设置生成时间，到期后自动删除，这一出色的特性可让Redis作为缓存系统来使用
+			说明：把数据存储在内存中的高速缓存, 用来在应用和数据库间提供缓冲, 替代memcachd
+				Redis可为每个键设置生成时间, 到期后自动删除, 这一出色的特性可让Redis作为缓存系统来使用
 				
 			配置：
 				maxmemory 2mb
 				maxmemory-policy allkeys-lru
 				
-				该设置并不需使用EXPIRE(或相似的命令)命令去设置每个key的过期时间，因为只要内存使用量到达2M，Redis就会使用
-				类LRU算法自动删除某些key。相比设置TTL，这是一种更加有效利用内存的方式，也能使应用的热数据(更频繁使用的键)
+				该设置并不需使用EXPIRE(或相似的命令)命令去设置每个key的过期时间, 因为只要内存使用量到达2M, Redis就会使用
+				类LRU算法自动删除某些key. 相比设置TTL, 这是一种更加有效利用内存的方式, 也能使应用的热数据(更频繁使用的键)
 				在内存中停留时间更久
 				
 			Redis与Memcache比较
 				性能：
-					Redis是单线程，Memcache支持多线程，故在多核服务器上后者性能理论上相对更高，但Redis性能已
-					足够优异，在绝大多数场合下其性能都不会成为瓶颈
+					Redis是单线程, Memcache支持多线程, 故在多核服务器上后者性能理论上相对更高, 但Redis性能已
+					足够优异, 在绝大多数场合下其性能都不会成为瓶颈
 				功能：
-					随着Redis3.0的推出，标志着Memcached几乎所有的功能都成了Redis的子集。同时，Redis对集群的支
+					随着Redis3.0的推出, 标志着Memcached几乎所有的功能都成了Redis的子集. 同时, Redis对集群的支
 					持使得Memcached原有第三方集群工具不再成为优势
 			
 				
 			
-		2.key value store.				以key-value形式存储的数据库，定位直指MySQL，用来作为唯一的存储系统。
-		3.data structrue server			把支持对复杂数据结构的高速操作作为卖点，提供某些特殊业务场景的计算和展现需求。比如排行榜应用，Top 10之类的。
+		2.key value store.				以key-value形式存储的数据库, 定位直指MySQL, 用来作为唯一的存储系统. 
+		3.data structrue server			把支持对复杂数据结构的高速操作作为卖点, 提供某些特殊业务场景的计算和展现需求. 比如排行榜应用, Top 10之类的. 
 	存储结构：
 		说明：
-			Redis以字典结构存储数据，并允许其它应用通过TCP/IP协议读写字典中的内容
+			Redis以字典结构存储数据, 并允许其它应用通过TCP/IP协议读写字典中的内容
 		数据类型：字典中的值支持一下五种类型
 			字符串(strings)
-				Redis的字符串是字节序列。在Redis中字符串是二进制安全的,是没有任何特殊字符终止决定的，所以可以存储任何东西，包括二进制数据。一个字符串类型最大允许容量可达512M。
+				Redis的字符串是字节序列. 在Redis中字符串是二进制安全的,是没有任何特殊字符终止决定的, 所以可以存储任何东西, 包括二进制数据. 一个字符串类型最大允许容量可达512M. 
 				
 			字符串列表(lists)
-				redis中的lists在底层实现上并不是数组，而是双向链表。可在列表的头部或尾部添加元素。但元素定位会比较慢，
-				而数组型lists的元素定位就会快得多。借助lists类型，Redis还可以作为队列使用。列表的最大长度为(2^32 - 1),
+				redis中的lists在底层实现上并不是数组, 而是双向链表. 可在列表的头部或尾部添加元素. 但元素定位会比较慢, 
+				而数组型lists的元素定位就会快得多. 借助lists类型, Redis还可以作为队列使用. 列表的最大长度为(2^32 - 1),
 				每个列表超过40亿元素
 				
 			字符串集合(sets)
-				无序，可添加，删除和测试文件是否存在在O(1)的时间复杂度的成员，成员中最大数量为(2^32 - 1)，集合成员
+				无序, 可添加, 删除和测试文件是否存在在O(1)的时间复杂度的成员, 成员中最大数量为(2^32 - 1), 集合成员
 				超过40亿
 				
 			有序字符串集合(sorted sets)
-				有序集合中的每个元素都关联一个序号(score)，这便是排序的依据
+				有序集合中的每个元素都关联一个序号(score), 这便是排序的依据
 				
 			字符串哈希(hashes)
-				Redis的哈希值是字符串字段和字符串值之间的映射，所以他们是表示对象的完美数据类型。在Redis中的哈希值，
-				可存储(2＾32-1)键值对--超过四十亿。
+				Redis的哈希值是字符串字段和字符串值之间的映射, 所以他们是表示对象的完美数据类型. 在Redis中的哈希值, 
+				可存储(2＾32-1)键值对--超过四十亿. 
 	内存存储与持久化：
-		说明：Redis的所有数据都存储在内存中，可提高性能，但易丢失数据。Redis提供了持久化支持，可将内存中数据异步写
-			入磁盘或将修改操作追加入文件，同时不影响继续提供服务。Redis启动后会读取RDB快照文件，将数据从硬盘载入内
-			存(一般1000万个字符串类型键，大小为1G的快照载入内存需花费20-30秒)
+		说明：Redis的所有数据都存储在内存中, 可提高性能, 但易丢失数据. Redis提供了持久化支持, 可将内存中数据异步写
+			入磁盘或将修改操作追加入文件, 同时不影响继续提供服务. Redis启动后会读取RDB快照文件, 将数据从硬盘载入内
+			存(一般1000万个字符串类型键, 大小为1G的快照载入内存需花费20-30秒)
 	
 	
 		redis的持久化
 			RDB(Redis DataBase)：	
-				说明：在不同的时间点，将redis存储的数据生成二进制快照并存储到磁盘等介质上，但会缺失最近一次快照到当前的数据
+				说明：在不同的时间点, 将redis存储的数据生成二进制快照并存储到磁盘等介质上, 但会缺失最近一次快照到当前的数据
 				实现：
-					1.redis会单独创建(fork)一个子进程将内存中的数据写入磁盘中的临时文件。而主进程依旧处理客户端请求(确保redis极高的性能)
-					2.当子进程写入完所有数据后会用该临时文件替换旧的RDB文件，至此一次快照完成。
+					1.redis会单独创建(fork)一个子进程将内存中的数据写入磁盘中的临时文件. 而主进程依旧处理客户端请求(确保redis极高的性能)
+					2.当子进程写入完所有数据后会用该临时文件替换旧的RDB文件, 至此一次快照完成. 
 					
 					注：
-						1.在执行fork时，操作系统会进行写时复制策略(copy-on-write)，即fork函数发生那一刻父子进程共享同一内存数据，
-						 当父进程更改其中的数据时，操作系统会将该数据在内存中复制一份以保证子进程数据不受影响。故快照是fork那一
-						 刻的数据。同时快照会使内存有所增加，但不会超过其两倍(频繁写)
-						2.在快照时若写操作较多，会造成fork前后数据差异较大，并使内存使用量超过实际数据大小，易造成内存使用超限
+						1.在执行fork时, 操作系统会进行写时复制策略(copy-on-write), 即fork函数发生那一刻父子进程共享同一内存数据, 
+						 当父进程更改其中的数据时, 操作系统会将该数据在内存中复制一份以保证子进程数据不受影响. 故快照是fork那一
+						 刻的数据. 同时快照会使内存有所增加, 但不会超过其两倍(频繁写)
+						2.在快照时若写操作较多, 会造成fork前后数据差异较大, 并使内存使用量超过实际数据大小, 易造成内存使用超限
 						3.确保Linux系统允许应用程序申请超过可用内存的空间
 							# vim /etc/sysct.conf    添加
 								vm.overcommit_memory=1
@@ -442,51 +446,51 @@
 					快照文件默认在Redis当前进程的工作目录的dump.rdb文件中        
 				快照方式：
 					1.根据配置规则自动快照：
-						说明：用户自定义快照操作，当符合快照条件时，redis自动执行异步快照
+						说明：用户自定义快照操作, 当符合快照条件时, redis自动执行异步快照
 						配置：在配置文件中添加
-								save M N			# 当在时间M(秒)内，更改键的个数大于N个时，符合条件自动快照
-						注：该save条件支持多个，条件之间是或的关系
+								save M N			# 当在时间M(秒)内, 更改键的个数大于N个时, 符合条件自动快照
+						注：该save条件支持多个, 条件之间是或的关系
 					2.用户执行save或bgsave命令
-						说明：服务重启，迁移备份时可手动执行快照
+						说明：服务重启, 迁移备份时可手动执行快照
 						命令：
 							# save
-								redis执行同步快照操作，同时阻塞所有客户端请求。可能会导致redis长时间无法响应，生产环境避
+								redis执行同步快照操作, 同时阻塞所有客户端请求. 可能会导致redis长时间无法响应, 生产环境避
 								免使用
 							# bgsave
-								redis后台执行异步快照操作，推荐使用
+								redis后台执行异步快照操作, 推荐使用
 								注：查看快照是否成功
 									# lastsave		获取最后一个成功执行快照时间(Unix时间戳)
 									# bgsave
-									# lastsave		两次返回值不同，即为完成
+									# lastsave		两次返回值不同, 即为完成
 										
 					3.执行flushall命令
-						说明：该命令会清除数据库中所有数据。当有自动快照条件时(save)，会执行一次自动快照；当没有定义自动
-							快照条件时，该命令不会进行快照
+						说明：该命令会清除数据库中所有数据. 当有自动快照条件时(save), 会执行一次自动快照；当没有定义自动
+							快照条件时, 该命令不会进行快照
 						命令：
 							# flushall
 					4.执行复制(replication)时
-						说明：当设置了主从模式时，Redis在复制初始化时进行自动快照
+						说明：当设置了主从模式时, Redis在复制初始化时进行自动快照
 							
 					
 					
 			AOF(Append Only File)：
-				说明：将每执行一条会更改Redis中的数据的命令，Redis就会将该命令以纯文本的方式写入到磁盘的AOF文件中
+				说明：将每执行一条会更改Redis中的数据的命令, Redis就会将该命令以纯文本的方式写入到磁盘的AOF文件中
 				重写实现：
-					1.在重写即将开始之际，redis会创建（fork）一个“重写子进程”，子进程会首先读取现有的AOF文件，并将
-					 其包含的指令进行分析压缩并写入到一个临时文件中。与此同时，父进程会将新接收到的写指令一边累积到内存缓
-					 冲区中，一边继续写入到原有的AOF文件中，这样做是保证原有的AOF文件的可用性，避免在重写过程中出现意外。
-					2.当“重写子进程”完成重写工作后，它会给父进程发一个信号，父进程收到信号后就会将内存中缓存的写指令追加
-					 到新AOF文件中。当追加结束后，redis就会用新AOF文件来代替旧AOF文件，之后再有新的写指令，就都会追加到新
+					1.在重写即将开始之际, redis会创建（fork）一个“重写子进程”, 子进程会首先读取现有的AOF文件, 并将
+					 其包含的指令进行分析压缩并写入到一个临时文件中. 与此同时, 父进程会将新接收到的写指令一边累积到内存缓
+					 冲区中, 一边继续写入到原有的AOF文件中, 这样做是保证原有的AOF文件的可用性, 避免在重写过程中出现意外. 
+					2.当“重写子进程”完成重写工作后, 它会给父进程发一个信号, 父进程收到信号后就会将内存中缓存的写指令追加
+					 到新AOF文件中. 当追加结束后, redis就会用新AOF文件来代替旧AOF文件, 之后再有新的写指令, 就都会追加到新
 					 的AOF文件中
 				配置：
 					配置redis.conf中的appendonly yes就可以打开AOF功能
-						默认的AOF持久化策略是每秒钟fsync一次，且提供了AOF文件重写(rewrite)机制，即当AOF文件的大小超过所设
-						定的阈值时，redis就会启动AOF文件的内容压缩，只保留可以恢复数据的最小指令集。
+						默认的AOF持久化策略是每秒钟fsync一次, 且提供了AOF文件重写(rewrite)机制, 即当AOF文件的大小超过所设
+						定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
 				重写：
-					说明：当AOF文件的大小超过所设定的阈值时，redis就会启动AOF文件的内容压缩，只保留可以恢复数据的最小指令集。
-						  整个重写操作绝对安全，因为Redis在创建新AOF文件的过程中，会继续将命令追加到现有的AOF文件里面，即使
-						  重写过程中发生停机，现有的AOF文件也不会丢失。而一旦新AOF文件创建完毕，Redis就会从旧AOF文件切换到新
-						  AOF文件，并开始对新AOF文件进行追加操作
+					说明：当AOF文件的大小超过所设定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
+						  整个重写操作绝对安全, 因为Redis在创建新AOF文件的过程中, 会继续将命令追加到现有的AOF文件里面, 即使
+						  重写过程中发生停机, 现有的AOF文件也不会丢失. 而一旦新AOF文件创建完毕, Redis就会从旧AOF文件切换到新
+						  AOF文件, 并开始对新AOF文件进行追加操作
 					重写方式：
 						1. 根据配置规则自动重写
 						2.手动重写
@@ -504,61 +508,61 @@
 					RDB需要经常fork子进程来保存数据集到硬盘上,当数据集比较大的时候,fork的过程是非常耗时的,可能会导致Redis
 					在一些毫秒级内不能响应客户端的请求
 				AOF：
-					根据所使用的fsync策略，AOF的速度可能会慢于RDB 。在一般情况下,每秒 fsync 的性能依然非常高，而关闭fsync 
-					可以让AOF的速度和RDB一样快，即使在高负荷之下也是如此。不过在处理巨大的写入载入时，RDB可以提供更有保证
+					根据所使用的fsync策略, AOF的速度可能会慢于RDB . 在一般情况下,每秒 fsync 的性能依然非常高, 而关闭fsync 
+					可以让AOF的速度和RDB一样快, 即使在高负荷之下也是如此. 不过在处理巨大的写入载入时, RDB可以提供更有保证
 					的最大延迟时间（latency）
 					
-					BGSAVE执行的过程中，不可以执行BGREWRITEAOF。反过来说，在BGREWRITEAOF执行的过程中，也不可以执行BGSAVE。
+					BGSAVE执行的过程中, 不可以执行BGREWRITEAOF. 反过来说, 在BGREWRITEAOF执行的过程中, 也不可以执行BGSAVE. 
 					这可以防止两个Redis后台进程同时对磁盘进行大量的I/O操作
 					
-				1.在同样数据规模的情况下，RDB文件比AOF文件的体积小，且RDB方式的数据恢复速度比AOF方式快。故若需要进行
-				  大规模数据的恢复，且对于数据恢复的完整性不是非常敏感，那RDB方式要比AOF方式更加地高效。
-				2.当Redis意外停止工作，RDB可能会丢失几分钟的数据。但AOF最多丢失1秒的数据(可配置)
+				1.在同样数据规模的情况下, RDB文件比AOF文件的体积小, 且RDB方式的数据恢复速度比AOF方式快. 故若需要进行
+				  大规模数据的恢复, 且对于数据恢复的完整性不是非常敏感, 那RDB方式要比AOF方式更加地高效. 
+				2.当Redis意外停止工作, RDB可能会丢失几分钟的数据. 但AOF最多丢失1秒的数据(可配置)
 				3.AOF文件相对于RDB文件来说是可更改的
-				4.根据所使用的fsync策略，AOF的速度可能会慢于RDB
+				4.根据所使用的fsync策略, AOF的速度可能会慢于RDB
 				
 			使用：
-				安全：同时使用两种持久化功能，同时使用后，Redis重启会使用AOF方式来恢复数据
+				安全：同时使用两种持久化功能, 同时使用后, Redis重启会使用AOF方式来恢复数据
 				性能：官方推荐只使用RDB
 				
-				注：将两种的文件放在对应的目录下，启动redis，可以进行数据恢复操作
+				注：将两种的文件放在对应的目录下, 启动redis, 可以进行数据恢复操作
 	多数据库：
-		说明：redis是一个字典结构的存储服务器，一个redis示例提供了多个用来存储数据的字典。客户端可以指定数据存储的字典，每个字典都
-			可以理解成一个独立的数据库。每个数据库以0开始命名，默认支持16个数据库。默认选择0号数据库。可通过 # select N 来更换数据库
+		说明：redis是一个字典结构的存储服务器, 一个redis示例提供了多个用来存储数据的字典. 客户端可以指定数据存储的字典, 每个字典都
+			可以理解成一个独立的数据库. 每个数据库以0开始命名, 默认支持16个数据库. 默认选择0号数据库. 可通过 # select N 来更换数据库
 		
 		与数据库的区别：
-			1.Redis不支持自定义数据库名称，每个数据库都以编号命名
-			2.Redis不支持为每个数据库设置不同的访问密码，故一个客户端要么可以访问所有数据库，要么均无法访问
-			3.多个数据库之间并非完全隔离，不适宜存不同应用程序的数据。不同的应用应该使用不同的Redis实例存储。可用0号数据库存储应用生产
-			  环境的数据，1号数据库存储测试环境的数据。一个空Redis实例只占用1M左右内存
+			1.Redis不支持自定义数据库名称, 每个数据库都以编号命名
+			2.Redis不支持为每个数据库设置不同的访问密码, 故一个客户端要么可以访问所有数据库, 要么均无法访问
+			3.多个数据库之间并非完全隔离, 不适宜存不同应用程序的数据. 不同的应用应该使用不同的Redis实例存储. 可用0号数据库存储应用生产
+			  环境的数据, 1号数据库存储测试环境的数据. 一个空Redis实例只占用1M左右内存
 集群：
 	复制(replication)
 		说明：
-			1.redis支持主从同步，且也支持一主多从以及多级从结构(Slaves能过接口其他slave的链接，除了可以接受同一个master下
-			  面slaves的链接以外，还可以接受同一个结构图中的其他slaves的链接)
-			2.主从同步是异步进行的，这意味着主从同步不会影响主逻辑，也不会降低redis的处理性能。
+			1.redis支持主从同步, 且也支持一主多从以及多级从结构(Slaves能过接口其他slave的链接, 除了可以接受同一个master下
+			  面slaves的链接以外, 还可以接受同一个结构图中的其他slaves的链接)
+			2.主从同步是异步进行的, 这意味着主从同步不会影响主逻辑, 也不会降低redis的处理性能. 
 			3.主从同步过程中：
 				master段是非阻塞的：master在同一个或多个slave端执行同步的时候还可以接受查询
-				slave段也是非阻塞的：当slave在执行的新的同步时，它仍可以用旧的数据信息来提供查询(slave-serve-stale-data yes)
+				slave段也是非阻塞的：当slave在执行的新的同步时, 它仍可以用旧的数据信息来提供查询(slave-serve-stale-data yes)
 		功能：
 			1.冗余备份
 			2.提升读性能
 		策略：
-			1.主从结构中，可只让salve进行持久化，避免master全量写硬盘的消耗，且salve崩溃后，master会自动同步到salve，无需担心数据丢失
-			2.从服务器通常设为只读模式，且不应将其暴露在不安全的网络环境中			
-			3.进行读写分离，建立多个slave，master只进行写操作，而slave负责读操作
+			1.主从结构中, 可只让salve进行持久化, 避免master全量写硬盘的消耗, 且salve崩溃后, master会自动同步到salve, 无需担心数据丢失
+			2.从服务器通常设为只读模式, 且不应将其暴露在不安全的网络环境中			
+			3.进行读写分离, 建立多个slave, master只进行写操作, 而slave负责读操作
 		原理：
 			复制初始化
-				1.slave会向master发送sync指令，master接收后会调用bgsave指令进行持久化工作并将快照期间的命令缓存起来
-				2.当bgsave执行完成后，master会将持久化好的RDB文件和缓存的命令发送给slave，slave接收后保存到磁盘，然
+				1.slave会向master发送sync指令, master接收后会调用bgsave指令进行持久化工作并将快照期间的命令缓存起来
+				2.当bgsave执行完成后, master会将持久化好的RDB文件和缓存的命令发送给slave, slave接收后保存到磁盘, 然
 				 后载入内存并执行收到的缓存命令 
 			复制同步：
-				master执行的任何更改命令都会异步传输到slave，该阶段会贯穿整个主从复制的始终，直到主从的关系终止为止
+				master执行的任何更改命令都会异步传输到slave, 该阶段会贯穿整个主从复制的始终, 直到主从的关系终止为止
 			离线后同步：增量传输
-				若主从断开后重新连接，slave发送psync信号，master会进行增量传输(仅发送断线期间的命令)
+				若主从断开后重新连接, slave发送psync信号, master会进行增量传输(仅发送断线期间的命令)
 		乐观复制策略(optimistic replication)：
-			说明：该策略允许一定时间内主从数据库内容是不同的，但最终两者的数据会同步
-				Redis在主从复制之间的过程是异步的，故从master返回给客户端的数据可能同slave不一样。
+			说明：该策略允许一定时间内主从数据库内容是不同的, 但最终两者的数据会同步
+				Redis在主从复制之间的过程是异步的, 故从master返回给客户端的数据可能同slave不一样. 
 				但Redis提供了两个参数来限制准确性：
 					min-slaves-to-write N
 					min-slaves-max-lag 10
@@ -572,26 +576,26 @@
 							
 			建立：			
 				1.建立多级从结构
-				2.master取消持久化(RDB和AOF)，开启无硬盘复制并更改配置文件
+				2.master取消持久化(RDB和AOF), 开启无硬盘复制并更改配置文件
 					min-slaves-to-write N				
 					min-slaves-max-lag N
 				3.多台slave设置并开启双持久化
 				4.启动并分别用 # info replication 查看信息
 			数据恢复：
 				·slave崩溃：
-					直接重启slave，master会自动将数据同步
+					直接重启slave, master会自动将数据同步
 				·master崩溃
 					1.在某个slave中将其提升为master继续服务
 						# slaveof no one
 					2.启动之前崩溃的master并设置成slave将数据同步回来
 						# slaveof ip port
-				注：当开启复制且主数据库关闭持久化功能时，不可使用supervisor及类似的进程管理工具使master自动
-					重启或当master因故关闭时直接启动，会照成数据被清空
+				注：当开启复制且主数据库关闭持久化功能时, 不可使用supervisor及类似的进程管理工具使master自动
+					重启或当master因故关闭时直接启动, 会照成数据被清空
 		注：
-			1.对slave的任何更改都不会同步给其他数据库，故slave默认不可写
-			2.若master中更新了对应数据的操作就会覆盖从数据库中的改动，故不应该设置slave为可写
+			1.对slave的任何更改都不会同步给其他数据库, 故slave默认不可写
+			2.若master中更新了对应数据的操作就会覆盖从数据库中的改动, 故不应该设置slave为可写
 	哨兵(sentinel)
-		说明：该工具用了实现自动化的系统监控和故障恢复功能，监听在tcp/26379
+		说明：该工具用了实现自动化的系统监控和故障恢复功能, 监听在tcp/26379
 		功能：
 			1.监控master和slave是否正常运行
 			2.master出现故障时自动将slave转为master
@@ -605,41 +609,41 @@
 					·每10秒哨兵会向主从数据库发送info命令以获得其数据库相关信息
 					·每2秒哨兵会向主从的__sentinel__:hello频道发送自己的信息
 					·每1秒哨兵会向主从数据库及其它哨兵节点发送ping命令
-			2.对于slave，可根据其状态(up/down)来自动添加删除
-			3.对于master，当其停止后，哨兵等待指定时间后会进行故障恢复
+			2.对于slave, 可根据其状态(up/down)来自动添加删除
+			3.对于master, 当其停止后, 哨兵等待指定时间后会进行故障恢复
 			4.选举领头哨兵、选择备选slave、将该slave转为master
-			5.若原master恢复后，哨兵会自动检测并将其转为现在master的slave
+			5.若原master恢复后, 哨兵会自动检测并将其转为现在master的slave
 		配置文件：	sentinel.conf
 			port 26379										# sentinel的监听port
 			daemonize yes									# 后台启动
 			dir /usr/local/redis/sentinel/log				# Sentinel服务运行时使用的临时文件夹
-			logfile "sentinel.log"							# 定义日志文件,与dir指令共同定义日志文件。启动时最好在dir目录下启动
+			logfile "sentinel.log"							# 定义日志文件,与dir指令共同定义日志文件. 启动时最好在dir目录下启动
 			
 			protected-mode no
-			# sentinel announce-ip <ip>						# 哨兵将会在gossip hello消息中使用指定的ip地址，而不是自动发现的本地地址
-			# sentinel announce-port <port>					# 哨兵会使用指定的端口，两个分开使用
+			# sentinel announce-ip <ip>						# 哨兵将会在gossip hello消息中使用指定的ip地址, 而不是自动发现的本地地址
+			# sentinel announce-port <port>					# 哨兵会使用指定的端口, 两个分开使用
 			
 			
 			sentinel monitor mymaster ip port quorum		# 需要监控的master信息
-															# master_name：	表示自定义的的名字，master仅由大小写字母、数字、".-_"三个符号组成
+															# master_name：	表示自定义的的名字, master仅由大小写字母、数字、".-_"三个符号组成
 															# ip：			master的IP
 															# port：		mastr的port
 															# quorum：		表示执行故障恢复至少需要几个哨兵节点同意
 			sentinel auth-pass mymaster password			# 设置master的密码
-			sentinel down-after-milliseconds mymaster 5000	# 指定了Sentinel认为Redis实例已经失效所需的毫秒数。当实例超过该时间没有返
-															# 回PING，或者直接返回错误，那么Sentinel将这个实例标记为主观下线。当使用多个
-															# sentinel时，这个数字每个都应该不同，以免sentinel同时选举自己为master sentinel
+			sentinel down-after-milliseconds mymaster 5000	# 指定了Sentinel认为Redis实例已经失效所需的毫秒数. 当实例超过该时间没有返
+															# 回PING, 或者直接返回错误, 那么Sentinel将这个实例标记为主观下线. 当使用多个
+															# sentinel时, 这个数字每个都应该不同, 以免sentinel同时选举自己为master sentinel
 															# 产生failover冲突
-			sentinel parallel-syncs mymaster 1				# 在failover期间最多可以对新的master进行同步的slave个数，如果这个数字越大，就意味着越多的
-															# slave因为replication而不可用。可以通过将这个值设为1来保证每次只有一个slave处于不能处理命令请求的状态
-			sentinel failover-timeout mymaster 180000		# 如果在该时间(ms)内未能完成failover操作，则认为该failover失败
+			sentinel parallel-syncs mymaster 1				# 在failover期间最多可以对新的master进行同步的slave个数, 如果这个数字越大, 就意味着越多的
+															# slave因为replication而不可用. 可以通过将这个值设为1来保证每次只有一个slave处于不能处理命令请求的状态
+			sentinel failover-timeout mymaster 180000		# 如果在该时间(ms)内未能完成failover操作, 则认为该failover失败
 			# sentinel notification-script mymaster /var/redis/notify.sh
-															# 指定sentinel检测到该监控的redis实例指向的实例异常时，调用的报警脚本
+															# 指定sentinel检测到该监控的redis实例指向的实例异常时, 调用的报警脚本
 															# 执行规则如下：
-																1）如果脚本返回1退出，会重试（最大次数是10次）
-																2）如果脚本返回2退出，不重试
-																3）如果脚本收到一个信号终止，行为和1）相同
-																4）脚本有最大运行时间（60秒），超过这个限制，脚本会被一个sigkill终止并且会被重试
+																1）如果脚本返回1退出, 会重试（最大次数是10次）
+																2）如果脚本返回2退出, 不重试
+																3）如果脚本收到一个信号终止, 行为和1）相同
+																4）脚本有最大运行时间（60秒）, 超过这个限制, 脚本会被一个sigkill终止并且会被重试
 			# sentinel client-reconfig-script mymaster /var/redis/reconfig.sh
 			
 			# sentinel myid 2dcab53a469d04253e0ab6d4d0d6117056091689
@@ -657,7 +661,7 @@
 					← ---------------------------------------
 												监控
 												
-					注：一个主从系统中可以有多个哨兵监视整个系统。eg：使用双哨兵时，哨兵不仅可分别监视每个主从，
+					注：一个主从系统中可以有多个哨兵监视整个系统. eg：使用双哨兵时, 哨兵不仅可分别监视每个主从, 
 						哨兵之间也可相互监视
 			建立：
 				1.建立主从结构
@@ -667,8 +671,8 @@
 						
 						
 							
-							哨兵只要监视到master，就会自动找到其salve。一个哨兵节点可以监视多个redis主从系统(在
-							配置中添加多个语句即可)，一个redis主从系统也可由多个哨兵节点监控，从而形成网状结构
+							哨兵只要监视到master, 就会自动找到其salve. 一个哨兵节点可以监视多个redis主从系统(在
+							配置中添加多个语句即可), 一个redis主从系统也可由多个哨兵节点监控, 从而形成网状结构
 							
 					# redis-sentinel sentinel.conf
 						注：显示信息
@@ -683,14 +687,14 @@
 							+convert-to-slave：表示将其转为slave
 	集群(cluster)
 		说明：
-      1.无论是主从还是哨兵，此时的Redis集群的每个数据库都会拥有集群中的所有数据，从而导致集群中的总数据存储量受限于可用存储内存最小的数据库节点，形成木桶效应。
-			2.集群使用数据分片技术，将整个数据分布存储在N个数据库节点中
+      1.无论是主从还是哨兵, 此时的Redis集群的每个数据库都会拥有集群中的所有数据, 从而导致集群中的总数据存储量受限于可用存储内存最小的数据库节点, 形成木桶效应. 
+			2.集群使用数据分片技术, 将整个数据分布存储在N个数据库节点中
 		原理：
-			1.创建集群时，redis-trib.rb会以客户端的形式尝试连接所有节点，并以ping命令来确定该节点可以正常服务
+			1.创建集群时, redis-trib.rb会以客户端的形式尝试连接所有节点, 并以ping命令来确定该节点可以正常服务
 			2.成功的同时发送info命令获取每个节点的运行ID及是否开启了集群功能
 			3.准备就绪后集群会向每个节点发送cluster meet命令从而使所有节点可以归入一个集群内
-			4.然后redis-trib.rb会分配主从节点，分配原则为尽量保证每个master运行在不同的IP上，同时主从不运行在
-			  同一IP上，以保证系统的容灾能力
+			4.然后redis-trib.rb会分配主从节点, 分配原则为尽量保证每个master运行在不同的IP上, 同时主从不运行在
+			  同一IP上, 以保证系统的容灾能力
 			5.分配完成后会为每个master分配插槽(实质是分配哪些键归哪些节点负责)
 			6.然后对每个即将成为slave的节点发送cluster replicate主数据库的运行ID从而将其转换为slave并复制master
 			7.集群创建完成
@@ -709,15 +713,15 @@
 						# gem sources -a https://rubygems.org
 					或：
 						gem install -l ./redis-3.2.1.gem
-			2.每个集群至少需要3个主数据库才能正常运行，故至少建立3个master
-			3.更改每个节点的配置文件，开启集群，并启动所有节点
+			2.每个集群至少需要3个主数据库才能正常运行, 故至少建立3个master
+			3.更改每个节点的配置文件, 开启集群, 并启动所有节点
 				port N
 				cluster-enabled yes
 			4.将所有节点加入集群
 				# redis-trib.rb create --replicas 1 ip:7000 ip:7001 ip:7002 ip:7003 ip:7004 ip:7005
 					create：		表示要初始化集群
 					--replicas 1：	表示每个master拥有的slave数量为1
-					该命令会输出集群配置相关信息，可输入yes表示同意
+					该命令会输出集群配置相关信息, 可输入yes表示同意
 			5.检测
 				# redis-cli -c -p port
 				# cluster nodes
@@ -727,50 +731,50 @@
 			3.发送命令
 				# cluster meet ip port
 				注：ip和port为集群中任一节点的地址和端口号
-					当新节点收到命令后会与该节点进行握手，使该节点将新节点认作当前集群中一员。当握手成功后，该节点
-					使用Gossip协议将新节点的信息通知给集群中的每一个节点，使新节点加入整个集群中
+					当新节点收到命令后会与该节点进行握手, 使该节点将新节点认作当前集群中一员. 当握手成功后, 该节点
+					使用Gossip协议将新节点的信息通知给集群中的每一个节点, 使新节点加入整个集群中
 		插槽的分配：
-			说明：在一个集群中，所有的键会被分给16384个插槽，而每个主数据库负责处理其中一部分插槽
+			说明：在一个集群中, 所有的键会被分给16384个插槽, 而每个主数据库负责处理其中一部分插槽
 			键名与插槽的对应：
-				redis将每个键名的有效部分使用CRC16算法计算出散列值，然后对16384取余，从而使每个键
+				redis将每个键名的有效部分使用CRC16算法计算出散列值, 然后对16384取余, 从而使每个键
 				都分配到16384个插槽中
 				键名的有效部分
-					1.若键名包含"{}",且中间至少有一个字符，则有效部分就是"{}"之间的内容
-					2.若不满足第一条规则，则整个键名为有效值
+					1.若键名包含"{}",且中间至少有一个字符, 则有效部分就是"{}"之间的内容
+					2.若不满足第一条规则, 则整个键名为有效值
 			将插槽分配给指定节点：
-				1.插槽未被分配，需分配给指定节点
+				1.插槽未被分配, 需分配给指定节点
 					说明：可使用cluster addslots命令来实现(redis-trib.rb也是通过该命令来为新节点分配插槽的)
 					命令：
 						# cluster addslots slot1 slot2 ...
 						eg：cluster addslots 100 101 		# 将两个插槽分配给执行命令的节点
-				2.插槽已被分配，需移动到指定节点
+				2.插槽已被分配, 需移动到指定节点
 					·使用redis-trib.rb进行分配
 						# redis-trib.rb reshard ip:port
 							reshard：表示要重新分片
-							ip:port：是集群中任意一个节点，可通过它来获取集群信息
+							ip:port：是集群中任意一个节点, 可通过它来获取集群信息
 						# 接下来会提示进行输入
 					·手动分配
 						# cluster setslot N node node_id	# 该命令不会将插槽中的键一起迁移
 						
 		注：
-			1.集群几乎支持所有的单机实例的命令，但若是涉及多个键的命令(如mget),若每个键在同一节点中则正常支持；若在不同节点中则提示错误(键名可使用{}来避免)
-			2.集群默认使用0号数据库，不可切换
+			1.集群几乎支持所有的单机实例的命令, 但若是涉及多个键的命令(如mget),若每个键在同一节点中则正常支持；若在不同节点中则提示错误(键名可使用{}来避免)
+			2.集群默认使用0号数据库, 不可切换
 			3.哨兵和集群是两个独立的功能
 			4.集群会会将当前节点记录的集群状态持久化地存储到指定文件(nodes.conf)中
 Redis的主从
-	redis支持主从同步，且也支持一主多从以及多级从结构
-	主从同步是异步进行的，这意味着主从同步不会影响主逻辑，也不会降低redis的处理性能
+	redis支持主从同步, 且也支持一主多从以及多级从结构
+	主从同步是异步进行的, 这意味着主从同步不会影响主逻辑, 也不会降低redis的处理性能
 	功能
 		1.冗余备份
 		2.提升读性能
 	策略
-		1.可将主服务器的数据持久化功能关闭，只让才从服务器进行持久化，可提高主服务器的处理性能
-		2.从服务器通常设为只读模式，且不应将其暴露在不安全的网络环境中
+		1.可将主服务器的数据持久化功能关闭, 只让才从服务器进行持久化, 可提高主服务器的处理性能
+		2.从服务器通常设为只读模式, 且不应将其暴露在不安全的网络环境中
 	原理
     主从:
-      从服务器会向主服务器发送sync指令，主服务器接收后会调用bgsave指令创建子进程专门进行数据持久化工作(将主服务器数据写入RDB
-      文件中)。在数据持久化期间，主服务器将执行的写命令都缓存在内存中。当bgsave执行完成后，主服务器会将持久化好的RDB文件发送
-      给从服务器，从服务器接收后先将其存储到磁盘上再将其读取到内存中。完成后，主服务器会将这段时间缓存的写指令以redis协议的格
+      从服务器会向主服务器发送sync指令, 主服务器接收后会调用bgsave指令创建子进程专门进行数据持久化工作(将主服务器数据写入RDB
+      文件中). 在数据持久化期间, 主服务器将执行的写命令都缓存在内存中. 当bgsave执行完成后, 主服务器会将持久化好的RDB文件发送
+      给从服务器, 从服务器接收后先将其存储到磁盘上再将其读取到内存中. 完成后, 主服务器会将这段时间缓存的写指令以redis协议的格
       式发送给从服务器
     Sentinel状态持久化:
       说明: sentinel的状态会被持久化地写入sentinel配置文件中.每当收到一个新配置时或创建一个新配置时,配置会被持久化到磁盘的配置文件中并带上该配置的版本戳
@@ -816,8 +820,8 @@ Redis的发布订阅:
 
     
 Redis的事务	
-	说明：事务是指“一个完整的动作，要么全部执行，要么什么也没有做”
-		1.Redis中开启事务后，所有命令进入队列等待执行，执行后的返回值是这些命令的返回值组成的列表
+	说明：事务是指“一个完整的动作, 要么全部执行, 要么什么也没有做”
+		1.Redis中开启事务后, 所有命令进入队列等待执行, 执行后的返回值是这些命令的返回值组成的列表
 		2.Redis可以确保一个事务中的所有命令依次执行而不被其它命令插入
 		3.Redis不支持回滚
 	
@@ -826,44 +830,44 @@ Redis的事务
 			# multi				事务开始
 			# command
 			# command			多条命令按顺序入队
-			# exec				执行事务，并取消对所有键的监控
+			# exec				执行事务, 并取消对所有键的监控
 	
 		取消：
-			说明：在事务中间输入，清空命令队列并退出事务上下文
+			说明：在事务中间输入, 清空命令队列并退出事务上下文
 			# discard 
 			
 		监控：
-			说明：用来监视一些key，一旦这些key值在事务执行(exec)之前被改变，则取消事务的执行。
+			说明：用来监视一些key, 一旦这些key值在事务执行(exec)之前被改变, 则取消事务的执行. 
 			# watch	key
-			# unwatch 			取消所有键的监控。exec和discard也具有取消所有键监视的作用
+			# unwatch 			取消所有键的监控. exec和discard也具有取消所有键监视的作用
 		错误处理：
 			1.语法错误：
 				说明：指命令不存在或命令参数的个数不对
-				事务中若有语法错误的命令，执行exec后会直接返回错误，连语法正确的命令也不执行
+				事务中若有语法错误的命令, 执行exec后会直接返回错误, 连语法正确的命令也不执行
 			2.运行错误：
 				说明：指在命令执行时出现的错误
-				事务中若有命令运行出错，其它命令依然执行
+				事务中若有命令运行出错, 其它命令依然执行
 				
-			注：redis事物中没有回滚功能，为此开发者必须在事物执行出错后自行解决回滚。
+			注：redis事物中没有回滚功能, 为此开发者必须在事物执行出错后自行解决回滚. 
 Redis特点：
-	1.Redis数据库完全在内存中，使用磁盘仅用于持久性
-	2.相比许多键值数据存储，Redis拥有一套较为丰富的数据类型
+	1.Redis数据库完全在内存中, 使用磁盘仅用于持久性
+	2.相比许多键值数据存储, Redis拥有一套较为丰富的数据类型
 	3.Redis可以将数据复制到任意数量的从服务服务中
-	4.Redis 被设计成服务器上的长时间运行进程，无需停机升级或重启Redis实例
-		·针对运行实例：有许多配置选项可以通过config set命令进行修改，而无需执行任何形式的重启
+	4.Redis 被设计成服务器上的长时间运行进程, 无需停机升级或重启Redis实例
+		·针对运行实例：有许多配置选项可以通过config set命令进行修改, 而无需执行任何形式的重启
 		·针对重启：
 			1.为Redis实例配置新的slave
 			2.等待复制机制的初始同步完成（检查slave的日志文件）
-			3.用info命令确认在主从实例中有同样数量的键值。用redis-cli检查从实例工作正常并响应你的命令。
-			  使用config set slave-read-only no，允许写slave
+			3.用info命令确认在主从实例中有同样数量的键值. 用redis-cli检查从实例工作正常并响应你的命令. 
+			  使用config set slave-read-only no, 允许写slave
 			4.配置你所有的客户端以便使用新的实例（即slave）
-			5.当确认master不再接收到任何请求(可用monitor命令监视)，使用slaveof no one命令切换slave为master，然后关闭原先的master
+			5.当确认master不再接收到任何请求(可用monitor命令监视), 使用slaveof no one命令切换slave为master, 然后关闭原先的master
 redis的桌面管理器：用于管理Redis的键和数据
 			http://redisdesktop.com/download 
 			
 		
 		
-	以非daemon方式运行，默认端口tcp/6379
+	以非daemon方式运行, 默认端口tcp/6379
 	make成功后会在src文件夹下产生一些二进制可执行文件
 命令
 	启动
@@ -871,7 +875,7 @@ redis的桌面管理器：用于管理Redis的键和数据
 	客户端连接
 		# ./src/redis-cli [-h ip -p port -a "password"]
 	配置
-		配置文件(redis.conf)可在Redis的根目录下找到。可以通过Redis的CONFIG命令设置所有Redis的配置
+		配置文件(redis.conf)可在Redis的根目录下找到. 可以通过Redis的CONFIG命令设置所有Redis的配置
 		取值
 			# config get set_key
 				eg:	# config get *
@@ -879,47 +883,47 @@ redis的桌面管理器：用于管理Redis的键和数据
 			# config set set_key set_value
 	
 	说明：
-		1.在redis中每个键都属于一个明确的数据类型。使用一种数据类型的命令操作另一种数据类型会提示错误(set命令会覆盖已
-		 存在的键，而不论原来键的类型)
+		1.在redis中每个键都属于一个明确的数据类型. 使用一种数据类型的命令操作另一种数据类型会提示错误(set命令会覆盖已
+		 存在的键, 而不论原来键的类型)
 		2.所有redis命令都是原子操作
-		3.对于键的命名并无强制要求，最好使用"对象类型:对象ID:对象属性"来命名
+		3.对于键的命名并无强制要求, 最好使用"对象类型:对象ID:对象属性"来命名
 	统一命令：
 		排序：
-			说明：sort命令可以对列表、集合、有序集合的键进行排序，依据的是元素自身的值
+			说明：sort命令可以对列表、集合、有序集合的键进行排序, 依据的是元素自身的值
 			
 			# sort key 				对数字类型进行排序
 			# sort key alpha		将非数字类型按照字典顺序排序
 			# sort key [desc] [limit offset count]
 				desc：倒序排列
-				limit：跳过前offset个元素并获取之后的count个元素，从1开始
+				limit：跳过前offset个元素并获取之后的count个元素, 从1开始
 			
-				注：默认排序从小到大，对有序集合进行排序时会忽略元素
+				注：默认排序从小到大, 对有序集合进行排序时会忽略元素
 		by参数：
-			说明：若提供了by参数，则sort依据by的参考键
-				对每个元素使用元素的值替换参考键中的第一个*，并获取其值，然后依据其值对元素进行排序
+			说明：若提供了by参数, 则sort依据by的参考键
+				对每个元素使用元素的值替换参考键中的第一个*, 并获取其值, 然后依据其值对元素进行排序
 				by的参考键可以是字符串类型键或散列类型键的某个字段(表示为键名->字段名)
 			
 				# sort list_1 by hash_*->time desc
-					将list_1中的值对*替换，获取其time值，依据time值来对list_1中的值进行排序
+					将list_1中的值对*替换, 获取其time值, 依据time值来对list_1中的值进行排序
 				
-				注：当参考值中不含*时，sort将不会进行排序操作
+				注：当参考值中不含*时, sort将不会进行排序操作
 		shutdown：	关闭redis
 			说明：
-				1.若存在正在执行RDB文件保存或者AOF重写的子进程，子进程被终止。
-				2.若AOF功能是开启的，Redis会通过系统调用fsync将AOF缓冲区数据强制输出到硬盘。
-				3.若Redis配置了使用RDB文件进行持久化，那么此时就会进行同步保存。由于保存时同步的，那也就不需要额外的内存。
-				4.若Server是守护进程，PID文件会被移除；若Unix域的Socket是可用的，它也会被移除。
-				5.Server退出，退出码为0。Shutdown失败(例如rdb保存失败)，Server则会继续运行以保证没有数据丢失
+				1.若存在正在执行RDB文件保存或者AOF重写的子进程, 子进程被终止. 
+				2.若AOF功能是开启的, Redis会通过系统调用fsync将AOF缓冲区数据强制输出到硬盘. 
+				3.若Redis配置了使用RDB文件进行持久化, 那么此时就会进行同步保存. 由于保存时同步的, 那也就不需要额外的内存. 
+				4.若Server是守护进程, PID文件会被移除；若Unix域的Socket是可用的, 它也会被移除. 
+				5.Server退出, 退出码为0. Shutdown失败(例如rdb保存失败), Server则会继续运行以保证没有数据丢失
 			
 	认证：
 		# auth passwd 					授权密码
 	日志命令：
 		# slowlog get 									监控超时日志
 	监控命令：
-		# monitor										监控所有执行命令，损耗近一半的性能，适合调试和纠错
+		# monitor										监控所有执行命令, 损耗近一半的性能, 适合调试和纠错
 	集群命令：
 		# info replication
-		# slaveof ip port								运行时配置slave，若该数据库已是slave，此命令会停止同原master数据库同步转而和新master同步
+		# slaveof ip port								运行时配置slave, 若该数据库已是slave, 此命令会停止同原master数据库同步转而和新master同步
 		# slaveof no one								使当前数据库停止接收其他数据库的同步并转成master
 		# info cluster									判断集群是否正常启用
 		# cluster nodes									获得集群中所有节点信息
@@ -943,9 +947,9 @@ redis的桌面管理器：用于管理Redis的键和数据
 		# client setname name							设置客户端名称
 		# client getname								  获取客户端名称
 		# client list									    获取客户端列表
-      addr：客户端地址，也就是客户端用来连接Redis服务器的IP和远程端口号
+      addr：客户端地址, 也就是客户端用来连接Redis服务器的IP和远程端口号
       fd：客户端socket文件描述符数目
-      name：客户端名称，由CLIENT SETNAME命令设置
+      name：客户端名称, 由CLIENT SETNAME命令设置
       age：连接已经存在了多少秒
       idle：连接已经空闲了几秒
       flags：客户端的类型(N代表普通客户端, 查看字段完整列表)
@@ -954,10 +958,10 @@ redis的桌面管理器：用于管理Redis的键和数据
 	数据库：
 		# select N										选择数据库
 	键命令
-		# del key [key ...]								删除键，返回删除键的个数
-			del命令不支持通配符，但可使用 # redis-cli del "redis-cli keys var_name*"
+		# del key [key ...]								删除键, 返回删除键的个数
+			del命令不支持通配符, 但可使用 # redis-cli del "redis-cli keys var_name*"
 		# dump key										返回存储在指定键的值的序列化版本
-		# exists key									检查key是否存在。若存在，返回1；不存在，返回0
+		# exists key									检查key是否存在. 若存在, 返回1；不存在, 返回0
 		# keys pattern(key)								查找与指定模式匹配的键的值
 			eg：# keys user*
 				# keys *								遍历当前数据库中所有key	
@@ -965,22 +969,22 @@ redis的桌面管理器：用于管理Redis的键和数据
 		# randomkey										从redis返回随机键名
 		# rename key newkey								重命名(直接覆盖)
 		# renamenx key newkey							重命名(若新键不存在)
-		# type key										返回相应的value的数据类型：string，hash，list，set，zset
+		# type key										返回相应的value的数据类型：string, hash, list, set, zset
 				
 		键的过期时间(秒)					   单位
 			# expire key N						指定时间(秒)
 			# pexpire key N						指定时间(毫秒)
 			# expireat key timestamp			Unix时间戳(秒)
 			# pexpireat key timestamp			Unix时间戳(毫秒)
-				返回值 1：设置成功， 0：键不存在或设置失败
+				返回值 1：设置成功,  0：键不存在或设置失败
 			
 			# pttl key							以毫秒为单位获取到期键的剩余时间
-			# ttl key							以秒为单位获取到期键的剩余时间。
-				返回值 -1：该key没有设置过期时间，-2：key不存在
+			# ttl key							以秒为单位获取到期键的剩余时间. 
+				返回值 -1：该key没有设置过期时间, -2：key不存在
 			
 			# persist key								取消键的过期时间
 			
-			注：若watch命令监控一个有过期时间的key，到期后自动删除并不会被认为更改
+			注：若watch命令监控一个有过期时间的key, 到期后自动删除并不会被认为更改
 			
 	字符串命令
 		设置
@@ -991,12 +995,12 @@ redis的桌面管理器：用于管理Redis的键和数据
 			# msetnx key value [key value ...]				当key不存在时设置多个value
 			# setrange key N "str"							在key的N位置改写字符串为str
 		
-			# append key value								将value追加进key的值，返回字符串总长度
+			# append key value								将value追加进key的值, 返回字符串总长度
 		获取		
 			# get key										取值
 			# mget key1 key2 ...							获取多个键值
 			# getrange key start end						切片
-			# getset key new_value							设置新value，并返回旧值
+			# getset key new_value							设置新value, 并返回旧值
 	
 			# getbit key offset								返回存储在键位值的字符串值的偏移
 			# setbit key offset value						设置或清除该位在存储在键的字符串值偏移
@@ -1009,28 +1013,28 @@ redis的桌面管理器：用于管理Redis的键和数据
 			# decrby key N									使键的整数值减N
 			# incrbyfloat key float_N						使键的数加float_N
 				
-				若key不存在，则其值默认为0，且自动incr。键值非整数则报错
+				若key不存在, 则其值默认为0, 且自动incr. 键值非整数则报错
 
-			# strlen key									得到键值长度，若不存在返回0
+			# strlen key									得到键值长度, 若不存在返回0
 			
 		位操作：
-			说明：一个字节有8个二进制位组成，redis可直接对二进制位进行操作，索引从0开始
-				getbit，setbit的时间复杂度都是O(1)，所以读取二进制位值性能非常高
+			说明：一个字节有8个二进制位组成, redis可直接对二进制位进行操作, 索引从0开始
+				getbit, setbit的时间复杂度都是O(1), 所以读取二进制位值性能非常高
 			
-			# getbit key offset								返回索引对应的二进制位，若索引值不存在，返回0
-			# setbit key offset value						设置指定位置的二进制的值，用来直接更改value。若索引值过大，自动将中间二进制设为0
-			# bitcount key [start] [end]					获得二进制位中1的个数，start...end指示字节范围
-			# bitop operation destkey key [key ...]			对多个字符串类型进行位运算，并将结果存储在destkey指定的参数中。支持的运算：and，or，xor，not
+			# getbit key offset								返回索引对应的二进制位, 若索引值不存在, 返回0
+			# setbit key offset value						设置指定位置的二进制的值, 用来直接更改value. 若索引值过大, 自动将中间二进制设为0
+			# bitcount key [start] [end]					获得二进制位中1的个数, start...end指示字节范围
+			# bitop operation destkey key [key ...]			对多个字符串类型进行位运算, 并将结果存储在destkey指定的参数中. 支持的运算：and, or, xor, not
 	
 	列表命令  左进左出
 		设置
-			# lpush key value1 value2 ...					在列表左侧添加元素，返回添加后的列表长度
+			# lpush key value1 value2 ...					在列表左侧添加元素, 返回添加后的列表长度
 			# lpushx key value								当列表存在时加入value
 			# rpush key value1 value2 ...					在列表右侧添加元素
 			# rpushx key value								当列表存在时加入value
 			
-			# brpoplpush sour dest timeout					从列表中取右值推到另一列表左并返回，否者阻塞timeout秒，直到可用
-			# rpoplpush sour dest							将sour右边的元素弹出，发送到dest的左边并返回
+			# brpoplpush sour dest timeout					从列表中取右值推到另一列表左并返回, 否者阻塞timeout秒, 直到可用
+			# rpoplpush sour dest							将sour右边的元素弹出, 发送到dest的左边并返回
 	
 			# linsert key before|after value new_value		在value的before(左)或after(右)插入new_value
 			
@@ -1041,19 +1045,19 @@ redis的桌面管理器：用于管理Redis的键和数据
 																count<0：从右边删除
 																count=0：全局删除
 			
-			# ltrim key start end							将start-end索引之间的元素保留，其余删除
+			# ltrim key start end							将start-end索引之间的元素保留, 其余删除
 		获取
-			# lrange key start end							获取从start到end的元素，包含两端，索引从0开始，同时支持负索引：0 -1所有元素
+			# lrange key start end							获取从start到end的元素, 包含两端, 索引从0开始, 同时支持负索引：0 -1所有元素
 			
-			# blpop l_name timeout							取出列表第一个元素，否者阻塞timeout秒，直到可用
-			# brpop	l_name timeout							取出列表最后一个元素，否者阻塞timeout秒，直到可用
+			# blpop l_name timeout							取出列表第一个元素, 否者阻塞timeout秒, 直到可用
+			# brpop	l_name timeout							取出列表最后一个元素, 否者阻塞timeout秒, 直到可用
 			
 			# lpop key										从列表左边的一个元素移除并弹出
 			# rpop key										从列表右边的一个元素移除并弹出
 		
-			# lindex key index								获取指定索引的元素，索引从0开始
+			# lindex key index								获取指定索引的元素, 索引从0开始
 
-			# llen key										列表元素个数，键不存在时返回0
+			# llen key										列表元素个数, 键不存在时返回0
 			
 			
 			# rpush key value1 value2 ...					添加多个value到key
@@ -1094,14 +1098,14 @@ redis的桌面管理器：用于管理Redis的键和数据
 	哈希命令
 		设置
 			# Hmset h_name key1 value1 key2 value2 ...		建立哈希并赋值
-			# hset h_name key1 value1						更改/添加哈希中的某一个字段的值。
-															该命令不区分插入和更新操作，若是插入操作返回1，更新操作返回0，当键本身不存在时会自动建立
+			# hset h_name key1 value1						更改/添加哈希中的某一个字段的值. 
+															该命令不区分插入和更新操作, 若是插入操作返回1, 更新操作返回0, 当键本身不存在时会自动建立
 			
-			# hsetnx h_name key value						当该字段不存在时，才设置其值。若存在，不进行任何操作
+			# hsetnx h_name key value						当该字段不存在时, 才设置其值. 若存在, 不进行任何操作
 															nx：表示 if Not eXists
 			
 			# hdel h_name key1 key2 ...						删除字段,返回删除字段的个数
-			# hexists h_name key							判断字段是否存在，存在返回1，不存在返回0(若键不存在也返回0)
+			# hexists h_name key							判断字段是否存在, 存在返回1, 不存在返回0(若键不存在也返回0)
 			
 		获取
 			# hgetall h_name								获取哈希的keys和values

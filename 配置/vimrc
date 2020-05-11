@@ -233,4 +233,6 @@ noremap! × *
 noremap! ” ""<left>
 noremap! （ ()<left>
 
-
+" kite set
+let g:kite_supported_languages = ['python']
+let g:kite_tab_complete=1

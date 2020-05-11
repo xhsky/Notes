@@ -88,7 +88,7 @@
       2.ulimit -n(设置当前shell以及由它启动的进程的资源限制)
         # vim /etc/security/limits.conf
            *  -   nofile 65535
-    # vim   ./etc/rabbitmq/rabbitmq.config      (一般不需要)  
+    # vim /etc/rabbitmq/rabbitmq.config      (一般不需要)  
     # rabbitmq-server -detached           # 后台启动
     # rabbitmqctl stop                # 关闭
     
@@ -163,8 +163,7 @@
               # 集群
               # 统计收集
             # 内核
-              {net_ticktime, 60}            # 节点和连接的CLI工具周期性地发送小数据帧。如果在该时间内没有收到对方的数据，
-                                  # 则认为对方不可访问。集群中设置须相同
+              {net_ticktime, 60}            # 节点和连接的CLI工具周期性地发送小数据帧。如果在该时间内没有收到对方的数据, 则认为对方不可访问。集群中设置须相同
             # management
             # shovel
             # stomp
@@ -525,7 +524,7 @@
         # rabbitmqctl -n rabbit2@node1 join_cluster rabbit1@node1   
         # rabbitmqctl -n rabbit2@node1 start_app        
       7.查看集群状态
-        # rabbitmqctl cluster_status
+        .# rabbitmqctl cluster_status
       
     
     

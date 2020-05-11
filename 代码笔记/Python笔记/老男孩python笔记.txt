@@ -1,124 +1,124 @@
 
 Python擅长的领域:
-	1.web开发
-		Django、pyramid、Tornado、Bottle、Flask、WebPy
-	2.网络编程
-		Twisted、Requests、Scrapy、Raramiko
-	3.科学运算 人工智能
-		Scipy、Pandas、Ipython NumPy、Matplotlib、Enthought librarys
-	4.GUI图形开发
-		wxPython、PyQT、Kivy
-	5.运维自动化
-		OpenStack、SaltStack、Ansible、腾讯蓝鲸
-	6.金融
-		语言结构清晰简单、库丰富、擅长科学计算和统计分析。生产效率远高于C C++ Java，尤其擅长策略回测
+  1.web开发
+    Django、pyramid、Tornado、Bottle、Flask、WebPy
+  2.网络编程
+    Twisted、Requests、Scrapy、Raramiko
+  3.科学运算 人工智能
+    Scipy、Pandas、Ipython NumPy、Matplotlib、Enthought librarys
+  4.GUI图形开发
+    wxPython、PyQT、Kivy
+  5.运维自动化
+    OpenStack、SaltStack、Ansible、腾讯蓝鲸
+  6.金融
+    语言结构清晰简单、库丰富、擅长科学计算和统计分析。生产效率远高于C C++ Java，尤其擅长策略回测
 
 课程介绍
-	语言基础: 5-6 weeks
-		数据类型
-		流程控制
-		常用模块
-		函数、迭代器、装饰器
-		递归、迭代、反射
-		面向对象编程
-		购物车程序
-		ATM信用卡程序开发
-		计算器程序开发
-		模拟人生游戏开发
-	网络编程: 4-5 weeks
-		Socket c/s编程、Twisted异步网络框架、网络爬虫开发
-		多线程、多进程、协程gevent、select/poll/epoll
-		生产者消费者模型
-		审计堡垒机系统开发
-		FTP服务器开发
-		批量命令、文件分布工具
-		RabbitMQ消息队列、SqlAlchemy ORM
-		类SaltStack配置管理工具开发
-		Redis/MEMCache/MongoDB 缓存数据库
-	Web基础开发:3-4 weeks
-		Html/CSS基础
-		Dom编程
-		原生JS学习
-		Jquery/EasyUi/AngulaJS
-		Ajax异步加载
-		Highchart画图
-		Bootstrap
-	算法&设计模式:2 weeks
-		冒泡、二叉树、哈希、拆半等常见算法学习
-		工厂模式、单例模式、享元模式、代理模式等常用设计模式学习
-	PY WEB框架 5 weeks
-		MVC架构讲解
-		自行开发一个WEB框架
-		Django/Tornado/Flask/Bottle/WebPy框架学习
-		Session/中间件/ORM/Cookie/CSRF/FORM ...
-		Restful API框架
-		权限管理后台开发
-		开发BBS论坛
-		开发WEB聊天室
-	项目实战篇 8 weeks
-		购物商城开发
-		主机管理+任务编排+运维审计堡垒机开发
-		分布式类Nagios/Zabbix监控产品开发
-		CMDB资产管理开发
-		基于用户视角的网站访问质量检测分析平台开发
-		Docker自动化管理平台开发
-		OpenStack二次开发
+  语言基础: 5-6 weeks
+    数据类型
+    流程控制
+    常用模块
+    函数、迭代器、装饰器
+    递归、迭代、反射
+    面向对象编程
+    购物车程序
+    ATM信用卡程序开发
+    计算器程序开发
+    模拟人生游戏开发
+  网络编程: 4-5 weeks
+    Socket c/s编程、Twisted异步网络框架、网络爬虫开发
+    多线程、多进程、协程gevent、select/poll/epoll
+    生产者消费者模型
+    审计堡垒机系统开发
+    FTP服务器开发
+    批量命令、文件分布工具
+    RabbitMQ消息队列、SqlAlchemy ORM
+    类SaltStack配置管理工具开发
+    Redis/MEMCache/MongoDB 缓存数据库
+  Web基础开发:3-4 weeks
+    Html/CSS基础
+    Dom编程
+    原生JS学习
+    Jquery/EasyUi/AngulaJS
+    Ajax异步加载
+    Highchart画图
+    Bootstrap
+  算法&设计模式:2 weeks
+    冒泡、二叉树、哈希、拆半等常见算法学习
+    工厂模式、单例模式、享元模式、代理模式等常用设计模式学习
+  PY WEB框架 5 weeks
+    MVC架构讲解
+    自行开发一个WEB框架
+    Django/Tornado/Flask/Bottle/WebPy框架学习
+    Session/中间件/ORM/Cookie/CSRF/FORM ...
+    Restful API框架
+    权限管理后台开发
+    开发BBS论坛
+    开发WEB聊天室
+  项目实战篇 8 weeks
+    购物商城开发
+    主机管理+任务编排+运维审计堡垒机开发
+    分布式类Nagios/Zabbix监控产品开发
+    CMDB资产管理开发
+    基于用户视角的网站访问质量检测分析平台开发
+    Docker自动化管理平台开发
+    OpenStack二次开发
 
 目标:
-	开发自动化运维平台、监控、CMDB、Docker/Openstack/Zabbix等开源软件二次开发，web聊天软件，BBS，博客，企业网址等
+  开发自动化运维平台、监控、CMDB、Docker/Openstack/Zabbix等开源软件二次开发，web聊天软件，BBS，博客，企业网址等
 
 All growth is a leap in the dark!
 
 
 编程语言分类
-	编译型和解释型
-	静态语言和动态语言
-		静态语言:是指静态类型语言，其数据类型是在编译期间检查的(写程序时要声明所有变量的数据类型)
-		动态语言:是指动态类型语言，其数据类型是在运行期间检查的(永远也不用给任何变量指定数据类型)
-	强类型定义语言和弱类型语定义言
-		强类型定义语言:强制数据类型定义的语言。一个变量一旦被指定了某个数据类型，如果不经过强制转换，则它永远都是这个数据类型，强类型定义语言
-									是类型安全的语言
-		弱类型定义语言:数据类型可以被忽略的语言。它与强类型定义语言相反，一个变量可以被赋予不同类型的值
-		
-		注:
-			1.强类型定义语言在速度上可能略逊色于弱类型定义语言，但强类型定义语言带来的严谨性能有效避免许多错误
-			2.一种语言是不是动态语言于该语言是否类型安全之间完全没有联系
+  编译型和解释型
+  静态语言和动态语言
+    静态语言:是指静态类型语言，其数据类型是在编译期间检查的(写程序时要声明所有变量的数据类型)
+    动态语言:是指动态类型语言，其数据类型是在运行期间检查的(永远也不用给任何变量指定数据类型)
+  强类型定义语言和弱类型语定义言
+    强类型定义语言:强制数据类型定义的语言。一个变量一旦被指定了某个数据类型，如果不经过强制转换，则它永远都是这个数据类型，强类型定义语言
+                  是类型安全的语言
+    弱类型定义语言:数据类型可以被忽略的语言。它与强类型定义语言相反，一个变量可以被赋予不同类型的值
+    
+    注:
+      1.强类型定义语言在速度上可能略逊色于弱类型定义语言，但强类型定义语言带来的严谨性能有效避免许多错误
+      2.一种语言是不是动态语言于该语言是否类型安全之间完全没有联系
 
 
-			Python是一门动态解释型的强类型定义语言
-				缺点:
-					1.速度慢，比C要慢很多，也比java慢一些
-					2.代码不能加密
-					3.线程不能利用多CPU问题。GIL(全局解释器，Global Interpreter Lock),是计算机程序设计语言解释器用于同步线程的工具，使得任何时刻仅有一
-						个线程在执行，Python的线程是操作系统的原生线程。在Linux为pthread，在Windows上为Win thread，完全由操作系统调度线程执行。即使在多
-						核CPU平台上，由于GIL的存在，都会禁止多线程的并行执行
+      Python是一门动态解释型的强类型定义语言
+        缺点:
+          1.速度慢，比C要慢很多，也比java慢一些
+          2.代码不能加密
+          3.线程不能利用多CPU问题。GIL(全局解释器，Global Interpreter Lock),是计算机程序设计语言解释器用于同步线程的工具，使得任何时刻仅有一
+            个线程在执行，Python的线程是操作系统的原生线程。在Linux为pthread，在Windows上为Win thread，完全由操作系统调度线程执行。即使在多
+            核CPU平台上，由于GIL的存在，都会禁止多线程的并行执行
 
 Python解释器
-	CPython:
-		C语言开发的解释器，同时也是官方版本的解释器。
-	IPython:
-		基于CPython之上的一个交互式解释器。只是在交互式上有所增强，其余和CPython完全一样
-	PyPy:
-		它的目标是执行速度，采用JIT技术，对Python代码进行动态编译(不是解释)，可以显著提高Python代码的执行速度(比Java快，不比C慢)。
-		绝大部分的Python代码都可以在PyPy下执行。但PyPy和CPython有所不同，则会导致相同的Python代码在两种解释器下运行处不同的结果。需要了解PyPy和
-		CPython的不同点。PyPy的改进是在内部机制上更改，对外运行和CPython相同
-	JPython:
-		运行在Java平台上的python解释器，可以直接将Python代码编译成Java字节码执行(由JVM执行)
-	IronPython:
-		类似JPython，是运行在.net上的python解释器，可以直接将Python代码编译成.net字节码
+  CPython:
+    C语言开发的解释器，同时也是官方版本的解释器。
+  IPython:
+    基于CPython之上的一个交互式解释器。只是在交互式上有所增强，其余和CPython完全一样
+  PyPy:
+    它的目标是执行速度，采用JIT技术，对Python代码进行动态编译(不是解释)，可以显著提高Python代码的执行速度(比Java快，不比C慢)。
+    绝大部分的Python代码都可以在PyPy下执行。但PyPy和CPython有所不同，则会导致相同的Python代码在两种解释器下运行处不同的结果。需要了解PyPy和
+    CPython的不同点。PyPy的改进是在内部机制上更改，对外运行和CPython相同
+  JPython:
+    运行在Java平台上的python解释器，可以直接将Python代码编译成Java字节码执行(由JVM执行)
+  IronPython:
+    类似JPython，是运行在.net上的python解释器，可以直接将Python代码编译成.net字节码
 
 Python2和Python3的区别:
-	最大的改变是Python3支持了Unicode
-	print语句
-	库名改变
-	
-	python3中input 等于 python2中raw_input。Python2中的input所输入的内容被当做变量处理，加引号才当字符串处理
+  最大的改变是Python3支持了Unicode
+  print语句
+  库名改变
+  
+  python3中input 等于 python2中raw_input。Python2中的input所输入的内容被当做变量处理，加引号才当字符串处理
 
 
 
 
 #!/usr/bin/env python
-# coding:utf8								显示规定按utf8编码执行该脚本
+# coding:utf8               显示规定按utf8编码执行该脚本
 
 
 if __name__ == '__main__':
@@ -131,30 +131,30 @@ if __name__ == '__main__':
 
 
 变量:
-	取名:
-		1.字母，数字，下划线组合
-		2.开头不能为数字
-		3.关键字不能为变量名:
-			and,as,assert,break,class,continue,def,del,elif,else,except,exec,finally,for,from,
-			global,if,import,in,is,lambda,not,or,pass,print,raise,return,try,while,with,yield
-		注:
-			1.字母连接之间尽量用下划线
-			2.Python中无常量，若想表示常量，则变量名为大写，意为尽量不要更改
+  取名:
+    1.字母，数字，下划线组合
+    2.开头不能为数字
+    3.关键字不能为变量名:
+      and,as,assert,break,class,continue,def,del,elif,else,except,exec,finally,for,from,
+      global,if,import,in,is,lambda,not,or,pass,print,raise,return,try,while,with,yield
+    注:
+      1.字母连接之间尽量用下划线
+      2.Python中无常量，若想表示常量，则变量名为大写，意为尽量不要更改
 
 
 字符编码:
-	python解释器在加载.py文件中的代码时，会对内容进行编码(默认ascill，主要用于显示现代英语和其它西欧语言，用8位来表示。)
-	
-	ascill,包含了127个英文字符	
-	1980年，gb1312存储7445个中文字符(简体中文)
-		big5(繁体中文)
-	1995年，gbk1.0收录了21886个中文字符
-	2000年，gb18030取代gbk1.0成为国家标准，收录27484个中文字符，且收录了主要少数民族文字
-		现在pc平台必须支持gb18030,对嵌入式产品不作要求。故手机、mp3一般只支持gb2312
-		但gb编码只是针对中文的。其他非英文字符用其它编码表示。多编码会造成整个编码系统混乱，故推出Unicode码。兼容所有字符和编码，
+  python解释器在加载.py文件中的代码时，会对内容进行编码(默认ascill，主要用于显示现代英语和其它西欧语言，用8位来表示。)
+  
+  ascill,包含了127个英文字符  
+  1980年，gb1312存储7445个中文字符(简体中文)
+    big5(繁体中文)
+  1995年，gbk1.0收录了21886个中文字符
+  2000年，gb18030取代gbk1.0成为国家标准，收录27484个中文字符，且收录了主要少数民族文字
+    现在pc平台必须支持gb18030,对嵌入式产品不作要求。故手机、mp3一般只支持gb2312
+    但gb编码只是针对中文的。其他非英文字符用其它编码表示。多编码会造成整个编码系统混乱，故推出Unicode码。兼容所有字符和编码，
     unicode中存一个英文字符和中文汉字都占两个字节
-		同时规定所有的字符和符号最少用16位来表示。即原ascii编码系统存储至少变大了一倍
-	utf-8是对Unicode编码的压缩和优化。将所有的字符和符号进行分类: ascii码中的内容用1个字节来保存，欧洲的字符用2个字节，东亚的字符用3个字节
+    同时规定所有的字符和符号最少用16位来表示。即原ascii编码系统存储至少变大了一倍
+  utf-8是对Unicode编码的压缩和优化。将所有的字符和符号进行分类: ascii码中的内容用1个字节来保存，欧洲的字符用2个字节，东亚的字符用3个字节
 
   编码与转码
     utf8.decode  ---> unicode <--- gbk.decode
@@ -162,19 +162,19 @@ if __name__ == '__main__':
 
 
 注释:
-	#									单行注释
-	''' '''/""" """  	多行注释、打印多行内容
-	''/""							括住变量内容(单行)，不加区别使用。只有在混用是嵌套使用以区别
+  #                 单行注释
+  ''' '''/""" """   多行注释、打印多行内容
+  ''/""             括住变量内容(单行)，不加区别使用。只有在混用是嵌套使用以区别
 
 输入输出:
-	input()			所输入内容统一被认为是字符，若需要其它格式，则用需强制类型转换int(),str()
-		输入不显示:
-			import getpass
-			password = getpass.getpass("password:")
-	print()			%s:字符串 %d:整型 %f:浮点数
+  input()     所输入内容统一被认为是字符，若需要其它格式，则用需强制类型转换int(),str()
+    输入不显示:
+      import getpass
+      password = getpass.getpass("password:")
+  print()     %s:字符串 %d:整型 %f:浮点数
     变色: print("This is \033[31:1m%s\033[0m color" % "red")
-		格式化输出三种方式
-			1. info1 = """\
+    格式化输出三种方式
+      1. info1 = """\
                 ----------- info of %s ----------------
                 Name:%s
                 age:%d
@@ -194,21 +194,21 @@ if __name__ == '__main__':
             """.format(name,age,salary)
 
 流程控制:
-	逻辑判断
-		if
-		esif
-		else
-	循环
-		while True:
-		else:
+  逻辑判断
+    if
+    esif
+    else
+  循环
+    while True:
+    else:
 
-		for
-		else:
+    for
+    else:
 
 
 
 库/模块:
-	1.标准库/内置模块: Python本身自带，不需要安装的库
+  1.标准库/内置模块: Python本身自带，不需要安装的库
     时间: 三种表示(自定义字符串, 时间戳, 元组)
       import time:
         time.timezone: 本地时间和utc相差秒数
