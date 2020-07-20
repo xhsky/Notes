@@ -172,7 +172,7 @@ endfunc
 " python
 autocmd BufNewFile *.py exec ":call Set_python_title()"
 func Set_python_title()
-  call setline(1,"#!/usr/bin/env python")
+  call setline(1,"#!/usr/bin/env python3")
   call setline(2,"# *-* coding:utf8 *-*")
   call setline(3,"# sky")
   call setline(4,"")

@@ -1,0 +1,155 @@
+# 官网Python笔记
+- 版本: CPython 3.10
+
+安装和使用Python
+  命令行和环境
+    - CPython解析器会扫描命令行和环境用于获取各种设置信息
+     命令行
+     环境
+  在Unix平台上使用Python
+  编辑器和集成开发环境
+
+入门教程
+
+标准库参考
+
+安装Python模块
+  工具:
+    pip: 首选的安装程序, 默认包含在Python二进制安装程序中
+      # pip <command> [option]
+        command:
+          install [option]           # 安装(PyPI, VCS, local, remote)
+            --no-clean                # 不清理build目录
+            -r <file>                 # 从指定的文件中安装, 该选项可使用多次
+            -c <file>                 # 使用给定的约束文件约束版本, 该选项可使用多次
+            --no-deps                 # 不安装依赖包
+            --pre                     # 默认情况下pip只查找稳定版本. 该选项则查找预发布和开发版本
+            -e <path/url>             # 从本地路径或VCS url的编辑模式中安装
+            -t <dir>                  # 将包安装到指定目录. 默认
+            --user                    # 安装到当前用户, 默认在~/.local
+            --root <dir>              # 对全用户可见
+            --prefix <dir>
+            -b <dir>
+            --src <dir>
+            -U                        # 升级包到最新版本, 依赖关系取决于升级策略
+            --upgrade-strategy <upgrade_strategy>
+                                      # 升级策略, "eager": 无论当前版本是否满足需要都升级. "only-if-needed": 默认, 仅在不满足升级要求时升级
+            --force-reinstall         # 强制重新安装
+            -I                        # 
+            --no-build-isolation
+            --install-option <option>
+            --global-option <option>
+            --compile
+            --no-compile
+            --no-binary <format_control>
+            --only-binary <format_control>
+
+            -i <url>
+            --extra-index-url <url>
+            --no-index
+            -f  <url>
+          download          # 下载(PyPI, VCS, local, remote)
+            --no-clean
+            -c 
+            -r        
+            -b <dir>
+            --no-deps       # 不下载依赖
+            -d <dir>        # 指定下载目录
+          uninstall [option]         # 卸载
+            -r <file>            # 从指定文件中删除
+            -y                   # 不询问确认信息
+          freeze [option]            # 输出已安装的包(不区分大小写)
+            -r <file>
+            -f <url>             # 
+            --user
+            --path <path>        # 
+            --all                # 列出distribute, pip, setuptools, wheel包
+            --exclude-editable   # 从输出中排除可编辑包
+          list [option]         # 列出已安装的包(包含可编辑的包)
+            -o                  # 列出过期包
+            -u                  # 列出版本是最新的包
+            -e                  # 列出可编辑的包
+            
+          show [option] <package>    # 显示安装包的信息
+            -f                       # 显示该包的安装文件
+          check             # 验证已安装包是否有兼容依赖问题
+          config <file-option> <option>           # 管理本地和全局配置
+            list                    # 列出已激活的配置
+            --editor vim edit       # 使用vim编辑配置
+            get name                # 获取name的值
+            set name value          # 设置name的值
+            unset name              # 取消name的值
+
+            --global                # 全局变量
+            --user                  # 用户变量
+            --site                  # 当前环境变量
+            
+          search [option] <query>   # 默认从PyPI中搜索包
+            -i <url>                # PPI的URL, 默认(https://pypi.org/pypi)
+          cache [option]    # 检查并管理pip的wheel缓存
+            dir             # 显示缓存目录
+            info            # 显示缓存信息
+            list <pattern>  # 列出所有缓存(匹配到的缓存)
+            remove <pattern>      # 删除匹配到的缓存
+            purge           # 删除所有缓存
+          wheel [option]             # 从requirements中建立wheels
+            --no-clean                # 不清理构建目录
+            -w <dir>                  # 指定构建目录, 默认为当前目录
+            --no-binary <format_control>
+            --only-binary <format_control>
+            --prefer-binary
+            --build-option
+            --no-build-isolation
+            -c <file>
+            -e <path/url>
+            -r <file>
+            --src <dir>
+            --no-deps
+            -b <dir>
+            --progress-bar <progress_bar>
+            --global-option <option>
+            --pre
+            --require-hashes
+          hash [option] <file>    # 计算本地包的hash值
+            -a <algorithm>        # 指定使用的hash算法: sha256, sha384, sha512
+          completion [option]     # 用于命令完成的帮助命令
+            -b                    # 发出bash的完成代码
+            -z                    # 发出zsh的完成代码
+            -f                    # 发出fish的完成代码
+          debug <option>          # 显示debug信息
+            --platform <platform> # 只使用与<platform>兼容的wheels, 默认为当前运行系统的platform
+            --implementation <implementation>
+        option:
+          --isolated        # 以隔离模式运行pip, 忽略环境变量和用户配置
+          -v                # 显示详细信息
+          -V                # 显示版本
+          -q                # 静默模式
+          --log <path>      # 详细信息的记录到文件
+          --proxy <proxy>   # 指定代理
+          --retries <retries>   # 每次连接的最大尝试次数(默认5次)
+          --timeout <sec>   # 设置socket超时时间(默认15s)
+          --exists-action <action>      # 当一个路径已存在时的默认行为: (s)witch, (i)gnore,  (w)ipe,  (b)ackup,  (a)bort.
+          --trusted-host <hostname>     # 标记此主机为可信的. 
+          --cache-dir <dir>             # 指定存储缓存数据的路径
+          --no-cache-dir                # 禁用缓存
+          --disable-pip-version-check   # 禁用pip版本的周期性自动检查
+          --no-color                    # 禁用颜色输出
+    virtual environment: 是一种半隔离的Python环境, 允许为特定的应用安装包, 而非安装到整个系统中
+    venv: 创建虚拟环境的标准工具
+    virtaulenv: 是venv的第三方替代工具(及其前身)
+    Python Packaging Index: 是由一个由Python用户向其他用户发布开源许可软件包的公共仓库(https://pypi.org/)
+    Python Packaging Authority : 负责标准打包工具及相关数据华为文件格式标准的团队
+    distutils: 是最初的构建和分发系统. 是当前打包和分发的基础
+    setuptools: 是distutils的替代者(最重要的补充是能够声明对其他包的依赖)
+    wheel: 一个跨平台的打包格式, 允许在系统上安装Python库, 甚至二进制扩展的库, 而不需在本地进行构建
+
+
+
+分发Python模块
+  说明:
+    1.用户可上传软件到Python社区以供其他开发人员使用
+  构建和分发工具:
+    # pip install setuptools wheel twine
+  
+
+语言参考

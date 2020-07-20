@@ -1,6 +1,6 @@
 简介
 	时间，作者，开发语言，定义
-    是一个可扩展的网络文件系统, 
+    GlusterFS(GNU ClusterFile System)是一个分布式, 可横向扩展的文件系统，它的历史可以追溯到2006年，最初的目标是代替Lustre和GPFS分布式文件系统
 	官网: https://www.gluster.org/
 	版本
 	协议
@@ -12,12 +12,36 @@
 架构
 	模块
 	安装
+    1.准备至少三台服务器, 并关闭防火墙
+    2.在每台服务器上准备磁盘目录
+      # mkdir /data
+      # mount /dev/sd** /data
+      # mkdir /data/gv0
+    3.每台安装glusterfs
+      # yum install centos-release-gluster
+      # yum install glusterfs-server
+      # systemctl start glusterd
+      # systemctl enable glusterd
+    4.在node1上添加可信池
+      # gluster peer probe node2
+      # gluster peer probe node3
+    5.在node1上配置3镜像卷, 并启动
+      # gluster volume create gv0 replica 3 node1:/data/gv0 node2:/data/gv0 node3:/data/gv0
+      # gluster volume start gv0
+    6.客户端挂载
+      # yum install glusterfs-fuse
+		  # mount -t glusterfs node1:/gv0 /db
+      
 	结构
 		目录结构
-			源码目录
 			安装目录
+        /var/log/glusterfs/glusterd.log
+        /var/lib/glusterd     # 动态生成的配置文件
 		        配置文件
 		进程/端口
+      glusterd: 24007/tcp 
+      rdma: 24008
+      glusterfsd: 49152- 需要为每个brick打开一个端口, 从端口49152(而不是以前版本的24009开始)开始
 		编程接口
 		管理软件
 	命令

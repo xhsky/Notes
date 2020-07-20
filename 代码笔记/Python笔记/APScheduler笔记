@@ -1,0 +1,91 @@
+简介
+  时间，作者，定义
+    Advanced Python Scheduler(APScheduler)是一个Python库, 可以让Python代码稍后, 定时, 一次执行. 
+  官网: https://apscheduler.readthedocs.io/en/stable/
+  版本
+适用性
+  1.动态添加或删除job
+  2.可将job存储在数据库中. 当scheduler重新启动时能够将数据库库中job重新执行
+  3.APScheduler本身不是进程或服务
+
+架构:
+  安装:
+    # pip install apscheduler(pytz, six, tzlocal)
+  过程:
+    1.配置scheduler
+    2.初始化scheduler
+    3.启动scheduler
+    注: scheduler启动后, 不能再修改其配置
+
+  添加/移除jobs
+    添加方式:
+      1.通过调用add_job(). 常用方式
+      2.使用装饰器scheduled_job()
+    移除方式:
+      1.通过调用remove_job()
+      2.
+
+
+概念:
+  有三个内置的调度系统:
+    1.Cron-Style: 可选开始或结束时间
+    2.Interval-based: 以一定间隔运行, 可选开始或结束时间
+    3.One-off: 在设定的时间一次性延迟执行
+  四种组件:
+    triggers(触发器): 触发器包含调度逻辑, 每个job都有自己的触发器用来决定何时运行该job. 除了其初始配置外, 触发器完全是无状态的
+      分类:
+        date: 日期, 在某个时间点运行一次job
+        interval: 间隔, 以固定的时间间隔运行job
+        cron: 周期, 周期性运行job
+        复合式触发器: 一个任务可设置多种触发器(同时满足所有条件触发, 或者满足一项触发)
+    job stores(任务存储器): 存储调度job. 默认将jobs存储在内存中(可选存在后端数据库中(jobs的数据会序列化到数据库. 再次加载是则反序列化)). job stores在scheduler之间不能共享
+      分类:
+        MemoryJobStore: 内存存储, 默认. 重启程序则消失
+        持久性存储: 可使用后端数据库. 程序重启或关闭时保存任务的状态(建议使用在PostreSQL上的SQLAlchemyJobStore, 它具有强大的数据完整性保护功能)
+    executors(执行器): 负责处理jobs. 通常将job中的指定的可调用的对象提交给线程池或进程池来执行此操作. job完成后, executors发出一个event来通知scheduler
+      分类:
+        ThreadPoolExecutor: 默认
+        ProcessPoolExecutor: CPU密集型 
+    schedulers(调度器): 将以上三种集合在一起. 通常在程序中只有一个scheduler, 且通常开发者不需要直接处理job stores, executor和triggers, 而是通过schedule的接口来处理. 
+      分类:
+        - BlockingScheduler: 阻塞式调度器, 当程序中只运行这一个scheduler时使用
+        - BackgroundScheduler: 后台调度器, scheduler在程序后台运行时使用
+        - AsyncIOScheduler: AsyncIO调度器, 程序使用asyncio模块时使用
+        - GeventScheduler: gevent调度器, 程序使用gevent模块时使用
+        - TornadoScheduler: Tornado调度器, 当建立一个Tornado程序时使用
+        - TwistedScheduler: twisted调度器, 当建立一个twisted程序时使用
+        - QtScheduler: Qt调度器, 当建立一个Qt程序时使用
+      配置方式:
+        1.使用配置字典
+        2.传递关键字
+
+  存储job的数据库后端
+    1. Memory
+    2. SQLAlchemy
+    3. MongoDB
+    4. Redis
+    5. RethinkDB
+    6. ZooKeeper
+
+  支持集成的Python框架
+    1. asyncio
+    2. gevent
+    3. Tornado
+    4. Twisted
+    5. Qt
+
+  参数:
+    max_instances: job最大并行数
+    misfire_grace_time
+    coalescing
+
+语法
+  变量
+  引号和转义字符
+  注释
+  运算符与表达式
+  语句
+    逻辑控制语句
+  函数
+  对象
+  异常

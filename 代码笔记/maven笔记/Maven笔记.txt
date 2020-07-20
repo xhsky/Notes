@@ -140,24 +140,19 @@ Maven仓库：
 		本地仓库：
 			默认在每个用户下都会有一个.m2/repository/的仓库目录
 		远程仓库：
-			中央仓库：默认的远程仓库，它包含了这个世界上绝大多数流行的开源Java构件
-			          以及源码、作者信息、SCM信息，许可证等
-			私服：架设在局域网内的仓库服务，代理广域网上的远程仓库，提供给局域网内
-				  的maven用户使用
+			中央仓库：默认的远程仓库，它包含了这个世界上绝大多数流行的开源Java构件以及源码、作者信息、SCM信息，许可证等
+			私服：架设在局域网内的仓库服务，代理广域网上的远程仓库，提供给局域网内的maven用户使用
 				安装：
 					说明：使用搭建私有服务器
 						官网：http://www.sonatype.com/
 					安装：
 						
-			其它公共库：可被公开使用，常见的有Java.net Maven(http://download.java.net/maven/2/)
-						和JBoss Maven库(http://repository.jboss.com/maven2/)等
+			其它公共库：可被公开使用，常见的有Java.net Maven(http://download.java.net/maven/2/)和JBoss Maven库(http://repository.jboss.com/maven2/)等
 				 
 			
-		注：Maven总是先从本地仓库中查找构件，若无，则从远程仓库中下载安装到本
-		    地仓库然后使用		
+		注：Maven总是先从本地仓库中查找构件，若无，则从远程仓库中下载安装到本地仓库然后使用		
 	仓库的布局：
-		说明：任何一个构件都有其唯一的坐标，根据这个坐标可以定位其在仓库中的唯一路径
-			其坐标和目录的对应结构：
+		说明：任何一个构件都有其唯一的坐标，根据这个坐标可以定位其在仓库中的唯一路径其坐标和目录的对应结构：
 				groupid/artifactid/version/atrifcatid-version.packaging
 	
 Maven插件：
@@ -207,9 +202,7 @@ Mavne配置：
 				</setting>
 			2.将MAVEN_HOME/conf/setting.xml文件拷贝至/path/to/local/目录下
 			3.运行maven命令
-		注：安装好maven后，若不执行任何maven命令，本地仓库目录是不存在的。当用户执行
-		    第一条maven命令后，maven才会创建本地仓库并根据配置和需要从远程仓库中下载
-			 构件
+		注：安装好maven后，若不执行任何maven命令，本地仓库目录是不存在的。当用户执行第一条maven命令后，maven才会创建本地仓库并根据配置和需要从远程仓库中下载构件
 		
 Maven命令：
 		生成骨架：

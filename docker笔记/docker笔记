@@ -61,10 +61,9 @@
     配置文件: /etc/docker/daemon.json
       {
           "registry-mirrors": ["https://mk2azw0n.mirror.aliyuncs.com"],     # 定义registry
-          "ipv6": true",                                                    # 支持ipv6
+          "ipv6": true,                                                    # 支持ipv6
           "storage-driver": "overlay2",                                     # 指定存储驱动
           "data-root": "/var/lib/docker",                                   # 指定docker存储目录
-          "storage-driver": "overlay2"                                      # 指定存储驱动
           "debug": true,                                                    # 启用debug
           "live-restore": true                                              # 当docker不可用时保持容器运行(不兼容swarm模式)
           "features": { "buildkit": true }                                  # 启用buildkit

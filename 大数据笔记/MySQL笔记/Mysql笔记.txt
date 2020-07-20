@@ -1011,6 +1011,9 @@
       4.启用innodb_file_per_table选项或使用常规表空间来存储数据和索引而非使用系统表空间
       5.是否启用压缩(压缩不损耗读写能力)
       6.使用sql_mode=no_engine_substitution
+
+    统计信息:
+      
   安全
   集群
     切换数据目录:
