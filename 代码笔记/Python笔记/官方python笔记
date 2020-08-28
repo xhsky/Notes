@@ -8,11 +8,74 @@
      环境
   在Unix平台上使用Python
   编辑器和集成开发环境
-
 入门教程
-
 标准库参考
+  说明: 介绍与Python一同发布的标准库. 同时描述了包含在发行版中的一些可选组件. 
+    1.标准库包含内置模块(C编写)用来实现系统级功能, 还有大量的Python编写的模块, 提供日常编程问题的标准解决方案. 还有专门设计的模块用来将特定平台功能抽象为平台中立的API来加强Python程序的可移植性
+    2.此标准库之外还有其它不断增加的组件, 可通过pypi来获取
+  分类:
+    内置函数
+      abs(), all(), any(), ascii(), bin(), bool()
+    内置常量: 存在于内置命名空间中
+      False, True, None, NotImplemented, Ellipsis, __debug__
+      # 由site模块添加到内置命名空间的常量(在启动期间自动导入), 仅针对交互式shell, 不应在程序中使用
+      quit(), exit(), copyright, credits, license   
 
+    内置类型
+    内置异常
+    文本处理服务
+    二进制数据服务
+    数据类型
+    数字和数学模块
+    函数式编程模块
+    文件和目录访问
+    数据持久化
+    数据压缩和存档
+    文件格式
+    加密服务
+    通用操作系统服务
+      os: 多种操作系统接口
+      io: 处理流的核心工具
+      time: 时间的访问和转换
+      argparse: 命令行选项, 参数和子命令解释器
+      getopt: C风格的命令行选项解释器
+      logging: python风格的日志记录工具
+        说明: 
+        概念:
+          Loggers: 应用程序代码直接使用的接口
+          Handlers: 将日志记录(由loggers创建)发送到适当的目标
+          Filters: 更精细的附加功能, 用于确定要输出的日志记录
+          Formatters:: 指定输出中的日志记录
+          
+      logging.config: 日志记录配置
+      logging.handlers: 日志处理
+      getpass: 便携式密码输入工具
+      curses: 终端字符单元显示的处理
+      curses.textpad: curse文本输入小工具
+      curses.ascii: 文本字符工具
+      curses.panel: curses的面板集扩展
+      platform: 获取底层平台的标识数据
+      erron: 标准errno系统符号
+      ctypes: Python的外部函数
+    并发执行
+    contextvars上下文变量
+    网络和进程间通信
+    互联网数据处理
+    结构化标记处理工具
+    互联网协议和支持
+    多媒体服务
+    国际化
+    程序框架
+    Tk图形用户界面(GUI)
+    开发工具
+    调试和分析
+    软件打包和分发
+    Python运行时服务
+    自定义Python解释器
+    导入模块
+    Python语言服务
+    杂项
+    Unix专有服务
 安装Python模块
   工具:
     pip: 首选的安装程序, 默认包含在Python二进制安装程序中
@@ -138,18 +201,75 @@
     venv: 创建虚拟环境的标准工具
     virtaulenv: 是venv的第三方替代工具(及其前身)
     Python Packaging Index: 是由一个由Python用户向其他用户发布开源许可软件包的公共仓库(https://pypi.org/)
-    Python Packaging Authority : 负责标准打包工具及相关数据华为文件格式标准的团队
+    Python Packaging Authority : 负责标准打包工具及相关元数据和文件格式标准的团队
     distutils: 是最初的构建和分发系统. 是当前打包和分发的基础
     setuptools: 是distutils的替代者(最重要的补充是能够声明对其他包的依赖)
-    wheel: 一个跨平台的打包格式, 允许在系统上安装Python库, 甚至二进制扩展的库, 而不需在本地进行构建
-
-
-
+    wheel: 是一个将bdist_whell命令添加到distutils/setuptools的项目. 它产生了一个跨平台的二进制打包格式, 允许在系统上安装Python库, 甚至二进制扩展的库, 而不需在本地进行构建
 分发Python模块
   说明:
     1.用户可上传软件到Python社区以供其他开发人员使用
   构建和分发工具:
     # pip install setuptools wheel twine
-  
+  构建步骤:
+    1.建立包目录结构
+      packaging_tutorial           # 项目目录
+        - LICENSE                   # 许可证(必须包含). 示例为MIT license
+						Copyright (c) 2018 The Python Packaging Authority
 
+						Permission is hereby granted, free of charge, to any person obtaining a copy
+						of this software and associated documentation files (the "Software"), to deal
+						in the Software without restriction, including without limitation the rights
+						to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+						copies of the Software, and to permit persons to whom the Software is
+						furnished to do so, subject to the following conditions:
+
+						The above copyright notice and this permission notice shall be included in all
+						copies or substantial portions of the Software.
+
+						THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+						IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+						FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+						AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+						LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+						OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+						SOFTWARE.
+          
+        - README.md                 # 包详细说明
+        - example_pkg/              # 
+          - __init__.py
+        - setup.py                  # setuptools的build脚本, 包含包的信息
+						import setuptools
+
+						with open("README.md", "r") as fh:
+								long_description = fh.read()
+
+						setuptools.setup(
+								name="example-pkg-YOUR-USERNAME-HERE", 	# 分发包名称
+								version="0.0.1",												# 版本
+								author="sky",
+								author_email="x_hsky@163.com",
+								description="A small example package",	# 包一句话摘要
+								long_description=long_description,			# 包详细说明. 常见模式是从README.md文件中加载
+								long_description_content_type="text/markdown",			# 包详细说明的格式
+								url="https://github.com/pypa/sampleproject",				# 该项目主页的url. 常为指向github, gitlab, Bitbucket等类似代码托管服务器的链接
+								packages=setuptools.find_packages(),    # 所有python导入包的列表. 使用find_packages()自动发现所有软件包和子软件包
+								classifiers=[                           # 额外的元数据信息
+										"Programming Language :: Python :: 3",          # 只兼容Python3
+										"License :: OSI Approved :: MIT License",       # License
+										"Operating System :: OS Independent",           # 可使用的操作系统
+								],
+								python_requires='>=3.6',
+						)
+        - test/                     # 单元测试占位, 可留空
+		2.使用setuptools和wheel工具, 在dist目录生成whl和tar.gz两个文件 
+      # cd packaging_tutorial
+      # python3 setup.py sdist bdist_wheel
+      # ls dist
+        example_pkg_YOUR_USERNAME_HERE-0.0.1-py3-none-any.whl    # built distribution
+        example_pkg_YOUR_USERNAME_HERE-0.0.1.tar.gz              # source archive
+    3.注册pypi, 上传. 使用twine工具
+      # twine upload dist/*
+    4.安装
+      # pip install pkg_name
 语言参考
+  说明: 描述Python语言的具体语法和语义

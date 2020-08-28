@@ -1,62 +1,62 @@
 简介
-  时间，作者，开发语言，定义
-    rabbitmq是使用erlang语言实现，是一个开源的、轻量级的，易于部署的消息队列。支持多种消息协议。支持分布式、高可用、高扩展需求。
-    rabbitmq是一个消息代理(一个消息队列的媒介)。可以为应用提供一个通用的消息发送和接收的平台，并保证消息在传输过程中的安全
+  时间,作者,开发语言,定义
+    rabbitmq是使用erlang语言实现,是一个开源的、轻量级的,易于部署的消息队列.支持多种消息协议.支持分布式、高可用、高扩展需求.
+    rabbitmq是一个消息代理(一个消息队列的媒介).可以为应用提供一个通用的消息发送和接收的平台,并保证消息在传输过程中的安全
     RabbitMQ是AMQP（高级消息队列协议）的标准实现
     
-    1983年，Teknekron的The Information Bus(TIB)，第一个现代消息软件队列
-    1993年，IBM MQ产品系列面试，并最终进化成WebSphere MQ，统治着商业消息队列平台市场。TIB也改名为Tendezvous而走向繁荣
-    1997年，Teknekron以TIBCO的形式作为一个独立公司再度出现。同年，微软也在消息通信市场展露头角(MSMQ)
-    但以上软件主要服务于大型组织机构，且商业的MQ不允许不同的MQ产品互通，供应商也维持着高价和利润率
-    2001年，JMS(Java Message Service)试图提供公共的java API的方式来隐藏单独MQ产品提供的实际接口，从而解决了互通的问题。但在尝试使用
-      单独标准化接口来胶合众多不同的接口，缝合处终究会裂开，使用JMS的应用程序会变得更加脆弱
-    2004年，JPMorgan Chase开始和iMatix公司合作开发AMQP开放标准
-    2006年，AMQP规范发布
-    2007年，Alexis发布RabbitMQ 1.0
-  官网：http://www.rabbitmq.com/
+    1983年,Teknekron的The Information Bus(TIB),第一个现代消息软件队列
+    1993年,IBM MQ产品系列面试,并最终进化成WebSphere MQ,统治着商业消息队列平台市场.TIB也改名为Tendezvous而走向繁荣
+    1997年,Teknekron以TIBCO的形式作为一个独立公司再度出现.同年,微软也在消息通信市场展露头角(MSMQ)
+    但以上软件主要服务于大型组织机构,且商业的MQ不允许不同的MQ产品互通,供应商也维持着高价和利润率
+    2001年,JMS(Java Message Service)试图提供公共的java API的方式来隐藏单独MQ产品提供的实际接口,从而解决了互通的问题.但在尝试使用
+      单独标准化接口来胶合众多不同的接口,缝合处终究会裂开,使用JMS的应用程序会变得更加脆弱
+    2004年,JPMorgan Chase开始和iMatix公司合作开发AMQP开放标准
+    2006年,AMQP规范发布
+    2007年,Alexis发布RabbitMQ 1.0
+  官网: http://www.rabbitmq.com/
   版本
   协议
 适用性(优缺):
-  1.允许软件、应用相互连接和扩展．这些应用可以相互链接起来组成一个更大的应用，或者将用户设备和数据进行连接．消息系统通过将消息的发送和接收分离来实现应用程序的异步和解偶．
+  1.允许软件、应用相互连接和扩展．这些应用可以相互链接起来组成一个更大的应用,或者将用户设备和数据进行连接．消息系统通过将消息的发送和接收分离来实现应用程序的异步和解偶．
   2.可使进行数据投递、非阻塞操作、推送通知、发布/订阅、异步处理、工作队列
-  3.可靠性：
+  3.可靠性: 
     持久性机制、投递确认、发布者证实、高可用机制
-  4.灵活路由：
-    消息在到达队列前是通过交换机进行路由的。RabbitMQ为典型的路由逻辑提供了多种内置交换机类型。如果你有更复杂的路由需求，可以将这些交换机组合起来使用，
-    甚至可以实现自己的交换机类型，并且当做RabbitMQ的插件来使用
-  5.集群：
-    在相同局域网中的多个RabbitMQ服务器可以聚合在一起，作为一个独立的逻辑代理来使用
-  6.联合：
-    对于服务器来说，它比集群需要更多的松散和非可靠链接。为此RabbitMQ提供了联合模型
+  4.灵活路由: 
+    消息在到达队列前是通过交换机进行路由的.RabbitMQ为典型的路由逻辑提供了多种内置交换机类型.如果你有更复杂的路由需求,可以将这些交换机组合起来使用,
+    甚至可以实现自己的交换机类型,并且当做RabbitMQ的插件来使用
+  5.集群: 
+    在相同局域网中的多个RabbitMQ服务器可以聚合在一起,作为一个独立的逻辑代理来使用
+  6.联合: 
+    对于服务器来说,它比集群需要更多的松散和非可靠链接.为此RabbitMQ提供了联合模型
   7.高可用的队列
-    在同一个集群里，队列可以被镜像到多个机器中，以确保当其中某些硬件出现故障后，你的消息仍然安全
+    在同一个集群里,队列可以被镜像到多个机器中,以确保当其中某些硬件出现故障后,你的消息仍然安全
   8.多协议
     RabbitMQ 支持多种消息协议的消息传递
   9.广泛的客户端
     只要是你能想到的编程语言几乎都有与其相适配的RabbitMQ客户端
   10.可视化管理工具
-    RabbitMQ附带了一个易于使用的可视化管理工具，它可以帮助你监控消息代理的每一个环节
+    RabbitMQ附带了一个易于使用的可视化管理工具,它可以帮助你监控消息代理的每一个环节
   11.追踪
-    如果你的消息系统有异常行为，RabbitMQ还提供了追踪的支持，让你能够发现问题所在
+    如果你的消息系统有异常行为,RabbitMQ还提供了追踪的支持,让你能够发现问题所在
   12.插件系统
-    RabbitMQ附带了各种各样的插件来对自己进行扩展。你甚至也可以写自己的插件来使用  
+    RabbitMQ附带了各种各样的插件来对自己进行扩展.你甚至也可以写自己的插件来使用  
     
-  其它开源MQ：
+  其它开源MQ: 
     ActiveMQ、ZeroMQ、Apache Qpid
-    1.除了Qpid之外，只有Rabbitmq是实现了AMQP标准的代理服务器
-    2.使用了Erlang，Rabbitmq集群非常简单
-    3.Rabbitmq更可靠，更能防止崩溃
+    1.除了Qpid之外,只有Rabbitmq是实现了AMQP标准的代理服务器
+    2.使用了Erlang,Rabbitmq集群非常简单
+    3.Rabbitmq更可靠,更能防止崩溃
 架构
   模块
-  安装：
+  安装: 
     # YUM安装
     # yum install epel-release -y
     # yum install socat openssl
     # rpm -ivh https://github.com/rabbitmq/erlang-rpm/releases/download/v22.1.6/erlang-22.1.6-1.el7.x86_64.rpm(由rabbitmq打包的组件,只提供运行mq所需的组件)
     # rpm -ivh https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.9/rabbitmq-server-3.7.9-1.el7.noarch.rpm
     # cp /usr/share/doc/rabbitmq-server-3.7.0/rabbitmq.config.example /etc/rabbitmq/rabbitmq.config
-    调整系统权限和内核参数：
-      1.fs.file-max(系统所有进程一共可以打开的文件数量，默认不用调整)
+    调整系统权限和内核参数: 
+      1.fs.file-max(系统所有进程一共可以打开的文件数量,默认不用调整)
         # cat /proc/sys/fs/file-max
         # vim /etc/sysctl.conf
           fs.file-max = 2000000
@@ -64,7 +64,7 @@
       2.ulimit -n(设置当前shell以及由它启动的进程的资源限制)
         # vim /etc/security/limits.conf
            *  -   nofile 65535
-    # vim   /etc/rabbitmq/rabbitmq.config     (一般不需要)
+    # vim /etc/rabbitmq/rabbitmq.config     (一般不需要)
     # systemctl restart rabbitmq-server
     # /etc/init.d/rabbitmq-server start|stop
     
@@ -79,8 +79,8 @@
       export RABBITMQ_HOME=/data/rabbitmq
       export PATH=$RABBITMQ_HOME/sbin:$PATH
     # . ~/.bashrc
-    # 调整系统权限和内核参数：
-      1.fs.file-max(系统所有进程一共可以打开的文件数量，默认不用调整)
+    # 调整系统权限和内核参数: 
+      1.fs.file-max(系统所有进程一共可以打开的文件数量,默认不用调整)
         # cat /proc/sys/fs/file-max
         # vim /etc/sysctl.conf
           fs.file-max = 2000000
@@ -88,17 +88,17 @@
       2.ulimit -n(设置当前shell以及由它启动的进程的资源限制)
         # vim /etc/security/limits.conf
            *  -   nofile 65535
-    # vim /etc/rabbitmq/rabbitmq.config      (一般不需要)  
+    # vim etc/rabbitmq/rabbitmq.conf      (一般不需要)  
     # rabbitmq-server -detached           # 后台启动
     # rabbitmqctl stop                # 关闭
     
     
-    注：
-      1.rabbitmq是由erlang语言开发，安装前须安装erlang环境
+    注: 
+      1.rabbitmq是由erlang语言开发,安装前须安装erlang环境
       2.rabbitmq默认由系统用户rabbitmq运行
       3.受SELinux(可能会阻止rabbitmq绑定到port)和防火墙影响
       
-      mq默认创建guest/guest。未配置的客户端将通过localhost来使用该身份连接
+      mq默认创建guest/guest.未配置的客户端将通过localhost来使用该身份连接
   结构
     目录结构
       安装目录
@@ -115,7 +115,7 @@
         
         ebin
         escript  
-        etc/rabbitmq：      配置文件目录
+        etc/rabbitmq:       配置文件目录
         include  
         plugins  
         priv  
@@ -125,89 +125,160 @@
           log/        # 日志文件目录
           lib/rabbitqm    # mnesia数据库目录
         
-      配置文件：
-        说明：一般情况下，默认配置已经足够。特殊设置，有两个配置文件
-          1.环境变量配置文件：rabbitmq-evn.conf
-          2.配置信息配置文件：rabbitmq.config
-          注：这两个文件默认没有，需要自己创建
-        配置：
-          rabbitmq-env.conf：位于$RABBITMQ_HOME/etc/rabbitmq/目录下，不需要RABBITMQ_前缀
-            NODENAME
-            NODE_IP_ADDRESS:        # 指定ip地址
-            NODE_PORT:            # 指定端口号，默认5672
-            CONFIG_FILE:          # rabbitmq.config配置文件路径
-            LOG_BASE:           # 日志文件目录
-          rabbitmq.config：使用Erlang标准语法
-          配置：
-            # rabbit
-              # 网络
-                tcp_listeners：5672         # 监听AMQP连接的端口，默认监听所有网卡。指定端口并且RabbitMQ配置为监听所有IPv6地址，但是IPv4没有被明确禁用时，将包括IPv4地址
-                ssl_listeners：5671         # TLS的监听端口
-                num_tcp_acceptors：10       # Erlang程序接收TCP和TLS连接的数量 
-                num_ssl_acceptors：1    
-                handshake_timeout：10000      # 对AMQP 0-8/0-9/0-9-1握手的最大时间(在套接字连接和SSL握手之后)，单位毫秒
-                reverse_dns_lookups：false      # 设置为true则对客户端连接执行反向DNS查找，并通过rabbitmqctl和管理插件呈现该hostname
-              # 安全和访问控制
-                loopback_users：[<<"guest">>]   # 只允许默认guest用户通过localhost访问server
-              # TLS配置
-              # 默认用户及虚拟机            # 第一次启动rabbitmq时默认创建的user及vhost
-                {default_vhost,       <<"/">>},
-                {default_user,        <<"guest">>},
-                {default_pass,        <<"guest">>},
-                {default_permissions, [<<".*">>, <<".*">>, <<".*">>]},
-                
-                {default_user_tags, [administrator]}    # 默认user的tag
-              
-              # 额外的网络
-              # 资源限制
-              # 集群
-              # 统计收集
-            # 内核
-              {net_ticktime, 60}            # 节点和连接的CLI工具周期性地发送小数据帧。如果在该时间内没有收到对方的数据, 则认为对方不可访问。集群中设置须相同
-            # management
-            # shovel
-            # stomp
-            # mqtt
-            # amqp1_0
-            # auth_backend_ldap
-            # lager                   # 日志
-              {log_root, "/var/log/rabbitmq"}     # 定义日志目录
-              
+      配置文件: 
+        说明: 一般情况下,默认配置已经足够. 且配置文件默认没有,需要自己创建
+          1.环境变量配置文件: rabbitmq-evn.conf
+          2.主配置文件: rabbitmq.conf(新风格文件名)/rabbitmq.config(古典风格文件名)
+          3.可选配置文件: advanced.config
+        配置: 
+          rabbitmq-env.conf: 位于$RABBITMQ_HOME/etc/rabbitmq/目录下,不需要RABBITMQ_前缀
+            RABBITMQ_NODENAME           # 节点名称. 默认rabbit@$HOSTNAME
+            RABBITMQ_NODE_IP_ADDRESS    # 默认为空, 即绑定0.0.0.0
+            RABBITMQ_NODE_PORT          # 指定端口号,默认5672
+            RABBITMQ_DIST_PORT          # 用于节点间和CLI工具通信的端口. RABBITMQ_NODE_PORT + 20000
 
-    进程/端口：
-      4369：      epmd,rabbitmq节点和CLI工具交互端口
-      25672：     由Erlang分配用于节点间同CLI工具交互,并且从动(AMQP+20000)分配
-      5672,5671：   启用了或未启用TLS的AMQP 0-9-1
+            ERL_EPMD_ADDRESS            # epmd使用的接口. 默认绑定所有
+            ERL_EPMD_PORT               # epmd使用的端口, 默认4369
+
+            RABBITMQ_DISTRIBUTION_BUFFER_SIZE     # 用于节点间通信连接的传出数据缓冲区大小限制. 单位kb. 默认128000. 不建议小于64M
+            RABBITMQ_IO_THREAD_POOL_SIZE          # 用于I/O的线程数. 默认128
+
+            RABBITMQ_CONFIG_FILE        # rabbitmq.conf配置文件路径
+            RABBITMQ_ADVANCED_CONFIG_FILE         # advanced.config配置文件路径
+            RABBITMQ_CONF_ENV_FILE      # rabbitmq-env.conf文件路径rabbit_peer_discovery_classic_config
+            RABBITMQ_MNESIA_BASE        # 包含节点数据库目录, 消息存储, 集群状态文件. 默认var/lib/rabbitmq/mnesia
+            RABBITMQ_MNESIA_DIR         # 节点数据库目录. 默认$RABBITMQ_MNESIA_BASE/$RABBITMQ_NODENAME
+            RABBITMQ_PLUGINS_DIR        # 插件目录. 默认$RABBITMQ_HOME/plugins
+            RABBITMQ_PLUGINS_EXPAND_DIR # 插件解压的目录. 默认$RABBITMQ_MNESIA_BASE/$RABBITMQ_NODENAME-plugins-expand
+          rabbitmq.conf: 使用ini格式(key=value), #开头为注释
+            > 网络
+            listeners.tcp.default = 5672		# tcp监听地址
+            listeners.ssl.default = 5671		# ssl监听地址
+            num_acceptors.tcp = 10			# 用于接受tcp连接的erlang进程数
+            num_acceptors.ssl = 10			# 用于接受TLS连接的erlang进程数
+            handshake_timeout = 10000		# 对AMPQ的最大连接时间, 单位毫秒
+            ssl_handshake_timeout = 5000
+            reverse_dns_lookups = false		# 是否执行反向dns查询. 若为true, 则rabbitmqctl和管理UI会显示主机名而非ip地址
+            
+            heartbeat = 60              # 服务器在连接参数协商期间建议的心跳时间. 单位秒
+            frame_max = 131072          # AMQP帧的最大允许大小. 单位字节
+            initial_frame_max = 4096    # 
+            channel_max = 128           # 每个连接允许的最大通道数. 0代表无限制
+            > 信息
+            max_message_size = 134217728        # 允许的最大消息有效负载大小. 单位字节. 最大值536870912
+            > 资源控制
+            vm_memory_high_watermark.relative = 0.4       # 触发流量控制的内存阀值. 可以为相对值(系统内存), 默认0.4
+            #vm_memory_high_watermark.absolute = 2GB      # 或绝对值
+            vm_memory_calculation_strategy = allocated    # 选择内存使用情况的策略. 可选: allocated(使用erlang内存分配统计器的统计信息. 默认). rss(使用OS RSS的内存报告), legacy(不使用). erlang(与legacy相同, 用于向下兼容)
+            vm_memory_high_watermark_paging_ratio = 0.5   # 当内存使用达到vm_memory_high_watermark的0.5时, 队列开始将消息page到磁盘以释放内存. 默认0.5
+            memory_monitor_interval = 2500                # 内存检查的间隔. 单位毫秒
+            #total_memory_available_override_value = 2GB  # 用于指定系统的可用内存总量. 适用于容器等获取内存值不准确的环境, 一般不适用
+            
+            disk_free_limit.absolute = 50MB               # mq在存储数据分区磁盘上的可用空间限制. 当可用磁盘空间低于此限制时, 将触发流控制.可以设置为绝对值
+            disk_free_limit.relative = 3.0                # 或相对于ram的总量设置
+            > 日志
+            log.file.level = info                         # 日志级别. error, warning, info, debug
+            log.dir = /var/log/rabbitmq                   # 日志目录
+            log.file = rabbit.log                         # 日志文件
+            
+            log.console = false
+            log.console.level = info
+            
+            log.exchange = false                          # 是否记录到amq.rabbitmq.log exchange
+            log.exchange.level = info
+            > 安全, 访问控制
+            loopback_users.guest = true		# 默认guest用户只能通过本地访问mq. loopback_users.<user_name>=true
+            loopback_users = none         # 仅允许通过环回接口连接到代理的用户列表
+            > TLS
+            > 默认用户和虚拟机
+            default_vhost = /			# 第一次启动mq会创建指定的user和vhost. 交换机amq.rabbitmq.log会存在这个vhost中
+            default_user = guest
+            default_pass = guest
+            default_permissions.configure = .*
+            default_permissions.read = .*
+            default_permissions.write = .*
+            default_user_tags.administrator = true
+            > 集群
+            cluster_name str                              # 指定集群名称
+            cluster_partition_handling = ignore           # 处理网络分区的方式. ignore/autoheal/pause_minority/pause_if_all_down/nodes/recover
+            cluster_partition_handling.pause_if_all_down.recover = ignore         # 恢复策略. 可选: autoheal/ignore
+            
+            cluster_partition_handling.pause_if_all_down.nodes.1 = rabbit@localhost   # 要检查的节点名称
+            cluster_partition_handling.pause_if_all_down.nodes.2 = hare@localhost
+            
+            
+            cluster_formation.peer_discovery_backend = classic_config         # 后端节点发现方式. rabbit_peer_discovery_classic_config/rabbit_peer_discovery_dns
+            cluster_formation.classic_config.nodes.1 = rabbit@hostname1       # 要连接的对等发现的节点
+            cluster_formation.classic_config.nodes.2 = rabbit@hostname2
+            
+            mirroring_sync_batch_size = 4096                                  # 镜像队列的同步批处理大小. 最高不能超过2G
+            cluster_formation.node_type = disc/ram                            # 指定节点类型, 默认disc
+            cluster_keepalive_interval = 10000                                # 集群成员互发活动消息的频率. 单位毫秒
+            queue_master_locator = client-local                               # 队列主服务器定位策略. min-masters/client-local/random
+            > 统计收集
+            collect_statistics = none                     # 统计方式, 主要与管理插件有关. none:不发出统计事件, coarse:发出每个队列/每个通道/每个连接的统计信息, fine:发出消息统计信息
+            collect_statistics_interval = 5000            # 收集间隔. 单位毫秒
+            > raft设置
+            raft.segment_max_entries = 65536
+            raft.wal_max_size_bytes = 1048576
+            raft.wal_max_batch_size = 4096
+            raft.snapshot_chunk_size = 1000000
+            > misc
+            mnesia_table_loading_retry_timeout = 30000        # 集群中加载Mnesia tables的超时时间. 单位毫秒
+            mnesia_table_loading_retry_limit = 10             # 集群中启动时加载Mnesia表的尝试次数
+            queue_index_embed_msgs_below = 4096               # 低于该大小的消息将嵌入到队列索引中. 单位字节
+            background_gc_enabled = false                     # 是否为处于等待状态的erlang进程启用后台定时强制GC. 禁用后台GC可减少客户端操作的延迟. 启用则可以减少二进制堆的中间ram使用
+            background_gc_target_interval = 60000             # 运行后台GC的期望间隔. 单位毫秒. 实际间隔可能有所不同. 不建议小于30秒
+            proxy_protocol = false                            # 是否启用代理协议支持. 若启用则客户端无法直接连接到mq, 必须通过负载均衡器进行连接(负载均衡器会在连接时将代理协议标头发送给mq). 该设置仅适用于AMQP客户端. 
+            product.name = RabbitMQ                           # 覆盖mq的名称
+            product.version = 1.2.3                           # 和版本
+            motd_file = /etc/rabbitmq/motd
+            > 内核选项
+            net_ticktime = 60                                 # 用于检测节点不可用的超时时间(包含cli工具)
+            delegate_count = 16                               # 用于集群内部通信的委托进程数
+            > 管理选项
+            management.load_definitions = /path/to/exported/definitions.json  # 预加载架构定义的json文件
+            management.http_log_dir = /path/to/access.log     # 通过管理http的请求日志
+            management.tcp.port = 15672
+            management.tcp.ip = 0.0.0.0
+            management.tcp.shutdown_timeout = 7000
+            management.tcp.max_keepalive = 120
+            management.tcp.idle_timeout = 120
+            management.tcp.inactivity_timeout = 120
+            management.tcp.request_timeout = 120
+            management.tcp.compress = true
+            
+            management.ssl.port       = 15671
+            management.ssl.cacertfile = /path/to/ca_certificate.pem
+            management.ssl.certfile   = /path/to/server_certificate.pem
+            management.ssl.keyfile    = /path/to/server_key.pem
+          advanced.config: 不能以ini在rabbitmq.conf中配置的设置, 例如LDAP查询. 仅在必要时使用
+    进程/端口: 
+      4369/epmd: epmd, rabbitmq节点和CLI工具使用的对等发现服务端口
+      25672/beam.smp: 由Erlang分配用于节点间同CLI工具交互, 从动态范围(AMQP port+20000)分配
+      5672,5671/beam.smp: 启用或未启用TLS的AMQP 0-9-1
       
-      15672：     http api客户端和rabbitmq admin交互(仅当management plugin被启用时)
-      61613,61614： 若STOMP被启用
-      1883,8883：   若MQTT被启用
+      15672: http api客户端和rabbitmq admin交互(仅当management plugin被启用时)
+      61613,61614: 若STOMP被启用
+      1883,8883: 若MQTT被启用
       15674
       15675
-      
-      
-      empd
-      beam.smp
-      erl_child_setup
-      inet_gethos
-      inet_gethost
     编程接口:
       Java、JMS、.NET/C#、Erlang、Ruby、Python、PHP等
     管理软件
-    环境变量：
-      RABBITMQ_NODENAME：rabbitmq节点名称，默认为rabbit。若想在单个节点上启动多个rabbitmq节点，可配置不同的nodenmae，每个节点的nodename是唯一的
-      RABBITMQ_NODE_IP_ADDRESS：rabbitmq的监听ip。默认绑定所有，包括ipv4和ipv6
-      RABBITMQ_NODE_PORT：监听端口，默认为5672
+    环境变量: 
+      RABBITMQ_NODENAME: rabbitmq节点名称,默认为rabbit.若想在单个节点上启动多个rabbitmq节点,可配置不同的nodenmae,每个节点的nodename是唯一的
+      RABBITMQ_NODE_IP_ADDRESS: rabbitmq的监听ip.默认绑定所有,包括ipv4和ipv6
+      RABBITMQ_NODE_PORT: 监听端口,默认为5672
   命令
     服务器:
       # rabbitmqctl [-q] [-l] [-n node] [-t timeout] command [command_options]
-        说明：rabbitmqctl是一个管理rabbitmq代理的命令行工具，若无法连接则会显示诊断信息
-        
-        示例：
-          -n node：   指定rabbitmq节点。默认node是rabbit@hostname， 而hostname通常取简写
-          -q：      安静模式
-          -t timeout：  操作超时时间(s)，只用于list命令。默认无限时间
-          --dry-run：   不运行命令，只打印信息
+        说明: rabbitmqctl是一个管理rabbitmq代理的命令行工具,若无法连接则会显示诊断信息
+        示例: 
+          -n node:    指定rabbitmq节点.默认node是rabbit@hostname, 而hostname通常取简写
+          -q:       安静模式
+          -t timeout:   操作超时时间(s),只用于list命令.默认无限时间
+          --dry-run:    不运行命令,只打印信息
           -l 
           --erlang-cookie cookie
           
@@ -216,25 +287,25 @@
         # 用户
           list_users
           add_user <username> <passwd>          # 添加用户/密码
-          delete_user <username>              # 删除用户，同时会删除所有引用该用户的访问控制
+          delete_user <username>              # 删除用户,同时会删除所有引用该用户的访问控制
           change_password <username> <password>     # 更改密码
-          clear_password <username>           # 清除用户密码(该用户不能通过密码登录，但可以通过SASL外部配置)
+          clear_password <username>           # 清除用户密码(该用户不能通过密码登录,但可以通过SASL外部配置)
           authenticate_user username password       
-          set_user_tags <username> <tag> [...]      # 设置用户角色，移除已存在的角色
+          set_user_tags <username> <tag> [...]      # 设置用户角色,移除已存在的角色
             tag可以为 administrator,monitoring, management
         # 虚拟机
           add_vhost <vhost>               # 添加vhost
-          delete_vhost <vhost>                  # 删除vhost，及其所有的exchanges, queues, 
+          delete_vhost <vhost>                  # 删除vhost,及其所有的exchanges, queues, 
                                   # bindings, user permissions, parameters and policies.
-          list_vhosts [<vhostinfoitem> ...]       # 列出所有vhost信息。vhostinfoitem:包含name(vhost名称)，tracing(是否对vhost启用了跟踪)
-                                  # 两个，默认显示name
+          list_vhosts [<vhostinfoitem> ...]       # 列出所有vhost信息.vhostinfoitem:包含name(vhost名称),tracing(是否对vhost启用了跟踪)
+                                  # 两个,默认显示name
           restart_vhost [-p <vhost>]
           
         # 权限
           set_permissions [-p <vhost>] <username> <conf> <write> <read>
-                                  # 对vhost进行授权。 '.*' '.*' '.*'
-                                    vhost： 将要赋权的vhsot名称，默认 /
-                                    user：  授予访问vhost的用户名称
+                                  # 对vhost进行授权. '.*' '.*' '.*'
+                                    vhost:  将要赋权的vhsot名称,默认 /
+                                    user:   授予访问vhost的用户名称
           clear_permissions [-p vhost] <username>     # 清除user对vhost的权限
           list_user_permissions <username>        # 查看用户的所有权限
           list_permissions [-p <vhost>]         # 列出所有对vhost有权限的用户
@@ -249,155 +320,155 @@
         # 队列
           list_queues [-p <vhost>] [--online] [--offline] [--local] [<queueinfoitem> ...]
                                   # 列出所有存在的队列
-                                    --offline： 只列出当前不可用的持久队列
-                                    --online：  列出当前可用的队列
-                                    --local： 只列出位于当前节点的队列
-                                    queueinfoitem：显示队列详细信息
-                                      name：队列名称
-                                      durable：队列是否持久化
-                                      auto_delete：当不再使用时，该队列是否会被自动删除
-                                      arguments：队列参数
-                                      policy：应用于该队列的策略名称
-                                      pid：与队列相关联的Erlang进程的id
-                                      owner_pid：
-                                      exclusive：队列是否为独占
+                                    --offline:  只列出当前不可用的持久队列
+                                    --online:   列出当前可用的队列
+                                    --local:  只列出位于当前节点的队列
+                                    queueinfoitem: 显示队列详细信息
+                                      name: 队列名称
+                                      durable: 队列是否持久化
+                                      auto_delete: 当不再使用时,该队列是否会被自动删除
+                                      arguments: 队列参数
+                                      policy: 应用于该队列的策略名称
+                                      pid: 与队列相关联的Erlang进程的id
+                                      owner_pid: 
+                                      exclusive: 队列是否为独占
                                       exclusive_consumer_pid
                                       exclusive_consumer_tag
                                       
-                                      messages_ready：准备分发给客户端的消息的数量
-                                      messages_unacknowledged：已发往客户端，但还未收到确认的消息的数量
-                                      messages：准备和未收到确认的总消息数量(当前queue的长度)
+                                      messages_ready: 准备分发给客户端的消息的数量
+                                      messages_unacknowledged: 已发往客户端,但还未收到确认的消息的数量
+                                      messages: 准备和未收到确认的总消息数量(当前queue的长度)
                                       
-                                      messages_ready_ram：准备分发的消息中，存在ram中消息的数量
-                                      messages_unacknowledged_ram：未确认的消息中，存在ram中的消息数量
-                                      messages_ram：存在于ram中的消息的数量
+                                      messages_ready_ram: 准备分发的消息中,存在ram中消息的数量
+                                      messages_unacknowledged_ram: 未确认的消息中,存在ram中的消息数量
+                                      messages_ram: 存在于ram中的消息的数量
                                       
-                                      messages_persistent：队列中持久性消息的数量
-                                      message_bytes：在队列中的所有消息的大小。包含headers,不包含properties和overhead
-                                      message_bytes_ready：同message_bytes，但是只包含准备发往client的信息
-                                      message_bytes_unacknowledged：同message_bytes，但是只包含未收到确认的消息的信息
-                                      message_bytes_ram：同message_bytes，但是只包含在内存中的
-                                      message_bytes_persistent：同message_bytes，但是只包含持久化的消息
+                                      messages_persistent: 队列中持久性消息的数量
+                                      message_bytes: 在队列中的所有消息的大小.包含headers,不包含properties和overhead
+                                      message_bytes_ready: 同message_bytes,但是只包含准备发往client的信息
+                                      message_bytes_unacknowledged: 同message_bytes,但是只包含未收到确认的消息的信息
+                                      message_bytes_ram: 同message_bytes,但是只包含在内存中的
+                                      message_bytes_persistent: 同message_bytes,但是只包含持久化的消息
                                       head_message_timestamp
-                                      disk_reads：自该队列启动以来，从磁盘上读取消息的总次数
-                                      disk_writes：自该队列启动以来，往磁盘上写入消息的总次数
-                                      consumers：客户端的数量
-                                      consumer_utilisation：
-                                      memory：与队列相关联的Erlang进程消耗内存的字节数，包括stack, heap and internal structures
-                                      slave_pids：
+                                      disk_reads: 自该队列启动以来,从磁盘上读取消息的总次数
+                                      disk_writes: 自该队列启动以来,往磁盘上写入消息的总次数
+                                      consumers: 客户端的数量
+                                      consumer_utilisation: 
+                                      memory: 与队列相关联的Erlang进程消耗内存的字节数,包括stack, heap and internal structures
+                                      slave_pids: 
                                       synchronised_slave_pids
-                                      state：队列状态，正常情况下是running，但是当在同步时会显示{syncing, message_count}
+                                      state: 队列状态,正常情况下是running,但是当在同步时会显示{syncing, message_count}
           list_exchanges [-p <vhost>] [<exchangeinfoitem> ...]
                                   # 显示exchange的信息
-                                    exchangeinfoitem：默认显示name type
-                                      name：exchange的名称
-                                      type：该exchange的类型(direct,topic,headers,fanout)
-                                      durable：是否为持久化
-                                      auto_delete：当不再使用后是否被自动删除
-                                      internal：exchange是否为内部的，即不能由client直接发布
-                                      arguments：exchange参数
-                                      policy：应用于exchange的策略
+                                    exchangeinfoitem: 默认显示name type
+                                      name: exchange的名称
+                                      type: 该exchange的类型(direct,topic,headers,fanout)
+                                      durable: 是否为持久化
+                                      auto_delete: 当不再使用后是否被自动删除
+                                      internal: exchange是否为内部的,即不能由client直接发布
+                                      arguments: exchange参数
+                                      policy: 应用于exchange的策略
           list_bindings [-p <vhost>] [<bindinginfoitem> ...]
-                                  # 显示binding信息，默认全部显示
-                                    bindinginfoitem：
-                                      source_name：binding附加到消息源的名称
-                                      source_kind：binding附加到消息源的类型
-                                      destination_name：binding附加到消息的目的地的名称
-                                      destination_kind：binding附加到消息的目的地的类型
-                                      routing_key：binding的routing_key
-                                      arguments：binding的参数
+                                  # 显示binding信息,默认全部显示
+                                    bindinginfoitem: 
+                                      source_name: binding附加到消息源的名称
+                                      source_kind: binding附加到消息源的类型
+                                      destination_name: binding附加到消息的目的地的名称
+                                      destination_kind: binding附加到消息的目的地的类型
+                                      routing_key: binding的routing_key
+                                      arguments: binding的参数
           list_connections [<connectioninfoitem> ...]   # 显示所有tcp/ip的连接
-                                    connectioninfoitem：默认user, peer_host, peer_port,state
-                                      pid：关联该连接的Erlang进程的id
-                                      name：此链接的可读的名称
-                                      port：服务器端口
-                                      host：服务器地址(DNS)，若DNS解析失败或被禁用，则显示ip
-                                      peer_port：client端口
-                                      peer_host：client地址
+                                    connectioninfoitem: 默认user, peer_host, peer_port,state
+                                      pid: 关联该连接的Erlang进程的id
+                                      name: 此链接的可读的名称
+                                      port: 服务器端口
+                                      host: 服务器地址(DNS),若DNS解析失败或被禁用,则显示ip
+                                      peer_port: client端口
+                                      peer_host: client地址
                                       
-                                      ssl：表名该链接是否通过SSL
-                                      ssl_protocol：SSL的协议(eg:tlsv1)
-                                      ssl_key_exchange：SSL key交换算法(eg:rsa)
-                                      ssl_cipher：SSL加密算法(eg:aes_256_cbc)
-                                      ssl_hash：SSL hash函数(eg:sha)
+                                      ssl: 表名该链接是否通过SSL
+                                      ssl_protocol: SSL的协议(eg:tlsv1)
+                                      ssl_key_exchange: SSL key交换算法(eg:rsa)
+                                      ssl_cipher: SSL加密算法(eg:aes_256_cbc)
+                                      ssl_hash: SSL hash函数(eg:sha)
                                       
-                                      state：链接状态(staring,tuning,opening,running,flow,blocking,blocked,closing,closed)
-                                      channels：使用该连接的信道数量
-                                      protocol：使用的AMQP的版本
-                                      auth_mechanism：SASL使用的认证机制。eg:palin
-                                      user：关联该连接的用户名
-                                      vhost：vhost名称
-                                      timeout：连接超时(s)
-                                      frame_max：最大帧大小(byte)
-                                      channel_max：该链接最大channels数量
-                                      client_properties：在建立期间通过client传播的信息属性
-                                      recv_oct：收到的octets
-                                      recv_cnt：收到的packets
-                                      send_oct：发送的octets
-                                      send_cnt：发送的packets
-                                      send_pend：发送的队列大小
-                                      connected_at：该链接被建立的时间(timestamp)
+                                      state: 链接状态(staring,tuning,opening,running,flow,blocking,blocked,closing,closed)
+                                      channels: 使用该连接的信道数量
+                                      protocol: 使用的AMQP的版本
+                                      auth_mechanism: SASL使用的认证机制.eg:palin
+                                      user: 关联该连接的用户名
+                                      vhost: vhost名称
+                                      timeout: 连接超时(s)
+                                      frame_max: 最大帧大小(byte)
+                                      channel_max: 该链接最大channels数量
+                                      client_properties: 在建立期间通过client传播的信息属性
+                                      recv_oct: 收到的octets
+                                      recv_cnt: 收到的packets
+                                      send_oct: 发送的octets
+                                      send_cnt: 发送的packets
+                                      send_pend: 发送的队列大小
+                                      connected_at: 该链接被建立的时间(timestamp)
                                       
                                       
           list_channels [<channelinfoitem> ...]     # 显示所有当前的信道
-                                    channelsinfoitem：默认pid, user, consumer_count, messages_unacknowledged
-                                      pid：关联该链接的Erlang进程的id
-                                      connection：
-                                      name：该信道的可读的名称
-                                      number：一个connection中channel的数量
-                                      user：关联改channel的用户
-                                      vhost：channel操作所在的vhost
-                                      transactional：该channel是否为事务模式
-                                      confirm：该channel是否为confirm模式
-                                      consumer_count：consumer的数量
-                                      messages_unacknowledged：通过信道已发送但未确认的消息的数量
-                                      messages_uncommitted：在未提交的事务中的消息数量
-                                      acks_uncommitted：在未提交的事务中收到的确认数量
-                                      messages_unconfirmed：未确认的发布消息的数量。若channel非confirm模式，则为0
-                                      prefetch_count：
+                                    channelsinfoitem: 默认pid, user, consumer_count, messages_unacknowledged
+                                      pid: 关联该链接的Erlang进程的id
+                                      connection: 
+                                      name: 该信道的可读的名称
+                                      number: 一个connection中channel的数量
+                                      user: 关联改channel的用户
+                                      vhost: channel操作所在的vhost
+                                      transactional: 该channel是否为事务模式
+                                      confirm: 该channel是否为confirm模式
+                                      consumer_count: consumer的数量
+                                      messages_unacknowledged: 通过信道已发送但未确认的消息的数量
+                                      messages_uncommitted: 在未提交的事务中的消息数量
+                                      acks_uncommitted: 在未提交的事务中收到的确认数量
+                                      messages_unconfirmed: 未确认的发布消息的数量.若channel非confirm模式,则为0
+                                      prefetch_count: 
                                       global_prefetch_count
                                       
-          list_consumers [-p vhost]             # 显示所有consumers。按行显示，字段按\t分隔(queue_name,channel_id,consumer_tag,是否确认预计交付给消费者的信息,prefetch limit,argument)
+          list_consumers [-p vhost]             # 显示所有consumers.按行显示,字段按\t分隔(queue_name,channel_id,consumer_tag,是否确认预计交付给消费者的信息,prefetch limit,argument)
           purge_queue <queue>               # 清空一个队列(删除里面的所有消息)
           
           cancel_sync_queue [-p <vhost>] queue      # 将一个同步镜像队列停止同步
-          sync_queue [-p <vhost>] queue         # 将一个异步额镜像队列去同步自身。当同步发生时，队列将阻塞不可用
+          sync_queue [-p <vhost>] queue         # 将一个异步额镜像队列去同步自身.当同步发生时,队列将阻塞不可用
           list_unresponsive_queues [--local] [--queue-timeout <queue-timeout>] [<unresponsiveq_ueueinfoitem> ...]
         # 插件
         
         # 状态
-          status                      # 显示broker的状态信息(运行在当前Erlang节点的应用，rabbitmq和erlang版本，操作系统名称，内存和文件描述符的统计信息)
+          status                      # 显示broker的状态信息(运行在当前Erlang节点的应用,rabbitmq和erlang版本,操作系统名称,内存和文件描述符的统计信息)
           node_health_check               # rabbitmq节点的健康检查
           environment                   # 显示每一个运行的应用程序的变量和值
           report                      # 生成一个包含所有服务状态的报告用于排错
           
           eval <expr>                   # 评估一个erlang表达式
         # 应用
-          reset                     # 重置rabbitmq节点：移除与集群所属关系，移除数据库中所有数据(user,vhost)，删除所有权限信息。重置前须stop_app
-          force_reset                   # 强制重置rabbitmq节点，它只作为最后手段。与reset不同的是，无条件重置，不论当前的数据库状态和集群配置。重置前须stop_app
+          reset                     # 重置rabbitmq节点: 移除与集群所属关系,移除数据库中所有数据(user,vhost),删除所有权限信息.重置前须stop_app
+          force_reset                   # 强制重置rabbitmq节点,它只作为最后手段.与reset不同的是,无条件重置,不论当前的数据库状态和集群配置.重置前须stop_app
           hipe_compile <directory>
           start_app                   # 启动rabbitmq应用
-          stop_app                    # 关闭rabbitmq应用，只留下Erlang节点
-          shutdown                    # 关闭在rabbitmq上运行的Erlang程序。若失败则返回一个非零代码
+          stop_app                    # 关闭rabbitmq应用,只留下Erlang节点
+          shutdown                    # 关闭在rabbitmq上运行的Erlang程序.若失败则返回一个非零代码
           wait [<pid_file>] [--pid|-P <pid>]
         # 集群
-          join_cluster [--ram] <clusternode>        # 指定节点成为clusternode所在集群的节点。在执行该命令前，需要stop_app和reset
-                                    --ram：该节点以ram类型加入集群，默认类型为disc
+          join_cluster [--ram] <clusternode>        # 指定节点成为clusternode所在集群的节点.在执行该命令前,需要stop_app和reset
+                                    --ram: 该节点以ram类型加入集群,默认类型为disc
           cluster_status                  # 显示集群中的所有节点  
-          change_cluster_node_type <disc|ram>       # 更改集群中节点的类型。更改之前须停止该节点(stop_app)。且当将一个disc类型的节点
-                                  # 更改为ram类型时，该节点不能是该集群中唯一的disc节点
-          forget_cluster_node [--offline] <clusternode> # 从集群中移除clusternode。但该cluster须离线(stop_app)
-                                  # --offline：允许从一个脱机的节点来删除一个离线的节点。但是只有当所有节点都离线且
-                                  #       最后一个节点不能联机时才有用。一般不使用，可能会导致矛盾
-                                  # 相同作用： stop_app;reset
-          set_cluster_name <name>             # 设置集群名称。该名称在连接时发送给客户端。群集名称默认是来自在群集中的第一个节点的名称
-          force_boot                    # 强制某个节点下次启动而不管其他集群节点。若该节点停止后发生了某些改变，则该改变将丢失
+          change_cluster_node_type <disc|ram>       # 更改集群中节点的类型.更改之前须停止该节点(stop_app).且当将一个disc类型的节点
+                                  # 更改为ram类型时,该节点不能是该集群中唯一的disc节点
+          forget_cluster_node [--offline] <clusternode> # 从集群中移除clusternode.但该cluster须离线(stop_app)
+                                  # --offline: 允许从一个脱机的节点来删除一个离线的节点.但是只有当所有节点都离线且
+                                  #       最后一个节点不能联机时才有用.一般不使用,可能会导致矛盾
+                                  # 相同作用:  stop_app;reset
+          set_cluster_name <name>             # 设置集群名称.该名称在连接时发送给客户端.群集名称默认是来自在群集中的第一个节点的名称
+          force_boot                    # 强制某个节点下次启动而不管其他集群节点.若该节点停止后发生了某些改变,则该改变将丢失
           rename_cluster_node <oldnode1> <newnode1> [oldnode2] [newnode2] ...
           
           update_cluster_nodes <existing_cluster_member_node_to_seed_from>
         # 参数管理
           set_parameter [-p <vhost>] <component_name> <name> <value>
-                                  # 设置参数。component_name：组件名称 name：参数名称 value：参数值，为json格式
+                                  # 设置参数.component_name: 组件名称 name: 参数名称 value: 参数值,为json格式
           clear_parameter [-p <vhost>] <component_name> <name>
                                   # 清除参数
           list_parameters [-p <vhost>]          # 列出某个vhost的所有参数 
@@ -405,10 +476,10 @@
           set_global_parameter <name> <value>       # 设置一个全局运行时参数
           clear_global_parameter name           # 清除一个运行时参数
           list_global_parameters              # 列出所有的运行时参数
-        # 策略：
+        # 策略: 
           set_policy [-p vhost] [--priority priority] [--apply-to apply-to] name pattern definition
                                   # 设置一个策略
-                                    name：策略名称
+                                    name: 策略名称
           clear_policy [-p <vhost>] <name>        # 清除一个策略
           list_policies [-p <vhost>]            # 列出某个vhost的所有策略   
 
@@ -419,33 +490,33 @@
         # 帮助
           help <command>
         # 日志
-          rotate_logs                   # 通知rabbitmq节点进行日志轮替(异步)。该操作通过配置文件来执行，不需要显式调用
+          rotate_logs                   # 通知rabbitmq节点进行日志轮替(异步).该操作通过配置文件来执行,不需要显式调用
         # 资源
           # vhost资源限制
-          set_vhost_limits [-p <vhost>] definition    # 设置vhost资源限制。definition格式为json。分为两个：max-connections，max-queues。
-                                  # 使用负值表示无限制，0表示禁用连接或队列
-                                  # eg：set_vhost_limits -p vsky '{"max-connections": 64}'
+          set_vhost_limits [-p <vhost>] definition    # 设置vhost资源限制.definition格式为json.分为两个: max-connections,max-queues.
+                                  # 使用负值表示无限制,0表示禁用连接或队列
+                                  # eg: set_vhost_limits -p vsky '{"max-connections": 64}'
           clear_vhost_limits [-p <vhost>]         # 清空vhost限制
-          list_vhost_limits [-p <vhost>] [--global]   # 显示vhost资源限制，--global：显示所有vhost限制，忽略-p参数
+          list_vhost_limits [-p <vhost>] [--global]   # 显示vhost资源限制,--global: 显示所有vhost限制,忽略-p参数
           
           # 内存
-          set_vm_memory_high_watermark <fraction>     # 内存高水位线。定义rabbitmq允许消耗的内存，以小数表示百分比
+          set_vm_memory_high_watermark <fraction>     # 内存高水位线.定义rabbitmq允许消耗的内存,以小数表示百分比
           set_vm_memory_high_watermark absolute <memory_limit>
 
           # 磁盘
-          set_disk_free_limit <disk_limit>        # 磁盘低水位线，若磁盘容量低于指定值则停止接收数据
+          set_disk_free_limit <disk_limit>        # 磁盘低水位线,若磁盘容量低于指定值则停止接收数据
           set_disk_free_limit mem_relative <fraction>
-        # 其它：
-          close_connection <connectionpid> <explanation>  # 由broker关闭和Erlang进程相关(connectionpid)的连接，并返回客户端explanation
-                                  # connectionpid：与某个连接相关的Erlang进程的id
-                                  # explanation：解释字符串，client收到的信息 
+        # 其它: 
+          close_connection <connectionpid> <explanation>  # 由broker关闭和Erlang进程相关(connectionpid)的连接,并返回客户端explanation
+                                  # connectionpid: 与某个连接相关的Erlang进程的id
+                                  # explanation: 解释字符串,client收到的信息 
           close_all_connections [-p <vhost> --limit <limit>] [-n <node> --global] [--per-connection-delay <delay>] <explanation>
                                   # 
-                                  # -p：指定vhost --global：所有vhost的connection
-                                  # --per-connection-delay delay：每次关闭连接后等待的时间(毫秒)
-                                  # --limit limit：关闭vhost中连接的数量。只用于vhost，忽略--global
-                                  # explanation：解释字符串
-          trace_on [-p <vhost>]             # 对vhost开启跟踪。重启服务会失效
+                                  # -p: 指定vhost --global: 所有vhost的connection
+                                  # --per-connection-delay delay: 每次关闭连接后等待的时间(毫秒)
+                                  # --limit limit: 关闭vhost中连接的数量.只用于vhost,忽略--global
+                                  # explanation: 解释字符串
+          trace_on [-p <vhost>]             # 对vhost开启跟踪.重启服务会失效
           trace_off [-p <vhost>]              # 对vhost关闭跟踪
           
         # 编码/解码
@@ -459,10 +530,10 @@
       # rabbitmq-diagnostics
       # rabbitmq-plugins  [list -Eemv] [-n <node>] [-q] <command> [<command options>]
         list
-          -E：只显示显式启用的插件
-          -e：只显示显式或隐式启用的插件
-          -m：显示所有插件的名称
-          -v：显示所有插件的详细信息
+          -E: 只显示显式启用的插件
+          -e: 只显示显式或隐式启用的插件
+          -m: 显示所有插件的名称
+          -v: 显示所有插件的详细信息
         Commands:
           disable <plugin>|--all [--offline] [--online]
           enable <plugin>|--all [--offline] [--online]
@@ -470,8 +541,8 @@
           list [pattern] [--verbose] [--minimal] [--enabled] [--implicitly-enabled]
           set [<plugin>] [--offline] [--online]
             
-          注：
-            1.默认node是rabbit@server，server是hostname
+          注: 
+            1.默认node是rabbit@server,server是hostname
       # rabbitmq-server           # 启动rabbit
         -detached             # 后台启动
       
@@ -483,9 +554,9 @@
       /usr/bin/to_erl
     客户端
   日志:
-    说明：服务器的输出被发送到RABBITMQ_LOG_BASE目录下，默认在/var/log/rabbitmq/中。且默认情况下，这个位于/var/log/rabbitmq文件
-      中的脚本会每周执行一次。可以查看/etc/logrotate.d/rabbitmq-server来对logrotate进行配置
-    文件：
+    说明: 服务器的输出被发送到RABBITMQ_LOG_BASE目录下,默认在/var/log/rabbitmq/中.且默认情况下,这个位于/var/log/rabbitmq文件
+      中的脚本会每周执行一次.可以查看/etc/logrotate.d/rabbitmq-server来对logrotate进行配置
+    文件: 
       log/crash.log
       rabbit@db1.log  
       rabbit@db1_upgrade.log  
@@ -495,20 +566,20 @@
       shutdown_log
   优化
   安全
-  集群：
-    说明：
-      组成集群前，每个rabbitmq节点都是独立的，拥有自己的元数据，并且不知道其它节点的存在。集群的第一个节点将初始元数据带入集群中，并且
-      无须被告知加入。加入其它节点，需要停止Erlang节点上运行的rabbitmq应用程序，并reset其元数据。这样它们才可以被加入并获取集群的元数据
-    单机集群：
+  集群: 
+    说明: 
+      组成集群前,每个rabbitmq节点都是独立的,拥有自己的元数据,并且不知道其它节点的存在.集群的第一个节点将初始元数据带入集群中,并且
+      无须被告知加入.加入其它节点,需要停止Erlang节点上运行的rabbitmq应用程序,并reset其元数据.这样它们才可以被加入并获取集群的元数据
+    单机集群: 
       1.单机安装
       2.设置变量(避免节点名称和端口冲突)
         # export RABBITMQ_NODENAME=rabbit1
         # export RABBITMQ_NODE_PORT=5671
       3.启动rabbit1@node1
         # rabbitmq-server -detached
-      4.复制cookie，节点之间通过cookie确定相互是否可通信(cookie存放在/var/lib/rabbitmq/.erlang.cookie或者$HOME/.erlang.cookie中)
+      4.复制cookie,节点之间通过cookie确定相互是否可通信(cookie存放在/var/lib/rabbitmq/.erlang.cookie或者$HOME/.erlang.cookie中)
         其它节点需要提前存放cookie再启动
-      5.更改变量，依次启动
+      5.更改变量,依次启动
         # export RABBITMQ_NODENAME=rabbit2 ;export RABBITMQ_NODE_PORT=5672
         # rabbitmq-server -detached
         # export RABBITMQ_NODENAME=rabbit3 ;export RABBITMQ_NODE_PORT=5673
@@ -526,128 +597,126 @@
       7.查看集群状态
         .# rabbitmqctl cluster_status
       
-    
-    
 具体服务相关
   概念:
     1.Producer ---> broker ---> Consuming
     原理
-    1.RabbitMQ存储和转发的是二进制数据块。数据存储在队列中(主机的内存和磁盘)。它实质是一个大的信息缓冲区
+    1.RabbitMQ存储和转发的是二进制数据块.数据存储在队列中(主机的内存和磁盘).它实质是一个大的信息缓冲区
     
-    AMQP：
-      说明：AMQP(高级消息队列协议)是一个异步消息传递所使用的应用层协议规范。它支持符合要求的客户端应用和消息中间件代理之间进行通信。消息代理(message brokers)从发
-        布者(publishers)亦称生产者(producers)那儿接收消息，并根据既定的路由规则(exchange)把接收到的消息发送给处理消息的消费者(consumers)。
-        由于AMQP是一个网络协议，所以这个过程中的发布者，消费者，消息代理可以存在于不同的设备上
-      模型：
+    AMQP: 
+      说明: AMQP(高级消息队列协议)是一个异步消息传递所使用的应用层协议规范.它支持符合要求的客户端应用和消息中间件代理之间进行通信.消息代理(message brokers)从发
+        布者(publishers)亦称生产者(producers)那儿接收消息,并根据既定的路由规则(exchange)把接收到的消息发送给处理消息的消费者(consumers).
+        由于AMQP是一个网络协议,所以这个过程中的发布者,消费者,消息代理可以存在于不同的设备上
+      模型: 
                   -------------------AMQP代理-------------------
                   |                     |
                   publish            routes          consumes
         publisher  ---------------->   exchange ---------> Queue ------------------->  Consumer
         
-        说明：消息(message)被发布者(publisher)发送给交换机(exchange)，交换机常常被比喻成邮局或者邮箱。然后交换机将收到的消息根据路由规则分发
-          给绑定的队列(queue)。最后AMQP代理会将消息投递给订阅了此队列的消费者，或者消费者按照需求自行获取。
+        说明: 消息(message)被发布者(publisher)发送给交换机(exchange),交换机常常被比喻成邮局或者邮箱.然后交换机将收到的消息根据路由规则分发
+          给绑定的队列(queue).最后AMQP代理会将消息投递给订阅了此队列的消费者,或者消费者按照需求自行获取.
           
-          1.发布者(publisher)发布消息时可以给消息指定各种消息属性(message meta-data)。有些属性有可能会被消息代理(brokers)使用，然而其他的属
-            性则是完全不透明的，它们只能被接收消息的应用所使用
-          2.AMQP模块包含了一个消息确认(message acknowledgements)的概念：当一个消息从队列中投递给消费者后(consumer)，消费者会通知消息代理(broker)，
-            这个可以是自动的也可以由处理消息的应用的开发者执行。当"消息确认"被启用的时候，消息代理不会完全将消息从队列中删除，直到它收到来自消费
+          1.发布者(publisher)发布消息时可以给消息指定各种消息属性(message meta-data).有些属性有可能会被消息代理(brokers)使用,然而其他的属
+            性则是完全不透明的,它们只能被接收消息的应用所使用
+          2.AMQP模块包含了一个消息确认(message acknowledgements)的概念: 当一个消息从队列中投递给消费者后(consumer),消费者会通知消息代理(broker),
+            这个可以是自动的也可以由处理消息的应用的开发者执行.当"消息确认"被启用的时候,消息代理不会完全将消息从队列中删除,直到它收到来自消费
             者的确认回执(acknowledgement)
-          3.当一个消息无法被成功路由时，消息或许会被返回给发布者并被丢弃。或者，如果消息代理执行了延期操作，消息会被放入一个所谓的死信队列中。
-            此时，消息发布者可以选择某些参数来处理这些特殊情况
-          4.队列，交换机和绑定统称为AMQP实体(AMQP entities)
-      交换机：
-        说明：交换机是用来发送消息的AMQP实体。交换机拿到一个消息之后将它路由给一个或零个队列。它使用哪种路由算法是由交换机类型和被
-          称作绑定(bindings)的规则(routing key)所决定的。
-        类型：AMQP 0-9-1的代理提供了四种交换机
-          1.Direct exchange(直连交换机)：
-            预声明的默认名称：(Empty string) and amq.direct
-            说明：根据消息携带的routing key将消息投递给对应队列。直连交换机用来处理单播消息(也可以处理多播)。
-              Default exchange(默认交换机)：
-                说明：实际由一个消息代理预先声明好的名字为空字符串的直连交换机。每个新建queue都会自动绑定到默认交换机上，
+          3.当一个消息无法被成功路由时,消息或许会被返回给发布者并被丢弃.或者,如果消息代理执行了延期操作,消息会被放入一个所谓的死信队列中.
+            此时,消息发布者可以选择某些参数来处理这些特殊情况
+          4.队列,交换机和绑定统称为AMQP实体(AMQP entities)
+      交换机: 
+        说明: 交换机是用来发送消息的AMQP实体.交换机拿到一个消息之后将它路由给一个或零个队列.它使用哪种路由算法是由交换机类型和被
+          称作绑定(bindings)的规则(routing key)所决定的.
+        类型: AMQP 0-9-1的代理提供了四种交换机
+          1.Direct exchange(直连交换机): 
+            预声明的默认名称: (Empty string) and amq.direct
+            说明: 根据消息携带的routing key将消息投递给对应队列.直连交换机用来处理单播消息(也可以处理多播).
+              Default exchange(默认交换机): 
+                说明: 实际由一个消息代理预先声明好的名字为空字符串的直连交换机.每个新建queue都会自动绑定到默认交换机上,
                   绑定的routing key名称与queue名称相同
-                工作方式：
-                  1.默认交换机看起来貌似能够直接将消息投递给队列，尽管技术上并没有做相关的操作
-            工作方式：
-              1.将一个队列绑定到某个交换机上，同时赋予该绑定的一个路由键(routing key)
-              2.当携带这路由键为R的消息被发送到直连交换机时，交换机会将其路由至绑定值同为R的队列
-            作用：
-              经常用来循环分发任务给多个workers。在AMQP 0-9-1中，消息的负载均衡是发生在consumer之间，而非queue之间
+                工作方式: 
+                  1.默认交换机看起来貌似能够直接将消息投递给队列,尽管技术上并没有做相关的操作
+            工作方式: 
+              1.将一个队列绑定到某个交换机上,同时赋予该绑定的一个路由键(routing key)
+              2.当携带这路由键为R的消息被发送到直连交换机时,交换机会将其路由至绑定值同为R的队列
+            作用: 
+              经常用来循环分发任务给多个workers.在AMQP 0-9-1中,消息的负载均衡是发生在consumer之间,而非queue之间
           2.Fanout exchange(扇型交换机) 
-            预声明的默认名称：amq.fanout
-            说明：将消息路由给绑定到它身上的所有队列，而不理会绑定的路由键。用来处理消息的广播路由(broadcast routing)
-            工作方式：
-              如果N个队列绑定到某个扇型交换机上，当有消息发送给此扇型交换机时，交换机会将消息的拷贝分别发送给这所有的N个队列。
-            作用：
+            预声明的默认名称: amq.fanout
+            说明: 将消息路由给绑定到它身上的所有队列,而不理会绑定的路由键.用来处理消息的广播路由(broadcast routing)
+            工作方式: 
+              如果N个队列绑定到某个扇型交换机上,当有消息发送给此扇型交换机时,交换机会将消息的拷贝分别发送给这所有的N个队列.
+            作用: 
               1.大规模多用户在线（MMO）游戏可以使用它来处理排行榜更新等全局事件
               2.体育新闻网站可以用它来近乎实时地将比分更新分发给移动客户端
               3.分发系统使用它来广播各种状态和配置更新
-              4.在群聊的时候，它被用来分发消息给参与群聊的用户。（AMQP没有内置presence的概念，因此XMPP可能会是个更好的选择）
+              4.在群聊的时候,它被用来分发消息给参与群聊的用户.（AMQP没有内置presence的概念,因此XMPP可能会是个更好的选择）
           3.Topic exchange(主题交换机)  
-            预声明的默认名称：amq.topic
-            说明：通过对消息的路由键和队列到交换机的绑定模式之间的匹配，将消息路由给一个或多个队列。通常用来实现消息的多播路由(multicast routing)
-            工作方式：
-            作用：
-              主题交换机经常用来实现各种分发/订阅模式及其变种：
-                分发有关于特定地理位置的数据，例如销售点
-                由多个工作者（workers）完成的后台任务，每个工作者负责处理某些特定的任务
+            预声明的默认名称: amq.topic
+            说明: 通过对消息的路由键和队列到交换机的绑定模式之间的匹配,将消息路由给一个或多个队列.通常用来实现消息的多播路由(multicast routing)
+            工作方式: 
+            作用: 
+              主题交换机经常用来实现各种分发/订阅模式及其变种: 
+                分发有关于特定地理位置的数据,例如销售点
+                由多个工作者（workers）完成的后台任务,每个工作者负责处理某些特定的任务
                 股票价格更新（以及其他类型的金融数据更新）
-                涉及到分类或者标签的新闻更新（例如，针对特定的运动项目或者队伍）
+                涉及到分类或者标签的新闻更新（例如,针对特定的运动项目或者队伍）
                 云端的不同种类服务的协调
-                分布式架构/基于系统的软件封装，其中每个构建者仅能处理一个特定的架构或者系统
+                分布式架构/基于系统的软件封装,其中每个构建者仅能处理一个特定的架构或者系统
               
           4.Headers exchange(头交换机)
-            预声明的默认名称：amq.match (and amq.headers in RabbitMQ)
-            说明：有时消息的路由操作会涉及到多个属性，此时使用消息头就比用路由键更容易表达。头交换机使用多个
-                消息属性来代替路由键建立路由规则。通过判断消息头的值能否与指定的绑定相匹配来确立路由规则
-            工作方式：
-            作用：
-        属性：
-          Name：
-          Durability：  消息代理重启后，交换机是否还存在
-          Auto-delete： 当所有与之绑定的消息队列都完成了对此交换机的使用后，删掉它
-          Arguments：   依赖代理本身
-        状态：
-          持久(durable)：   持久化的交换机会在消息代理(broker)重启后依旧存在
-          暂存(transient)： 暂存的交换机需要在代理再次上线后重新被声明
+            预声明的默认名称: amq.match (and amq.headers in RabbitMQ)
+            说明: 有时消息的路由操作会涉及到多个属性,此时使用消息头就比用路由键更容易表达.头交换机使用多个
+                消息属性来代替路由键建立路由规则.通过判断消息头的值能否与指定的绑定相匹配来确立路由规则
+            工作方式: 
+            作用: 
+        属性: 
+          Name: 
+          Durability:   消息代理重启后,交换机是否还存在
+          Auto-delete:  当所有与之绑定的消息队列都完成了对此交换机的使用后,删掉它
+          Arguments:    依赖代理本身
+        状态: 
+          持久(durable):    持久化的交换机会在消息代理(broker)重启后依旧存在
+          暂存(transient):  暂存的交换机需要在代理再次上线后重新被声明
         
-      队列：
-        说明：它们存储未被应用消费掉的消息，与交换机共享某些属性。实质上队列就是个巨大的消息缓冲区
-        属性：
+      队列: 
+        说明: 它们存储未被应用消费掉的消息,与交换机共享某些属性.实质上队列就是个巨大的消息缓冲区
+        属性: 
           Name
-          Durable：   消息代理重启后，队列依旧存在
-          Exclusive：   只被一个连接(connection)使用，而且当连接关闭后队列即被删除
-          Auto-delete： 当最后一个消费者退订后即被删除
-          Arguments：   一些消息代理用他来完成类似与TTL的某些额外功能
-        队列名称：
-          说明：队列的名字可以由应用(application)来取，也可以由消息代理(broker)直接生成。队列的名字可以是最多255字节的一个utf-8字符串。
-            若希望AMQP消息代理生成队列名，需要给队列的name参数赋值一个空字符串：在同一个通道(channel)的后续的方法(method)中，我们可以
-            使用空字符串来表示之前生成的队列名称。之所以之后的方法可以获取正确的队列名是因为通道可以默默地记住消息代理最后一次生成的队列名称。
-            以"amq."开始的队列名称被预留做消息代理内部使用。如果试图在队列声明时打破这一规则的话，一个通道级的403(ACCESS_REFUSED)错误会被抛出
-        队列持久化：
-          说明：持久化队列会被存储在磁盘上，当消息代理重启的时候，它依旧存在。没有被持久化的队列称作暂存队列(Transient queues)。持久
-            化的队列并不会使得路由到它的消息也具有持久性。倘若消息代理挂掉了，重新启动，那么在重启的过程中持久化队列会被重新声明，
-            无论怎样，只有经过持久化的消息才能被重新恢复
+          Durable:    消息代理重启后,队列依旧存在
+          Exclusive:    只被一个连接(connection)使用,而且当连接关闭后队列即被删除
+          Auto-delete:  当最后一个消费者退订后即被删除
+          Arguments:    一些消息代理用他来完成类似与TTL的某些额外功能
+        队列名称: 
+          说明: 队列的名字可以由应用(application)来取,也可以由消息代理(broker)直接生成.队列的名字可以是最多255字节的一个utf-8字符串.
+            若希望AMQP消息代理生成队列名,需要给队列的name参数赋值一个空字符串: 在同一个通道(channel)的后续的方法(method)中,我们可以
+            使用空字符串来表示之前生成的队列名称.之所以之后的方法可以获取正确的队列名是因为通道可以默默地记住消息代理最后一次生成的队列名称.
+            以"amq."开始的队列名称被预留做消息代理内部使用.如果试图在队列声明时打破这一规则的话,一个通道级的403(ACCESS_REFUSED)错误会被抛出
+        队列持久化: 
+          说明: 持久化队列会被存储在磁盘上,当消息代理重启的时候,它依旧存在.没有被持久化的队列称作暂存队列(Transient queues).持久
+            化的队列并不会使得路由到它的消息也具有持久性.倘若消息代理挂掉了,重新启动,那么在重启的过程中持久化队列会被重新声明,
+            无论怎样,只有经过持久化的消息才能被重新恢复
         
-        注：
+        注: 
           1.队列在声明(declare)后才能被使用
-          2.若一个队列尚不存在，声明一个队列会创建它。如果声明的队列已经存在，并且属性完全相同，那么此次声明不会对原有队列产生任何影响
-          3.如果声明中的属性与已存在队列的属性有差异，那么一个错误代码为406的通道级异常就会被抛出
-      绑定：
-        说明：绑定(Binding)是交换机(exchange)将消息(message)路由给队列(queue)所需遵循的规则。绑定操作需要定义一个可选的路由键(routing key)属性
-          给某些类型的交换机。路由键的意义在于从发送给交换机的众多消息中选择出某些消息，将其路由给绑定的队列。
-        注：
-          若AMQP的消息无法路由到队列(例如，发送到的交换机没有绑定队列)，消息会被就地销毁或者返还给发布者。如何处理取决于发布者设置的消息属性
-      消费者：
-        说明：消息的价值只有被应用消费掉才能够体现
-        实现方式：
-          1.将消息投递给应用("push API")：需要应用明确表示出它对某个队列感兴趣(应用注册了一个消费者|订阅了一个队列)
+          2.若一个队列尚不存在,声明一个队列会创建它.如果声明的队列已经存在,并且属性完全相同,那么此次声明不会对原有队列产生任何影响
+          3.如果声明中的属性与已存在队列的属性有差异,那么一个错误代码为406的通道级异常就会被抛出
+      绑定: 
+        说明: 绑定(Binding)是交换机(exchange)将消息(message)路由给队列(queue)所需遵循的规则.绑定操作需要定义一个可选的路由键(routing key)属性
+          给某些类型的交换机.路由键的意义在于从发送给交换机的众多消息中选择出某些消息,将其路由给绑定的队列.
+        注: 
+          若AMQP的消息无法路由到队列(例如,发送到的交换机没有绑定队列),消息会被就地销毁或者返还给发布者.如何处理取决于发布者设置的消息属性
+      消费者: 
+        说明: 消息的价值只有被应用消费掉才能够体现
+        实现方式: 
+          1.将消息投递给应用("push API"): 需要应用明确表示出它对某个队列感兴趣(应用注册了一个消费者|订阅了一个队列)
           2.应用根据需要主动获取消息("pull API")
-        注：每个消费者(订阅者)都有一个叫做消费者标签的标识符。它可以被用来退订消息。消费者标签实际上是一个字符串
-      消息：
-        说明：消息包含两部分内容：有效载荷(body)和属性(header)。生产者创建消息，并发布到rabbitmq。消费者订阅队列，并接收消息的一部分(有效载荷)。在消息路由的过程中，
-          消息的属性并没有随着有效载荷一同传递，若想知道是谁生产了消息的话，就要看生产者是否把发送方信息放入有效载荷中
-        属性(label)：
-          说明：AMQP的消息是带有属性的。消息属性需要在消息被发布的时候定义。
+        注: 每个消费者(订阅者)都有一个叫做消费者标签的标识符.它可以被用来退订消息.消费者标签实际上是一个字符串
+      消息: 
+        说明: 消息包含两部分内容: 有效载荷(body)和属性(header).生产者创建消息,并发布到rabbitmq.消费者订阅队列,并接收消息的一部分(有效载荷).在消息路由的过程中,
+          消息的属性并没有随着有效载荷一同传递,若想知道是谁生产了消息的话,就要看生产者是否把发送方信息放入有效载荷中
+        属性(label): 
+          说明: AMQP的消息是带有属性的.消息属性需要在消息被发布的时候定义.
           Content type（内容类型）
           Content encoding（内容编码）
           Routing key（路由键）
@@ -657,56 +726,56 @@
           Message publishing timestamp（消息发布的时间戳）
           Expiration period（消息有效期）
           Publisher application id（发布应用的ID）
-        有效载荷(payload)：
-          说明：消息实际携带的数据。它被AMQP代理当作不透明的字节数组来对待。消息代理不会检查或者修改有效载荷。消息可以只包含属性而不携
-            带有效载荷。它通常会使用类似JSON这种序列化的格式数据，为了节省，协议缓冲器和MessagePack将结构化数据序列化，以便以消息的有
+        有效载荷(payload): 
+          说明: 消息实际携带的数据.它被AMQP代理当作不透明的字节数组来对待.消息代理不会检查或者修改有效载荷.消息可以只包含属性而不携
+            带有效载荷.它通常会使用类似JSON这种序列化的格式数据,为了节省,协议缓冲器和MessagePack将结构化数据序列化,以便以消息的有
             效载荷的形式发布
-        持久化：
-          说明：消息能够以持久化的方式发布，AMQP代理会将此消息存储在磁盘上
-          注：
-            1.消息发送给一个持久化的交换机或者路由给一个持久化的队列，并不会使得此消息具有持久化性质：它完全取决与消息本身的
+        持久化: 
+          说明: 消息能够以持久化的方式发布,AMQP代理会将此消息存储在磁盘上
+          注: 
+            1.消息发送给一个持久化的交换机或者路由给一个持久化的队列,并不会使得此消息具有持久化性质: 它完全取决与消息本身的
               持久模式(persistence mode)
-            2.将消息设为持久化并不能完全保证不会丢失，它只是告诉了Rabbitmq要把消息保存到硬盘，但从Rabbitmq收到消息到保存之间
-              还有一个很小的时间间隔。若要保证持久化，需要改写应用端的代码来支持事务
-        消息确认：
-          说明：如何保证应用已接收消息，然后AMQP代理删除
-          方式：
-            1.当消息代理(broker)将消息发送给应用后立即删除。（使用AMQP方法：basic.deliver或basic.get-ok）
-              说明：为自动确认模式，
-            2.等应用发送一个确认回执(acknowledgement)后再删除消息。（使用AMQP方法：basic.ack）
-              说明：显示确认模式。由消费者应用来选择什么时候发送确认回执(acknowledgement)。应用可以在收到消息后立即发送，或
-                将未处理的消息存储后发送，或等到消息被处理完毕后再发送确认回执
-              注：若一个消费者在尚未发送确认回执的情况下挂掉了，那AMQP代理会将消息重新投递给另一个消费者。如果当时没有可用的
-                消费者了，消息代理会死等下一个注册到此队列的消费者，然后再次尝试投递
-        拒绝消息：
-          说明：当一个消费者接收到某条消息后，处理过程有可能成功，有可能失败。应用可以向消息代理表明，本条消息由于"拒绝消息(Rejecting Messages)"的
-            原因处理失败了(或者未能在此时完成)。当拒绝某条消息时，应用可以告诉消息代理如何处理这条消息——销毁它或者重新放入队列
-          注：当此队列只有一个消费者时，请确认不要由于拒绝消息并且选择了重新放入队列的行为而引起消息在同一个消费者身上无限循环的情况发生
-        否定确认：
+            2.将消息设为持久化并不能完全保证不会丢失,它只是告诉了Rabbitmq要把消息保存到硬盘,但从Rabbitmq收到消息到保存之间
+              还有一个很小的时间间隔.若要保证持久化,需要改写应用端的代码来支持事务
+        消息确认: 
+          说明: 如何保证应用已接收消息,然后AMQP代理删除
+          方式: 
+            1.当消息代理(broker)将消息发送给应用后立即删除.（使用AMQP方法: basic.deliver或basic.get-ok）
+              说明: 为自动确认模式,
+            2.等应用发送一个确认回执(acknowledgement)后再删除消息.（使用AMQP方法: basic.ack）
+              说明: 显示确认模式.由消费者应用来选择什么时候发送确认回执(acknowledgement).应用可以在收到消息后立即发送,或
+                将未处理的消息存储后发送,或等到消息被处理完毕后再发送确认回执
+              注: 若一个消费者在尚未发送确认回执的情况下挂掉了,那AMQP代理会将消息重新投递给另一个消费者.如果当时没有可用的
+                消费者了,消息代理会死等下一个注册到此队列的消费者,然后再次尝试投递
+        拒绝消息: 
+          说明: 当一个消费者接收到某条消息后,处理过程有可能成功,有可能失败.应用可以向消息代理表明,本条消息由于"拒绝消息(Rejecting Messages)"的
+            原因处理失败了(或者未能在此时完成).当拒绝某条消息时,应用可以告诉消息代理如何处理这条消息——销毁它或者重新放入队列
+          注: 当此队列只有一个消费者时,请确认不要由于拒绝消息并且选择了重新放入队列的行为而引起消息在同一个消费者身上无限循环的情况发生
+        否定确认: 
           
-        预取消息：
-          说明：
-          注：RabbitMQ只支持通道级的预取计数，而不是连接级的或者基于大小的预取
-      连接：
-        说明：AMQP连接通常是长连接。AMQP是一个使用TCP提供可靠投递的应用层协议。AMQP使用认证机制并且提供TLS(SSL)保护。当一个应用不再需要连接
-          到AMQP代理的时候，需要优雅的释放掉AMQP连接，而不是直接将TCP连接关闭
-      信道：
-        说明：信道是建立在TCP连接之上的一个虚拟连接，不论发布消息，订阅队列，接收消息等都是通过信道完成。
-          1.信道(channels)用来处理多连接，可以把通道理解成共享一个TCP连接的多个轻量化连接，且高频率的创建信道不会影响到操作系统
-          2.在涉及多线程/进程的应用中，为每个线程/进程开启一个通道（channel）是很常见的，并且这些通道不能被线程/进程共享
-          3.一个特定通道上的通讯与其他通道上的通讯是完全隔离的，因此每个AMQP方法都需要携带一个通道号，这样客户端就可以指定此方法是为哪个通道准备的
-      虚拟主机：
-        说明：
-          为了在一个单独的代理上实现多个隔离的环境(用户、用户组、交换机、队列等)，AMQP提供了一个虚拟主机(virtual hosts - vhosts)的概念。
-          这为AMQP实体提供了完全隔离的环境。当连接被建立的时候，AMQP客户端来指定使用哪个虚拟主机。
+        预取消息: 
+          说明: 
+          注: RabbitMQ只支持通道级的预取计数,而不是连接级的或者基于大小的预取
+      连接: 
+        说明: AMQP连接通常是长连接.AMQP是一个使用TCP提供可靠投递的应用层协议.AMQP使用认证机制并且提供TLS(SSL)保护.当一个应用不再需要连接
+          到AMQP代理的时候,需要优雅的释放掉AMQP连接,而不是直接将TCP连接关闭
+      信道: 
+        说明: 信道是建立在TCP连接之上的一个虚拟连接,不论发布消息,订阅队列,接收消息等都是通过信道完成.
+          1.信道(channels)用来处理多连接,可以把通道理解成共享一个TCP连接的多个轻量化连接,且高频率的创建信道不会影响到操作系统
+          2.在涉及多线程/进程的应用中,为每个线程/进程开启一个通道（channel）是很常见的,并且这些通道不能被线程/进程共享
+          3.一个特定通道上的通讯与其他通道上的通讯是完全隔离的,因此每个AMQP方法都需要携带一个通道号,这样客户端就可以指定此方法是为哪个通道准备的
+      虚拟主机: 
+        说明: 
+          为了在一个单独的代理上实现多个隔离的环境(用户、用户组、交换机、队列等),AMQP提供了一个虚拟主机(virtual hosts - vhosts)的概念.
+          这为AMQP实体提供了完全隔离的环境.当连接被建立的时候,AMQP客户端来指定使用哪个虚拟主机.
           
-          每个vhost本质上是一个mini版的rabbitmq服务器，拥有自己的队列、交换器和绑定，且拥有自己的权限机制。它在各个实例间提供逻辑的分离，不用
+          每个vhost本质上是一个mini版的rabbitmq服务器,拥有自己的队列、交换器和绑定,且拥有自己的权限机制.它在各个实例间提供逻辑的分离,不用
           担心命名冲突
           
-          vhost是AMQP中唯一无法通过AMQP协议创建的基元，需要通过命令来创建
+          vhost是AMQP中唯一无法通过AMQP协议创建的基元,需要通过命令来创建
       
-    RabbitMQ：
-      模型：
+    RabbitMQ: 
+      模型: 
                   __________________RabbitMQ___________________       
                   |                     |
                   |     vhost1      vhost2        |
@@ -720,88 +789,81 @@
       
       
       
-      Erlang应用程序运行于Erlang节点之上，Rabbitmq、Mnesia、Rabbitmq插件都属于Erlang应用程序
-      Rabbitmq节点：Rabbitmq应用程序及其所在的Erlang节点
+      Erlang应用程序运行于Erlang节点之上,Rabbitmq、Mnesia、Rabbitmq插件都属于Erlang应用程序
+      Rabbitmq节点: Rabbitmq应用程序及其所在的Erlang节点
         
-    用户：
-      角色：
-        none：不能访问management plugin
-        management：
-          用户可以通过AMQP做的任何事外加：
+    用户: 
+      角色: 
+        none: 不能访问management plugin
+        management: 
+          用户可以通过AMQP做的任何事外加: 
             列出自己可以通过AMQP登入的virtual hosts  
             查看自己的virtual hosts中的queues, exchanges 和 bindings
             查看和关闭自己的channels 和 connections
-            查看有关自己的virtual hosts的“全局”的统计信息，包含其他用户在这些virtual hosts中的活动
-        policymaker：
-          management可以做的任何事外加：
+            查看有关自己的virtual hosts的“全局”的统计信息,包含其他用户在这些virtual hosts中的活动
+        policymaker: 
+          management可以做的任何事外加: 
             查看、创建和删除自己的virtual hosts所属的policies和parameters
-        monitoring：
-          management可以做的任何事外加：
-            列出所有virtual hosts，包括他们不能登录的virtual hosts
+        monitoring: 
+          management可以做的任何事外加: 
+            列出所有virtual hosts,包括他们不能登录的virtual hosts
             查看其他用户的connections和channels
             查看节点级别的数据如clustering和memory使用情况
             查看真正的关于所有virtual hosts的全局的统计信息
-        administrator：
+        administrator: 
           policymaker和monitoring可以做的任何事外加:
             创建和删除virtual hosts
             查看、创建和删除users
             查看创建和删除permissions
             关闭其他用户的connections
     集群
-      节点：
-        说明：集群节点类型有两种
-        类型：
-          disc：磁盘，disc节点从内存和磁盘中复制数据，当其它节点故障时可以提供冗余
-          ram：内存，ram节点只从内存中复制数据(持久化的队列或无法存储在内存中的过大队列除外)，主要用于扩展性。ram节点只有
-            在管理资源(管理队列，交换，绑定)会提供更高的性能
-          一个集群至少有一个disc节点，且通常在一个以上，才能提供高可用的冗余
-      cookie：
-        说明：Erlang节点间通过认证Erlang cookie的方式来允许相互通信。因为rabbitmqctl使用Erlang OTP通信机制来和rabbit节点通信
-          运行rabbitmqctl的机器和所要连接的Rabbit节点必须使用相同的Erlang cookie，否则会报错
-    参数：
-      说明：rabbitmq的某些参数是被动态的，集群范围控制的参数。参数可以被设置，清除和列出
-      分类：根据作用域不同
-        vhost参数：
-          包含：
-            component name：格式为string
-            name：格式为string
-            value：格式为Erlang
-        global参数：
-          name：格式为string
-          value：格式为Erlang
-    策略：
-      说明：用于在集群范围内控制和修改队列和交换的行为。策略在一个给定的vhost中被应用，策略可以被设置，清除和列出
-    rabbitmq的权限控制：
+      节点: 
+        说明: 集群节点类型有两种
+        类型: 
+          disc: 磁盘,disc节点从内存和磁盘中复制数据,当其它节点故障时可以提供冗余
+          ram: 内存,ram节点只从内存中复制数据(持久化的队列或无法存储在内存中的过大队列除外),主要用于扩展性.ram节点只有在管理资源(管理队列,交换,绑定)会提供更高的性能
+          一个集群至少有一个disc节点,且通常在一个以上,才能提供高可用的冗余
+      cookie: 
+        说明: Erlang节点间通过认证Erlang cookie的方式来允许相互通信.因为rabbitmqctl使用Erlang OTP通信机制来和rabbit节点通信运行rabbitmqctl的机器和所要连接的Rabbit节点必须使用相同的Erlang cookie,否则会报错
+    参数: 
+      说明: rabbitmq的某些参数是被动态的,集群范围控制的参数.参数可以被设置,清除和列出
+      分类: 根据作用域不同
+        vhost参数: 
+          包含: 
+            component name: 格式为string
+            name: 格式为string
+            value: 格式为Erlang
+        global参数: 
+          name: 格式为string
+          value: 格式为Erlang
+    策略: 
+      说明: 用于在集群范围内控制和修改队列和交换的行为.策略在一个给定的vhost中被应用,策略可以被设置,清除和列出
+    rabbitmq的权限控制: 
       1.使用用户/密码/vhost
       2.实现了一套访问控制列表的权限系统
         同时授予用户读、写和配置权限
-          读：消费者对消息的任何操作(包括清除整个队列)
-          写：生产者发布消息(banding)
-          配置：队列和交换器的创建和删除
-        每一个访问控制条目由四部分组成：
+          读: 消费者对消息的任何操作(包括清除整个队列)
+          写: 生产者发布消息(banding)
+          配置: 队列和交换器的创建和删除
+        每一个访问控制条目由四部分组成: 
           1.被授予访问权限的用户
           2.vhost
           3.需要授予的读/写/配置的权限组合
           4.权限范围(应用于客户端命名的队列/交换器 还是服务器端命名的队列/交换器)
-    内置数据库：
-      元数据：
-        说明：记录四种类型的内部元数据
-        分类：
-          队列元数据：队列名称及其属性(持久化、自动删除)
-          交换器元数据：交换器名称、类型及其属性(持久化)
-          绑定元数据：如何将消息路由到队列
-          vhost元数据：为vhost内的队列、交换器和绑定提供命名空间和权限属性
+    内置数据库: 
+      元数据: 
+        说明: 记录四种类型的内部元数据
+        分类: 
+          队列元数据: 队列名称及其属性(持久化、自动删除)
+          交换器元数据: 交换器名称、类型及其属性(持久化)
+          绑定元数据: 如何将消息路由到队列
+          vhost元数据: 为vhost内的队列、交换器和绑定提供命名空间和权限属性
   内部命令
   
-  
-  
-  
-  
-  
-Pika：
-  说明：pika是AMQP 0-9-1协议的python实现，是rabbitmq的python客户端
-  网址：http://pika.readthedocs.io/en/0.11.2/index.html
-  安装：
+Pika: 
+  说明: pika是AMQP 0-9-1协议的python实现,是rabbitmq的python客户端
+  网址: http://pika.readthedocs.io/en/0.11.2/index.html
+  安装: 
     # pip install pika
       或
     # easy_install pika

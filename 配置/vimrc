@@ -2,8 +2,7 @@ call plug#begin('~/.vim/plugged')
 "Plug 'Valloric/YouCompleteMe'
 Plug 'ycm-core/YouCompleteMe'
 Plug 'davidhalter/jedi-vim'
-"Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
-Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install_sync() } }
+Plug 'iamcco/markdown-preview.nvim',  { 'do': { -> mkdp#util#install() },  'for': ['markdown',  'vim-plug']}
 Plug 'plasticboy/vim-markdown'   " 语法高亮
 "Plug 'mattn/emmet-vim'      " html, css插件
 "Plug 'ferreum/completor-tmux'
@@ -230,8 +229,31 @@ noremap! ： :
 noremap! ， , 
 noremap! 。 . 
 noremap! × *
-noremap! ” ""<left>
+noremap! “  "
+noremap! ”  "
 noremap! （ ()<left>
+
+"这样选中你要运行的代码<leader>p 就会发到python shell里
+nnoremap <leader>p V:call SendToTerminal()<CR>$
+vnoremap <leader>p <Esc>:call SendToTerminal()<CR>
+function! SendToTerminal()
+    let buff_n = term_list()
+    if len(buff_n) > 0
+        let buff_n = buff_n[0] " sends to most recently opened terminal
+        let lines = getline(getpos("'<")[1], getpos("'>")[1])
+        let indent = match(lines[0], '[^ \t]') " check for removing unnecessary indent
+        for l in lines
+            let new_indent = match(l, '[^ \t]')
+            if new_indent == 0
+                call term_sendkeys(buff_n, l. "\<CR>")
+            else
+                call term_sendkeys(buff_n, l[indent:]. "\<CR>")
+            endif
+            sleep 10m
+        endfor
+    endif
+endfunction
+
 
 " kite set
 let g:kite_supported_languages = ['python']
