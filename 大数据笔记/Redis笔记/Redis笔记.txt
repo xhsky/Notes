@@ -60,84 +60,92 @@
       16379: Redis cluster通信端口, 二进制协议的点对点通信信道, 用于用户故障检测, 配置更新, 故障转移授权等. 偏移量总是10000
       26379: 实现自动化的系统监控和故障恢复功能
     配置:
-      > 监听
-        daemonize yes/no					      默认redis不作为守护进程运行, 使用yes更改
-        pidfile /var/run/redis.pid			指定redis运行的pid文件路径
-        port 6379							          指定redis监听的端口, 默认6379. 
-        tcp-backlog 511
-        unixsocket /tmp/redis.sock			指定监听的Unix套接字, 若无指定则不监听
+      > 一般配置
+        daemonize yes/no					      # 默认redis不作为守护进程运行, 使用yes更改
+        supervised no                   # 可以通过upstart和systemd管理Redis守护进程, 不使用
+        pidfile /var/run/redis.pid			# 指定redis运行的pid文件路径
+        databases 16						        # 设置数据库的个数
+        always-show-logo yes            # 是否显示ascii码的logo
+      > 网络
+        port 6379							          # 指定redis监听的端口, 默认6379. 
+        tcp-backlog 511                 # TCP监听的积压队列长度, 不会大于/proc/sys/net/core/somaxconn
+        unixsocket /tmp/redis.sock			# 指定监听的Unix套接字, 若无指定则不监听
         unixsocketperm 700
-        timeout 0							指定客户端超时时间, 单位秒. 超时则断开, 0表示不启用该设置
-        tcp-keepalive 0						周期性用SO_KEEPALIVE检测客户端是否处于健康状态, 避免服务器阻塞, 
-                          单位秒. 0表示不检测. 推荐数字：60
+        timeout 0							          # 指定客户端超时时间, 单位秒. 超时则断开, 0表示不启用该设置
+        tcp-keepalive 300				        # 周期性用SO_KEEPALIVE检测客户端是否处于健康状态, 避免服务器阻塞, 单位秒. 0表示不检测
                           
-        latency-monitor-threshold 0			延迟监控. 0默认不启用
-        notify-keyspace-events ""
+        latency-monitor-threshold 0			# 延迟监控. 0默认不启用
+        notify-keyspace-events ""       # 事件通知
       > 日志
-        loglevel notice						指定日志记录的级别：debug/verbose/notice/warning
-        logfile ""							指定日志文件. 若为空字符串, 则默认输出到 /dev/null(daemonize)
-        syslog-enabled no					yes则将日志记录到系统日志
-        syslog-ident redis					指定系统日志的身份
-        syslog-facility local0				指定系统日志的设备
-        
-        slowlog-log-slower-than	10000		定义命令超时时间, 单位微秒
-        slowlog-max-len	128					定义记录的条数
-        
-        databases 16						设置数据库的个数
+        loglevel notice						      # 指定日志记录的级别：debug/verbose/notice/warning
+        logfile ""							        # 指定日志文件. 若为空字符串, 则默认输出到 /dev/null(daemonize)
+        syslog-enabled no					      # yes则将日志记录到系统日志
+        syslog-ident redis					    # 指定系统日志的身份
+        syslog-facility local0				  # 指定系统日志的设备
+        slowlog-log-slower-than	10000		# 慢日志. 定义命令执行超时时间(仅包含实际命令执行时间, 不包括与client交互的I/O操作), 单位微秒. 
+                                        > 负值禁用记录, 0值强制记录每条命令
+        slowlog-max-len	128					    # 定义慢日志记录的条数(超出则删除最旧的记录). 默认无限制, 且该记录会消耗内存
       > RDB持久化
-        save 900 1							在900s内有1个键值发生变化将会进行快照
-        save 300 10							可通过删除所有save行来禁用快照, 或使用
-        save 60 10000						save ""来禁用
+        save 900 1							        # 格式为 save <seconds> <change>, 在900s内有1个键值发生变化将会进行快照
+        save 300 10							        # 可通过删除所有save行来禁用快照, 或使用
+        save 60 10000						        # save ""来禁用
         
-        stop-writes-on-bgsave-error yes		当最新一次的快照保存失败, 将会禁止写操作
-        rdbcompression yes					rdb持久化时是否进行数据压缩(使用LZF)
-        rdbchecksum yes						保存和加载数据库时是否进行CRC64校验(会有10%的性能损耗)
-        dbfilename dump.rdb					指定rdb存储的文件名
-        
-        
-        dir ./								指定rdb和aof的数据文件的存放目录
+        stop-writes-on-bgsave-error yes	#	当最新一次的快照保存失败, 将会禁止写操作. 若快照进程重新启动工作, 则redis也将自动允许写操作
+        rdbcompression yes					    # rdb持久化时是否进行数据压缩(使用LZF)
+        rdbchecksum yes						      # 保存和加载数据库时是否进行CRC64校验(会有10%的性能损耗). 从5版本后在文件末尾放置crc64校验和. 若禁用则校验和为0(告诉代码跳过校验)
+        dbfilename dump.rdb					    # 指定rdb存储的文件名
+        rdb-del-sync-files no           # 在无持久化的情况下删除复制中使用的rdb文件(仅在AOF和RDB都禁用下生效)
+        dir ./								          # 指定rdb和aof的数据文件的存放目录
       > AOF持久化
-        appendonly no						开启AOF, 默认关闭
-        appendfilename appendonly.aof		定义AOF文件名,目录在dir下
-        
-        auto-aof-rewrite-percentage 100		当目前的AOF文件大小超过上一次重写时的AOF文件大小的百分之多少时会再次进
-                          行重写, 若之前没有重写过, 则以启动的AOF文件大小为依据
-        auto-aof-rewrite-min-size 64mb		允许重写的最小的AOF文件大小
-        
-        appendfsync everysec				AOF会进行缓存再执行同步磁盘操作, 设定同步方式
-                            everysec：	每秒执行一次同步操作. 推荐
-                            always：	每次执行命令都会执行同步操作, 慢但安全
-                            no：		不主动进行同步操作, 交由系统来完成(每30秒一次). 快
-        no-appendfsync-on-rewrite no
-        aof-load-truncated yes				AOF文件可能不完整, Redis重启加载AOF文件时
-                            yes：会发一个log给客户端然后加载正常的数据
-                            no：必须手动redis-check-aof修复AOF文件才可以加载
+        appendonly no						        # 开启AOF, 默认关闭
+        appendfilename "appendonly.aof"	#	定义AOF文件名,目录在dir下
+        appendfsync everysec				    # AOF会进行缓存再执行同步磁盘操作, 设定同步方式
+                                        # everysec: 每秒执行一次同步操作. 推荐
+                                        # always: 每次执行命令都会执行同步操作, 慢但安全
+                                        # no: 不主动进行同步操作, 交由系统来完成(每30秒一次). 快
+        no-appendfsync-on-rewrite no    # 在aof重写期间是否主进程是否调用fsync落盘(调用则主进程和重写会争用fsync, 造成阻塞, 但数据安全). 
+                                        # 若为yes则代表在重写期间主进程执行appendfsync no选择, 在系统调用间隔内暂存内存中
+        auto-aof-rewrite-percentage 100	# 当目前的AOF文件大小超过上一次重写时的AOF文件大小的百分之多少时会再次进行重写, 若之前没有重写过, 则以启动的AOF文件大小为依据
+        auto-aof-rewrite-min-size 64mb	# 允许重写的最小的AOF文件大小
+        aof-load-truncated yes				  # AOF文件可能不完整, Redis重启加载AOF文件时 
+                                        > yes: 会发一个log给客户端然后加载正常的数据
+                                        > no: 必须手动redis-check-aof修复AOF文件才可以加载
+        aof-use-rdb-preamble yes        # 
       > 主从复制
+        repl-timeout 60						      # 复制超时时间, 单位秒. 要确保repl-timeout大于repl-ping-slave-period
+                                        > slave角度上的批量传输超时 
+                                        > slave角度上对master的data, pings超时
+                                        > master角度上的REPLCONF ACK pings超时 
         > master
-        min-slaves-to-write N				# 设定只有N个或N个以上的slave连接到master时, master才是可写的, 否则返回错误
-        min-slaves-max-lag N				    # 允许slave失去连接的最长时间, 单位秒. 即在N秒内失联的情况被认为尚在连接状态
-        repl-diskless-sync no				yes：	master在与slave进行复制初始化时不再将快照内容存储到硬盘, 而是直接通过网络
-                            发送给slave, 避免了硬盘的性能瓶颈
-                          no：	默认关闭无硬盘复制
-        repl-diskless-sync-delay 5			无硬盘备份, master会在开始传送之后等待一段时间（可配置, 以秒为单位）, 希望等待多个子站到达后并行传送
-        repl-backlog-size 1mb				# 用于主从断线再连接时的增量传输. 设置积压队列大小(存储命令本身, 易于估算)
-        repl-backlog-ttl 3600				# 当所有salve与master断开后, 经过多长时间释放积压队列的内存空间, 单位秒
-        repl-timeout 60						设置master数据传输时间或者 ping 回复时间间隔, 要确保 repl-timeout 大于 repl-ping-slave-period
-        
-        repl-disable-tcp-nodelay no			yes：使用延迟, tcp协议栈将会合并小包统一发送, 可以节约带宽但会增加数据同步到slave的时间
-                          no：禁用延迟, TCP协议栈不会延迟小包的发送时机, 数据同步延时会减少但会增加带宽
-        
+          min-replicas-to-write N				  # 若超过N个的slave延迟大于等于M秒, 则master停止接受写入. 将其中一个置为0则禁用该功能
+          min-replicas-max-lag M				  # 允许slave失去连接的最长时间, 单位秒. 即在N秒内失联的情况被认为尚在连接状态
+        repl-diskless-sync no				    # 复制同步策略. 新的slave和重连后不能继续同步的slave需要进行完全同步
+                                        > yes: redis主进程创建一个新进程, 不再将快照内容存储到硬盘, 而是直接通过网络发送给slave, 避免了硬盘的性能瓶颈
+                                        > no:  redis主进程创建一个新进程, 将rdb文件写入磁盘, 而后该文件由父进程逐步传输给slave. 一旦传输开始, 新到达的slave须排队等待当前传输终止后开始新的传输
+        repl-diskless-sync-delay 5			# 当无盘复制被启用, master会在开始传送之后等待该时间(秒), 希望等待多个slave到达后并行传送
+        repl-backlog-size 1mb				    # 用于主从断线再连接期间的存储发送给slave数据的缓存. 当slave重新连接后通常不需要完全同步, 只需要同步该缓存即可. 设置积压队列大小(存储命令本身, 易于估算)
+        repl-backlog-ttl 3600				    # 当最后一个salve与master断开后, 经过多长时间释放积压队列的内存空间, 单位秒. 值为0表示从不释放积压. slave永远不会释放backlog(可能会升级为master).
+        repl-disable-tcp-nodelay no			# 在sync后是否禁用TCP_NODELAY 
+                                        > yes：使用延迟, tcp协议栈将会合并小包统一发送, 可以节约带宽但会增加数据同步到slave的时间
+                                        > no：禁用延迟, TCP协议栈不会延迟小包的发送时机, 数据同步延时会减少但会增加带宽
         > slave
-        slaveof master_ip port				指定master主机, 多slave配置在每台slave上都加上slaveof指向同一master即可
-        masterauth master_passwd			若master有密码设置(requirepass), 需配置密码. slave将会在复制前自动认证
-        slave-read-only	yes					slave数据库只读
-        
-        slave-serve-stale-data yes			当slave正在复制或失去与master连接时
-                            no：在同步完成前除了info和slaveof命令外都回复错误：SYNC with master in progress
-                            yes：不阻塞客户端访问, 但客户端访问的数据可能不正确
-        repl-ping-slave-period 10			slave周期性向master发送ping命令, 单位秒							
-        slave-priority 100					当master不能正常工作的时候, Redis Sentinel会从slaves中选出一个新的master, 
-                          该值越小, 就越会被优先选中, 但是若是0, 则此slave不可能被选中. 
+        replicaof master_ip port				# 指定master主机, 多slave配置在每台slave上都加上slaveof指向同一master即可
+        masterauth master_passwd			  # 若master有密码设置(requirepass), 需配置密码. slave将会在复制前自动认证
+        masteruser username             # 复制用户, 默认用户无法执行psync或其它的复制命令
+        replica-read-only	yes					  # slave数据库只读
+        replica-serve-stale-data yes	  # 当slave正在复制或失去与master连接时 
+                                        > no: 在同步完成前除了(info,replicaof,auth,ping,shutdown,replconf,role,config,subscribe,unsubscribe,
+                                        >   psubscribe,punsubscribe,publish,pubsub,command,post,host,latency)命令外都回复错误：sync with master in progress
+                                        > yes：不阻塞客户端访问, 但客户端访问的数据可能是过时的
+        repl-diskless-load disabled     # rdb无盘加载(slave直接从网络中读取文件)
+                                        > disabled: 不使用无盘加载(首先将rdb文件存储到磁盘)
+                                        > on-empty-db: 仅在完全安全的情况下使用无盘加载
+                                        > swapdb: 当直接从socket解析数据时, 在内存中保留当前数据库内容的副本
+        repl-ping-slave-period 10			  # slave周期性向master发送ping命令, 单位秒							
+        replica-priority 100					  # 当master不能正常工作的时候, Redis Sentinel会从slaves中选出一个新的master, 该值越小, 就越会被优先选中, 但是若是0, 则此slave不可能被选中. 
+        replica-announce-ip 5.5.5.5     # 对master报告的ip, 在master上通过info或role显示
+        replica-announce-port 123       # 对master报告的port
+        replica-ignore-maxmemory yes    # 默认slave会忽略其maxmemory设置.即key的回收由master处理, 然后master将del命令同步至slave
       > 虚拟内存
         vm-enabled yes						# 开启虚拟内存功能, 将不经常访问的数据交换到磁盘上
         vm-swap-file /tmp/redis.swap		# 交换出的value保存的文件路径
@@ -146,51 +154,90 @@
         vm-pages 134217728					# 最多使用的页面数
         vm-max-threads 4					# 用于执行value对象换入的工作线程数
       > 集群
-        cluster-enabled yes				        # 是否开启集群, 否则以单实例模式启动
-        cluster-config-file nodes.conf	  # 集群配置文件, 非手动编辑文件. 自动持久化每次集群更改的配置(在启动时重新读取). 默认在工作目录下
-        cluster-node-timeout 15000		    # 集群节点间的超时时间, 单位毫秒. 超时则其从节点将其进行故障转移
-        cluster-slave-validity-factor 10  # 若设置为0, 则slave总是尝试故障转移其master. 若设置为整值, 则最大超时时间为cluster-node-timeout * factor
-        cluster-migration-barrier 1       # 一个master保持连接的最少的slave的数量
+        cluster-enabled yes				      # 是否开启集群, 否则以单实例模式启动
+        cluster-config-file nodes.conf  # 集群配置文件, 非手动编辑文件. 自动持久化每次集群更改的配置(在启动时重新读取). 默认在工作目录下
+        cluster-node-timeout 15000		  # 集群节点间的超时时间, 单位毫秒. 超时则其从节点将其进行故障转移
+        cluster-slave-validity-factor 10    # 在进行故障转移时, slave节点与master节点断线时间超过指定值则不被提升为master. 若设置为0, 则slave总是尝试故障转移其master. 若设置为整值, 则最大超时时间为(cluster-node-timeout * factor) + repl-ping-replica-period
+        cluster-migration-barrier 1     # master至少保持连接的最少的slave的数量时, 才会进行故障迁移 
         cluster-require-full-coverage yes # 默认yes. 当master宕机且没有相应的从库替代时, 若为yes, 则集群停止写入. 若为no, 则集群依然可用
+        cluster-replica-no-failover no
         cluster-allow-reads-when-down yes #
-        
-      # 安全
-        # protected-mode yes/no				# 默认开启保护模式, 只能从bind绑定的ip上访问. 当bind被注释时, 只能从localhost上访问
-        # bind ip1 ip2						# 只允许指定ip访问redis, 默认全开放
-        # requirepass password				# 设置访问redis密码, 默认为空
-        # rename-command CONFIG b840fc02d5	# 将某个命令重命名为一个复杂的名字, 若新名字为
-                            ""则表示禁用该命令
-                            
-      # 限制：
-        # maxclients 10000					# 设置同一时间客户端最大连接数(受最大文件描述符心智), 一旦达到最大限制, 
-                            redis将关闭所有的新连接并发送一个‘max number of clients reached’
-                            的错误. 默认无限制, 0也表示无限制
-        # maxmemory bytes					# 指定redis最大可用内存, 以便确保实例会报告错误而不是当接近系统内存限制时失败
-        # maxmemory-policy value
-          该参数指定的策略来删除不要的键值直到redis占用的内存小于指定内存	
-            volatile-lru：		使用LRU算法(最近最少使用)删除键(只针对设置了过期时间的键)
-            allkeys-lru：		使用LRU算法删除键
-            volatile-random：	随机删除键(只针对设置了过期时间的键)
-            allkeys-random：	随机删除键
-            volatile-ttl：		删除过期时间最近的键
-            noeviction：		不删除键, 只返回错误
-        
-        # maxmemory-samples 5
-        lua-time-limit 5000
-      # 高级配置：
-        hash-max-ziplist-entries 512
-        hash-max-ziplist-value 64
-        list-max-ziplist-entries 512
-        list-max-ziplist-value 64
-        set-max-intset-entries 512
-        zset-max-ziplist-entries 128
-        zset-max-ziplist-value 64
-        hll-sparse-max-bytes 3000
-        activerehashing yes
-        client-output-buffer-limit normal 0 0 0
-        client-output-buffer-limit slave 256mb 64mb 60
-        client-output-buffer-limit pubsub 32mb 8mb 60
-        hz 10
+        cluster-announce-ip 10.1.1.5
+        cluster-announce-port 6379
+        cluster-announce-bus-port 6380
+      > 监控
+         latency-monitor-threshold 0    # 对操作采样, 以收集潜在延迟源相关的数据(latency). 仅记录大于等于该值(毫秒)的操作, 若值为0则不启用延迟监控功能
+         tracking-table-max-keys 1000000# 配置要追踪的key的数量, 如果配置为0, 则表示要追踪的key的数量不受限制
+      > 安全
+        protected-mode yes/no				    # 默认开启保护模式, 只能从bind绑定的ip上访问. 当bind被注释时, 只能从localhost上访问
+        bind ip1 ip2						        # 只允许指定ip访问redis, 默认全开放
+        requirepass password				    # default用户密码, 默认为空
+        oom-score-adj no                # 当内存溢出时, 可以提示内核oom killer应该首先杀死哪些进程
+        oom-score-adj-values 0 200 800  # 指定master, slave和后台子进程的oom的优先级, 最大值为1000, 值越搞优先级越高
+      > acl
+        acllog-max-len 128              # acl日志, 记录与ACL关联的失败命令和身份验证事件(存储在内存中, 可通过acl log reset回收内存)
+        aclfile /etc/redis/users.acl    # 使用外部acl文件配置用户(与直接在本配置文件中配置用户的方法互斥)
+      > I/O线程
+        io-threads 4                    # I/O线程数量(写操作), 1为依旧使用主线程
+        io-threads-do-reads no          # 启用读线程和协议解析(通常读线程作用不大)
+        server_cpulist 0-7:2            # 将I/O线程绑定到CPU(0, 2, 4, 6)
+        bio_cpulist 1,3                 # 将BIO线程绑定到CPU(1,3)
+        aof_rewrite_cpulist 8-11        # 将aof重写线程绑定到CPU(8, 9, 10, 11)
+        bgsave_cpulist 1,10-11          # 将bgsave子进程绑定到CPU(1, 10, 11)
+      > 限制：
+        maxclients 10000					      # 设置同一时间客户端最大连接数(受最大文件描述符限制), 默认10000, 0表示无限制. redis内部使用32个文件描述符
+        maxmemory <bytes>	  		        # 指定redis最大可用内存, 当内存达到限制时, redis将根据策略删除key. 若无法删除key, 则redis无法写入只能提供只读服务
+                                        > slave的输出缓冲区不包含在内
+        maxmemory-policy value          # 该参数指定的策略来删除键值直到redis占用的内存小于指定内存	
+                                        > volatile-lru: 使用近似LRU算法(最近最少使用)删除键(只针对设置了过期时间的键)
+                                        > allkeys-lru: 使用近似LRU算法删除键
+                                        > volatile-lfu: 使用近似LFU算法(最近最不常使用)删除键(只针对设置了过期时间的键)
+                                        > allkeys-lfu: 使用近似LFU算法删除键
+                                        > volatile-random: 随机删除键(只针对设置了过期时间的键)
+                                        > allkeys-random:	随机删除键
+                                        > volatile-ttl: 删除最接近到期时间的键
+                                        > noeviction: 不删除键, 只返回错误. 默认
+        maxmemory-samples 5             # 删除key时检测的样本数量. 
+        active-expire-effort 1          #
+        lua-time-limit 5000             # Lua脚本的最大执行时间, 单位毫秒. 值为0或负值则无限制
+      > 惰性释放                        # redis内存使用达到maxmeory, 并设置有淘汰策略时, 在被动淘汰键时, 是否采用lazy free机制(以非阻塞方式删除). 但可能因为删除不及时导致内存溢出
+        lazyfree-lazy-eviction no
+        lazyfree-lazy-expire no
+        lazyfree-lazy-server-del no
+        replica-lazy-flush no
+			> 主动碎片整理		
+        activedefrag no                 # 启用碎片整理
+        active-defrag-ignore-bytes 100mb    # 启用主动碎片整理的最小碎片量
+        active-defrag-threshold-lower 10    # 启用主动碎片整理的最小碎片百分比
+        active-defrag-threshold-upper 100
+        active-defrag-cycle-min 1       # 碎片整理周期CPU消耗最小百分比
+        active-defrag-cycle-max 25      # 碎片整理周期CPU消耗最大百分比
+        active-defrag-max-scan-fields 1000
+        jemalloc-bg-thread yes
+      > 高级配置：
+        gopher-enabled no               # 开启gopher功能
+				hash-max-ziplist-entries 512
+				hash-max-ziplist-value 64
+				list-max-ziplist-size -2
+				list-compress-depth 0
+				set-max-intset-entries 512
+				zset-max-ziplist-entries 128
+				zset-max-ziplist-value 64
+				hll-sparse-max-bytes 3000
+				stream-node-max-bytes 4096
+				stream-node-max-entries 100
+				activerehashing yes
+				client-output-buffer-limit normal 0 0 0
+				client-output-buffer-limit replica 256mb 64mb 60
+				client-output-buffer-limit pubsub 32mb 8mb 60
+				client-query-buffer-limit 1gb
+				proto-max-bulk-len 512mb
+				hz 10
+				dynamic-hz yes
+				aof-rewrite-incremental-fsync yes
+				rdb-save-incremental-fsync yes
+				lfu-log-factor 10
+				lfu-decay-time 1
         aof-rewrite-incremental-fsync yes
   命令:
     redis-cli：有两种向redis服务器发送命令的方式
@@ -300,6 +347,7 @@
       功能：
         1.监控master和slave是否正常运行
         2.master出现故障时自动将slave转为master
+        3. sentinel利用master的发布/订阅机制自动发现其它也监控了master节点
       原理：
         1.哨兵启动后对master进行监控并发现其slaves
         2.哨兵启动后会与监控的master建立两条连接(以redis客户端的方式连接)
@@ -315,37 +363,38 @@
         4.选举领头哨兵、选择备选slave、将该slave转为master
         5.若原master恢复后, 哨兵会自动检测并将其转为现在master的slave
       配置文件：	sentinel.conf
-        port 26379										# sentinel的监听port
-        daemonize yes									# 后台启动
-        dir /usr/local/redis/sentinel/log				# Sentinel服务运行时使用的临时文件夹
-        logfile "sentinel.log"							# 定义日志文件,与dir指令共同定义日志文件. 启动时最好在dir目录下启动
-        
+        port 26379										            # sentinel的监听port
+        pidfile /var/run/redis-sentinel.pid       # pid文件
+        daemonize yes									            # 后台启动
         protected-mode no
-        # sentinel announce-ip <ip>						# 哨兵将会在gossip hello消息中使用指定的ip地址, 而不是自动发现的本地地址
-        # sentinel announce-port <port>					# 哨兵会使用指定的端口, 两个分开使用
+        dir /data/redis/log				                # Sentinel服务运行时使用的临时文件夹
+        logfile "sentinel.log"							      # 定义日志文件,与dir指令共同定义日志文件. 启动时最好在dir目录下启动
         
+        # sentinel announce-ip <ip>						    # 哨兵将会在gossip hello消息中使用指定的ip地址, 而不是自动发现的本地地址
+        # sentinel announce-port <port>					  # 哨兵会使用指定的端口, 两个分开使用
         
-        sentinel monitor mymaster ip port quorum		# 需要监控的master信息
-                                # master_name：	表示自定义的的名字, master仅由大小写字母、数字、".-_"三个符号组成
-                                # ip：			master的IP
-                                # port：		mastr的port
-                                # quorum：		表示执行故障恢复至少需要几个哨兵节点同意
-        sentinel auth-pass mymaster password			# 设置master的密码
+        sentinel monitor mymaster ip port quorum	# 需要监控的master信息. sentinel会自动重写本配置文件
+                                                  > master_name: 表示自定义的的名字, master仅由大小写字母、数字、".-_"三个符号组成
+                                                  > ip: master的IP
+                                                  > port: mastr的port
+                                                  > quorum: 表示执行故障恢复至少需要几个哨兵节点同意
+        sentinel auth-pass mymaster <password>		# 对master和slave要验证的密码
+        sentinel auth-user mymaster <username>    # 对master和slave要验证的用户. 当仅提供auth-pass时, sentinel实例使用"auth <pass>"方式验证. 当提供auth-user时, 将使用新版"auth <user> <pass>"验证
         sentinel down-after-milliseconds mymaster 5000	# 指定了Sentinel认为Redis实例已经失效所需的毫秒数. 当实例超过该时间没有返
-                                # 回PING, 或者直接返回错误, 那么Sentinel将这个实例标记为主观下线. 当使用多个
-                                # sentinel时, 这个数字每个都应该不同, 以免sentinel同时选举自己为master sentinel
-                                # 产生failover冲突
+                                                        > 回PING, 或者直接返回错误, 那么Sentinel将这个实例标记为主观下线. 当使用多个
+                                                        > sentinel时, 这个数字每个都应该不同, 以免sentinel同时选举自己为master sentinel产生failover冲突
+        requirepass <password>										# sentinel密码. 该密码与redis密码无关联, 仅用于sentinel认证
         sentinel parallel-syncs mymaster 1				# 在failover期间最多可以对新的master进行同步的slave个数, 如果这个数字越大, 就意味着越多的
-                                # slave因为replication而不可用. 可以通过将这个值设为1来保证每次只有一个slave处于不能处理命令请求的状态
-        sentinel failover-timeout mymaster 180000		# 如果在该时间(ms)内未能完成failover操作, 则认为该failover失败
-        # sentinel notification-script mymaster /var/redis/notify.sh
-                                # 指定sentinel检测到该监控的redis实例指向的实例异常时, 调用的报警脚本
-                                # 执行规则如下：
-                                  1）如果脚本返回1退出, 会重试（最大次数是10次）
-                                  2）如果脚本返回2退出, 不重试
-                                  3）如果脚本收到一个信号终止, 行为和1）相同
-                                  4）脚本有最大运行时间（60秒）, 超过这个限制, 脚本会被一个sigkill终止并且会被重试
+                                                  > slave因为replication而不可用. 可以通过将这个值设为1来保证每次只有一个slave处于不能处理命令请求的状态
+        sentinel failover-timeout mymaster 180000	# 故障转移超时. 如果在该时间(ms)内未能完成failover操作, 则认为该failover失败
+        # sentinel notification-script mymaster /var/redis/notify.sh  # 指定sentinel检测到该监控的redis实例指向的实例异常时, 调用的报警脚本
+                                                                      > 执行规则如下：
+                                                                      > 1) 如果脚本返回1退出, 会重试(最大次数是10次)
+                                                                      > 2) 如果脚本返回2或更高的值退出, 不重试
+                                                                      > 3) 如果脚本收到一个信号终止, 行为和1)相同
+                                                                      > 4) 脚本有最大运行时间(60秒), 超过这个限制, 脚本会被一个sigkill终止并且会被重试
         # sentinel client-reconfig-script mymaster /var/redis/reconfig.sh
+        sentinel deny-scripts-reconfig yes        # SENTINEL SET禁止在运行时更改通知脚本和客户端重新配置脚本
         
         # sentinel myid 2dcab53a469d04253e0ab6d4d0d6117056091689
         # sentinel config-epoch mymaster 17
@@ -369,7 +418,6 @@
           2.配置哨兵并启动
             # vim /usr/local/redis/etc/sentinel.conf
               sentinel monitor mymaster ip port N
-              
               
                 
                 哨兵只要监视到master, 就会自动找到其salve. 一个哨兵节点可以监视多个redis主从系统(在
@@ -503,7 +551,6 @@
       说明：在默认情况下不会在客户端空闲很久后关闭连接；连接将永久保留
       设置：
         timeout N				# 超时并非非常准确, 可能有一两秒的误差
-          
   备份与恢复：
     1.定时备份RDB文件来实现redis数据库的备份与恢复
     2.将RDB文件放入Redis指定的数据目录, 启动Redis即可恢复数据
@@ -536,13 +583,13 @@
   日志：
     说明：当命令的执行时间超过限制, redis会将该命令加入耗时命令日志. 该日志存储在内存中
       slowlog-log-slower-than	10000		定义命令超时时间, 单位微秒. 参数为0, 记录所有命令；参数为负, 关闭该日志
-      slowlog-max-len	128					定义记录的条数
-      
+      slowlog-max-len	128					    定义记录的条数
     日志组成：
       1.该日志的唯一ID
       2.该命令执行的Unix时间
       3.该命令的耗时时间, 单位微秒
       4.命令及其参数
+    回收慢日志内存: > slowlog reset
   信号处理：
     主进程：
       关闭：
@@ -647,28 +694,19 @@
 				Redis的哈希值是字符串字段和字符串值之间的映射, 所以他们是表示对象的完美数据类型. 在Redis中的哈希值, 
 				可存储(2＾32-1)键值对--超过四十亿. 
 	内存存储与持久化：
-		说明：Redis的所有数据都存储在内存中, 可提高性能, 但易丢失数据. Redis提供了持久化支持, 可将内存中数据异步写
-			入磁盘或将修改操作追加入文件, 同时不影响继续提供服务. Redis启动后会读取RDB快照文件, 将数据从硬盘载入内
-			存(一般1000万个字符串类型键, 大小为1G的快照载入内存需花费20-30秒)
-	
-	
+		说明：
+      1.Redis的所有数据都存储在内存中, 可提高性能, 但易丢失数据. 
+      2.Redis提供了持久化支持, 可将内存中数据异步写入磁盘或将修改操作追加入文件, 同时不影响继续提供服务.
+      3. Redis启动后会读取RDB快照文件, 将数据从硬盘载入内存(一般1000万个字符串类型键, 大小为1G的快照载入内存需花费20-30秒)
 		redis的持久化
 			RDB(Redis DataBase)：	
-				说明：在不同的时间点, 将redis存储的数据生成二进制快照并存储到磁盘等介质上, 但会缺失最近一次快照到当前的数据
+				说明：在不同的时间点, 将redis存储的数据生成二进制快照并存储到磁盘等介质上, 但会缺失最近一次快照到当前的数据. RDB文件都是经过压缩的二进制格式
 				实现：
 					1.redis会单独创建(fork)一个子进程将内存中的数据写入磁盘中的临时文件. 而主进程依旧处理客户端请求(确保redis极高的性能)
-					2.当子进程写入完所有数据后会用该临时文件替换旧的RDB文件, 至此一次快照完成. 
-					
-					注：
-						1.在执行fork时, 操作系统会进行写时复制策略(copy-on-write), 即fork函数发生那一刻父子进程共享同一内存数据, 
-						 当父进程更改其中的数据时, 操作系统会将该数据在内存中复制一份以保证子进程数据不受影响. 故快照是fork那一
-						 刻的数据. 同时快照会使内存有所增加, 但不会超过其两倍(频繁写)
-						2.在快照时若写操作较多, 会造成fork前后数据差异较大, 并使内存使用量超过实际数据大小, 易造成内存使用超限
-						3.确保Linux系统允许应用程序申请超过可用内存的空间
-							# vim /etc/sysct.conf    添加
-								vm.overcommit_memory=1
-							# sysctlvm.overcommit_memory=1
-						4.RDB文件都是经过压缩的二进制格式
+          2.在执行fork时, 操作系统会进行写时复制策略(copy-on-write), 即fork函数发生那一刻父子进程共享同一内存数据, 当父进程更改其中的数据时, 
+            操作系统会将该数据在内存中复制一份以保证子进程数据不受影响. 故快照是fork那一刻的数据. 同时快照会使内存有所增加, 但不会超过其两倍(频繁写)
+					3.在快照时若写操作较多, 会造成fork前后数据差异较大, 并使内存使用量超过实际数据大小, 易造成内存使用超限. 故确保Linux系统允许应用程序申请超过可用内存的空间(vm.overcommit_memory=1)
+					4.当子进程写入完所有数据后会用该临时文件替换旧的RDB文件, 至此一次快照完成. 
 				配置：
 					快照文件默认在Redis当前进程的工作目录的dump.rdb文件中        
 				快照方式：
@@ -680,79 +718,60 @@
 					2.用户执行save或bgsave命令
 						说明：服务重启, 迁移备份时可手动执行快照
 						命令：
-							# save
-								redis执行同步快照操作, 同时阻塞所有客户端请求. 可能会导致redis长时间无法响应, 生产环境避
-								免使用
-							# bgsave
-								redis后台执行异步快照操作, 推荐使用
-								注：查看快照是否成功
-									# lastsave		获取最后一个成功执行快照时间(Unix时间戳)
-									# bgsave
-									# lastsave		两次返回值不同, 即为完成
-										
+							> save        # redis执行同步快照操作, 同时阻塞所有客户端请求. 可能会导致redis长时间无法响应, 生产环境避免使用
+							> bgsave      # redis后台执行异步快照操作, 推荐使用
+              注：查看快照是否成功
+                # lastsave		获取最后一个成功执行快照时间(Unix时间戳)
+                # bgsave
+                # lastsave		两次返回值不同, 即为完成
 					3.执行flushall命令
-						说明：该命令会清除数据库中所有数据. 当有自动快照条件时(save), 会执行一次自动快照；当没有定义自动
-							快照条件时, 该命令不会进行快照
-						命令：
-							# flushall
+						说明：该命令会清除数据库中所有数据. 当有自动快照条件时(save), 会执行一次自动快照；当没有定义自动快照条件时, 该命令不会进行快照
+						命令： > flushall
 					4.执行复制(replication)时
 						说明：当设置了主从模式时, Redis在复制初始化时进行自动快照
-							
-					
-					
 			AOF(Append Only File)：
 				说明：将每执行一条会更改Redis中的数据的命令, Redis就会将该命令以纯文本的方式写入到磁盘的AOF文件中
 				重写实现：
-					1.在重写即将开始之际, redis会创建（fork）一个“重写子进程”, 子进程会首先读取现有的AOF文件, 并将
-					 其包含的指令进行分析压缩并写入到一个临时文件中. 与此同时, 父进程会将新接收到的写指令一边累积到内存缓
-					 冲区中, 一边继续写入到原有的AOF文件中, 这样做是保证原有的AOF文件的可用性, 避免在重写过程中出现意外. 
-					2.当“重写子进程”完成重写工作后, 它会给父进程发一个信号, 父进程收到信号后就会将内存中缓存的写指令追加
-					 到新AOF文件中. 当追加结束后, redis就会用新AOF文件来代替旧AOF文件, 之后再有新的写指令, 就都会追加到新
-					 的AOF文件中
+					1.在重写即将开始之际, redis会创建(fork)一个"重写子进程", 
+          2.子进程会首先读取现有的AOF文件, 并将其包含的指令进行分析压缩并写入到一个临时文件中. 
+          3.与此同时,父进程会将新接收到的写指令一边累积到内存缓冲区中, 一边继续写入到原有的AOF文件中, 这样做是保证原有的AOF文件的可用性, 避免在重写过程中出现意外. 
+					4.当"重写子进程"完成重写工作后, 它会给父进程发一个信号, 父进程收到信号后就会将内存中缓存的写指令追加到新AOF文件中. 
+          5.当追加结束后, redis就会用新AOF文件来代替旧AOF文件, 之后再有新的写指令, 就都会追加到新的AOF文件中
 				配置：
-					配置redis.conf中的appendonly yes就可以打开AOF功能
-						默认的AOF持久化策略是每秒钟fsync一次, 且提供了AOF文件重写(rewrite)机制, 即当AOF文件的大小超过所设
-						定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
+					1.配置redis.conf中的appendonly yes就可以打开AOF功能
+					2.默认的AOF持久化策略是每秒钟fsync一次, 且提供了AOF文件重写(rewrite)机制, 即当AOF文件的大小超过所设定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
 				重写：
-					说明：当AOF文件的大小超过所设定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
-						  整个重写操作绝对安全, 因为Redis在创建新AOF文件的过程中, 会继续将命令追加到现有的AOF文件里面, 即使
-						  重写过程中发生停机, 现有的AOF文件也不会丢失. 而一旦新AOF文件创建完毕, Redis就会从旧AOF文件切换到新
-						  AOF文件, 并开始对新AOF文件进行追加操作
+					说明:
+            1.当AOF文件的大小超过所设定的阈值时, redis就会启动AOF文件的内容压缩, 只保留可以恢复数据的最小指令集. 
+						2.整个重写操作绝对安全, 因为Redis在创建新AOF文件的过程中, 会继续将命令追加到现有的AOF文件里面, 即使重写过程中发生停机, 
+              现有的AOF文件也不会丢失. 而一旦新AOF文件创建完毕, Redis就会从旧AOF文件切换到新AOF文件, 并开始对新AOF文件进行追加操作
 					重写方式：
-						1. 根据配置规则自动重写
-						2.手动重写
-							# bgrewriteaof
-			切换：	RDB --> AOF
+						1.根据配置规则自动重写
+						2.手动重写 > bgrewriteaof
+			切换: RDB --> AOF
 				1.将dum.rdb备份
 				2.执行以下命令：
 					# redis-cli config set appendonly yes
 					# redis-cli config set save "" 			# 可选
 				3.在配置文件中打开AOF功能
-				
-
 			比较：
-				RDB：
-					RDB需要经常fork子进程来保存数据集到硬盘上,当数据集比较大的时候,fork的过程是非常耗时的,可能会导致Redis
-					在一些毫秒级内不能响应客户端的请求
+				RDB: 需要经常fork子进程来保存数据集到硬盘上,当数据集比较大的时候,fork的过程是非常耗时的,可能会导致Redis在一些毫秒级内不能响应客户端的请求
 				AOF：
-					根据所使用的fsync策略, AOF的速度可能会慢于RDB . 在一般情况下,每秒 fsync 的性能依然非常高, 而关闭fsync 
+					根据所使用的fsync策略, AOF的速度可能会慢于RDB . 在一般情况下,每秒fsync的性能依然非常高, 而关闭fsync 
 					可以让AOF的速度和RDB一样快, 即使在高负荷之下也是如此. 不过在处理巨大的写入载入时, RDB可以提供更有保证
-					的最大延迟时间（latency）
+					的最大延迟时间(latency)
 					
 					BGSAVE执行的过程中, 不可以执行BGREWRITEAOF. 反过来说, 在BGREWRITEAOF执行的过程中, 也不可以执行BGSAVE. 
 					这可以防止两个Redis后台进程同时对磁盘进行大量的I/O操作
 					
-				1.在同样数据规模的情况下, RDB文件比AOF文件的体积小, 且RDB方式的数据恢复速度比AOF方式快. 故若需要进行
-				  大规模数据的恢复, 且对于数据恢复的完整性不是非常敏感, 那RDB方式要比AOF方式更加地高效. 
+				1.在同样数据规模的情况下, RDB文件比AOF文件的体积小, 且RDB方式的数据恢复速度比AOF方式快. 故若需要进行大规模数据的恢复, 且对于数据恢复的完整性不是非常敏感, 那RDB方式要比AOF方式更加地高效. 
 				2.当Redis意外停止工作, RDB可能会丢失几分钟的数据. 但AOF最多丢失1秒的数据(可配置)
 				3.AOF文件相对于RDB文件来说是可更改的
 				4.根据所使用的fsync策略, AOF的速度可能会慢于RDB
-				
 			使用：
 				安全：同时使用两种持久化功能, 同时使用后, Redis重启会使用AOF方式来恢复数据
 				性能：官方推荐只使用RDB
-				
-				注：将两种的文件放在对应的目录下, 启动redis, 可以进行数据恢复操作
+			数据恢复: 将两种的文件放在对应的目录下, 启动redis, 可以进行数据恢复操作
 	多数据库：
 		说明：redis是一个字典结构的存储服务器, 一个redis示例提供了多个用来存储数据的字典. 客户端可以指定数据存储的字典, 每个字典都
 			可以理解成一个独立的数据库. 每个数据库以0开始命名, 默认支持16个数据库. 默认选择0号数据库. 可通过 # select N 来更换数据库
@@ -761,6 +780,15 @@
 			2.Redis不支持为每个数据库设置不同的访问密码, 故一个客户端要么可以访问所有数据库, 要么均无法访问
 			3.多个数据库之间并非完全隔离, 不适宜存不同应用程序的数据. 不同的应用应该使用不同的Redis实例存储. 可用0号数据库存储应用生产
 			  环境的数据, 1号数据库存储测试环境的数据. 一个空Redis实例只占用1M左右内存
+  I/O线程
+    说明: 
+      1.I/O多线程只是用来处理网络数据的读写和协议解析, 命令执行依然由主线程(单线程)执行
+      2.redis使用pipelining来加速每个内核的redis性能, 并生成多个实例以扩展规模
+      3.在至少具有4个核心以上的服务器上启用多线程, 使用8个以上的线程作用不大. 4核心使用2-3个, 8核心使用6个
+	主动碎片整理:
+    说明: 
+      1.使redis服务器可以压缩内存中小量分配和释放数据之间的剩余空间, 以回收内存
+      2.当碎片超过一定级别时, Redis将开始通过利用某些特定的Jemalloc功能在连续的内存区域中创建值的新副本(以便了解分配是否导致碎片并进行分配更好的位置).同时将释放数据的旧副本.对于所有键,以增量方式重复此过程将导致碎片恢复到正常值
 Redis的主从
 	redis支持主从同步, 且也支持一主多从以及多级从结构
 	主从同步是异步进行的, 这意味着主从同步不会影响主逻辑, 也不会降低redis的处理性能

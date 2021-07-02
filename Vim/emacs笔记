@@ -1,0 +1,110 @@
+ctrl-v: 向下移动一屏
+alt-v: 向上移动一屏
+ctrl-l: 重绘屏幕，再次按键当前行移动到屏幕顶端，再次按键，移动到屏幕低端
+
+				ctrl-p(上一行)
+ctrl-b(向左移),alt-f(单词)			ctrl-f(向右移), alt-f(单词)
+				ctrl-n(下一行)
+ctrl-a, alt-a: 光标移动到行头(词头)
+ctrl-e, alt-e: 光标移动到行尾(词尾)
+alt-<, alt->: 光标移动到所有文字的最开头(最末尾)
+
+alt系列组合键用来操作"由语言定义的单位", ctrl系列组合键用来操作"与语言无关的基本单位"
+
+ctrl-g: 终止当前命令(命令失去响应或执行过久，或正在输入的命令)
+
+多窗口:
+ctrl-x 1   保留当前窗格，关闭其它窗格，并将其扩大到整个屏幕
+
+ctrl+x开始的命令多同"窗格，文件，缓冲区"有关
+
+ctrl-d		删除光标后的一个字符
+ctrl-k		移除从光标到行尾的字符
+alt-k		移除从光标到句尾的字符
+
+alt-<del>	移除光标前的一个词
+alt-d		移除光标后的一个词
+
+移动的东西可以被重新插入(移除的东西实际是被EMACS记录了下，而删除掉的东西虽然也可能还在内存中，但已经被EMACS抛弃了)，而删除的就不能使用相同的方法插入了
+
+ctrl-<space> 开始标记
+ctrl-w		移除
+
+ctrl-y 		yank,召回最近一次移除的内容
+alt-y		召回前N次移除的内容
+
+ctrl-/		撤销，同 ctrl-_ ，同ctrl-x u
+
+ctrl-x ctrl-f	打开文件
+ctrl-x ctrl-s [file]	存盘。第一次存盘的时候emacs会将原文件重命名以备份(在原文件名后加~")
+ctrl-x s      		保存多个缓冲区
+
+ctrl-x ctrl-b 	列出缓冲区
+ctrl-x b <file> 转到某个文件缓冲区
+
+*Messages*缓冲区没有对应的文件，该缓冲区内都是Emacs底部出现的消息
+
+命令集扩展:
+ctrl-x   字符扩展，ctrl-x后输入另一个字符或组合键
+alt-x	 命令名扩展，alt-x后输入一个命令名
+
+ctrl-z 挂起当前emacs
+ctrl-x ctrl-c 离开emacs
+
+自动保存
+emacs会定期将正在编辑的文件写入一个自动保存文件中，其名为该文件名加头尾#, 此文件会在正常存盘后被emacs删除
+恢复: 打开原来文件,输入 alt-x recover file
+
+回显区(echo area): 若emacs发现你输入多字符命令的节奏很慢，则会在最下方的回显区提示
+状态栏(mode line): 位于回显区正上方的一行被称为状态栏
+    NN% 显示光标在全文中的位置，若位于文件开头则显示Top，若位于文件末尾则显示Bot，若文件很小，一屏足以显示其全部内容则显示ALL
+    L及其后的数字显示光标所在行的行号
+    小括号内的内容表示当前使用的编辑模式，默认模式为Fundamental(一种主模式)
+	主模式通常会改变一些命令的行为(相同的命令，不同的工作方式)，通过alt-x text-mode切换模式. ctrl-h m 查看当前主模式的文档
+	使用主模式的同时，还有辅模式。辅模式不能替代主模式，而是使用一些辅助的功能。每个辅模式都可以独立的开启和关闭且同其它辅模式无关，同主模式也无关。且可以不使用辅模式，也可以使用一个或多个辅模式
+
+
+行边界通常被设定为70个字符
+ctrl-x f 20 设定
+alt-q 手动折行
+
+搜索： 渐进的搜索，输入字符串的过程中，搜索就已经开始了
+       ctrl-s 向下搜索
+       ctrl-r 向前搜索
+       <enter>停留在当前搜索结果上，ctrl-g停留在搜索开始的位置
+
+分屏
+    多窗格
+    ctrl-x 2 划分上下窗格
+    ctrl-alt-v 滚动下方窗格(esc ctrl-v)
+    ctrl-x o 窗格跳转10a
+
+    多窗口
+    alt-x make-frame   打开一个新窗口
+    alt-x delte-frame  关闭当前窗口
+
+
+
+递归编辑
+	离开小缓冲: esc esc esc
+
+帮助:
+	ctrl-h <str>
+	ctrl-h c 组合键		命令简要说明
+	ctrl-h k 组合键         命令详细说明
+
+Emacs命令行
+  # emacs [option or filename]
+    --batch       # 不进行交互显示
+    --chdir Dir   # 更改工作目录
+    --daemon/--bg-daemon[=name]   # 启动一个后台服务
+    --fg-daemon[=name]            # 启动一个前台服务
+    --debug-init  # 
+    --display, -d DISPLAY         # 使用X
+    --module-assertions
+    --dump-file FILE              # 从FILE文件中读取dumped 
+    --no-build-details
+    --no-desktop
+    --no-init-file
+    
+  

@@ -7,6 +7,9 @@ Plug 'plasticboy/vim-markdown'   " 语法高亮
 "Plug 'mattn/emmet-vim'      " html, css插件
 "Plug 'ferreum/completor-tmux'
 Plug 'yianwillis/vimcdoc'
+
+Plug 'fatih/vim-go', { 'tag': '*' } " go 主要插件"
+Plug 'dgryski/vim-godef' " go 中的代码追踪, 输入 gd 就可以自动跳转
 call plug#end()
 filetype plugin indent on
 
@@ -113,6 +116,18 @@ noremap! < <><left>
 noremap! ' ''<left>
 noremap! " ""<left>
 inoremap , , 
+"inoremap . .  
+
+"  error correction 
+noremap! ： :
+noremap! ， , 
+noremap! 。 . 
+noremap! × *
+noremap! “  "
+noremap! ”  "
+noremap! （ (
+noremap! ） )
+
 
 " map
 let mapleader = "-"
@@ -136,6 +151,8 @@ nnoremap <leader>{ bi{<esc>lea}<esc>
 nnoremap <F2> o# Date: <Esc>:read !date<CR>kJ
 nnoremap <F3> <Esc>:set expandtab<CR>:%retab<CR>
 nnoremap <F4> <Esc>:set foldlevel=100<CR>
+nnoremap <F5> o<Esc>:set paste<CR>i
+nnoremap <F6> <Esc>:set nopaste<CR>
 
 
 " Completion display
@@ -173,12 +190,13 @@ autocmd BufNewFile *.py exec ":call Set_python_title()"
 func Set_python_title()
   call setline(1,"#!/usr/bin/env python3")
   call setline(2,"# *-* coding:utf8 *-*")
-  call setline(3,"# sky")
-  call setline(4,"")
-  call setline(5,"def main():")
-  call setline(6,"    ")
-  call setline(7,"if __name__ == \"__main__\":")
-  call setline(8,"    main()")
+  call setline(3,"# ".strftime("%F %T"))
+  call setline(4,"# sky")
+  call setline(5,"")
+  call setline(6,"def main():")
+  call setline(7,"    ")
+  call setline(8,"if __name__ == \"__main__\":")
+  call setline(9,"    main()")
 endfunc
 
 " shell
@@ -190,7 +208,7 @@ endfunc
 
 "func SetTitle()
 "  if &filetype == 'python'
-"    "call setline(1,"#!/usr/bin/env python")
+"    "call setline(1,"#!/usr/bin/env python3")
 "    "call setline(2,"# coding:utf8")
 "    "call SetComment_python()
 "    "call setline(4,"")
@@ -221,17 +239,10 @@ set fileencodings=utf-8,gbk
 set fileformats=unix,dos,mac
 " 超过10min中未操作则自动保存
 set updatetime=600000
-autocmd CursorHold,CursorHoldI *.* :w!
+"autocmd CursorHold,CursorHoldI *.* :w!
+autocmd CursorHold,CursorHoldI *.* :w
 
 
-"  error correction 
-noremap! ： :
-noremap! ， , 
-noremap! 。 . 
-noremap! × *
-noremap! “  "
-noremap! ”  "
-noremap! （ ()<left>
 
 "这样选中你要运行的代码<leader>p 就会发到python shell里
 nnoremap <leader>p V:call SendToTerminal()<CR>$

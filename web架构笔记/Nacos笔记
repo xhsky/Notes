@@ -1,0 +1,184 @@
+简介
+	时间, 作者, 开发语言, 定义
+    提供了一组简单易用的特性集, 快速实现动态服务发现, 服务配置, 服务元数据及流量管理
+	官网: https://nacos.io
+	版本
+	协议
+适用性(优缺)
+    1.服务发现和健康检测:
+      - Nacos支持基于DNS和基于RPC的服务发现. 服务提供者使用原生SDK, OpenAPI或一个独立的Agent TODO注册Service后, 服务消费者可以使用DNS TODO或HTTP&API查找和发现服务
+      - Nacos提供对服务的实时健康检查, 阻止向不健康的主机或服务实例发送请求. Nacos支持传输层(ping/tcp)和应用层(http/mysql/用户自定义)的健康检查. 
+        对于复杂的云环境和网络拓扑环境(eg: vpc, 边缘网络等), Nacos提供了agent上报模式和服务端主动检测两种健康检查模式
+        Nacos提供了统一的监控检查仪表盘, 管理服务的可用性及流量
+    2.动态配置服务:
+      - 以中心化, 外部化和动态化的方式管理所有环境的应用配置和服务配置
+      - 消除了配置配置变更时重新部署应用和服务的需要, 让配置管理更高效和敏捷
+      - 配置中心化管理让实现无服务状态变得更简单, 让服务按需弹性扩展变的更容易
+      - Nacos提供了一个简洁易用的UI, 管理所有的服务和应用的配置, Nacos还提供包括版本跟踪, 金丝雀发布, 一键回滚及客户端配置更新状态跟踪等
+    3.动态DNS服务:
+      - 支持路由权重, 更容易实现中间层负载均衡, 更灵活的路由策略, 流量控制以及数据中心内网的简单DNS解析服务
+      - 实现以DNS协议为基础的服务发现
+    4.服务及其元数据管理:
+      - 以微服务平台的视觉管理数据中心的所有服务及其元数据(服务的描述, 生命周期, 服务的静态依赖分析, 服务的监控状态, 服务的流量管理, 路由及安全策略, 服务的SLA及mertics统计数据)
+架构
+	模块
+	安装
+    1.安装jdk
+    2.安装nacos
+      # wget -c https://github.com/alibaba/nacos/releases/download/1.4.1/nacos-server-1.4.1.tar.gz
+      # tar -xf nacos-server-1.4.1.tar.gz
+      # cd nacos
+      # ./bin/startup.sh -m standalone          # 单机模式
+      # ./bin/shutdown.sh
+	结构
+		目录结构
+			安装目录
+        bin/
+          shutdown.sh
+          startup.sh:
+            nacos.home                              # nacos的根目录
+            nacos.standalone                        # 是否使用单机模式, 默认false
+            nacos.functionMode                      # 启动模式, 支持只启动某一个模块, 不设置时所有模块都会启动. 可选值(config/naming/空)
+        conf/
+          1.4.0-ipv6_support-update.sql
+          application.properties: 默认配置文件
+            server.servlet.contextPath=/nacos       # 默认web context路径
+            server.port=8848                        # 默认web服务端口
+
+            nacos.inetutils.prefer-hostname-over-ip=true        # cluster.conf里是否应该填hostname, 默认false
+            nacos.inetutils.ip-address=                         # 本机ip. 该参数设置后, 将会使用该ip去cluster.conf中匹配(确保cluster.conf中存在该ip), 默认为null
+            server.tomcat.accesslog.enabled=true                # 是否开启access log
+            > Config模块
+            spring.datasource.platform=mysql                    # 使用MySQL作为数据源
+            db.num=1                                            # 数据库数目. 支持多数据源. db.url.index为对应的数据库连接. db.user及db.password没有设置index时, 所有连接都以db.user和db.password认证
+                                                                # 如果不同的数据源的用户名和密码不一样, 可通过","分割或在后指定index来设置相应的数据库连接的用户和密码
+            db.url.0=                                           # 第一个数据库的url
+            db.user.0=nacos                                     
+            db.password.0=nacos
+            db.url.1=                                           # 第二个数据库的url
+            db.user.1=nacos
+            db.password.1=nacos
+            db.pool.config.connectionTimeout=30000              #
+            db.pool.config.validationTimeout=10000              #
+            db.pool.config.maximumPoolSize=20                   #
+            db.pool.config.minimumIdle=2                        # 
+            > Naming模块
+            nacos.naming.distro.taskDispatchPeriod=200          # 同步任务生成的周期, 单位为毫秒. 默认200
+            nacos.naming.distro.batchSyncKeyCount=1000          # 同步任务每批的key的数目, 默认1000
+            nacos.naming.distro.syncRetryDelay=5000             # 同步任务失败的重试间隔, 单位为毫秒. 默认5000
+            nacos.naming.data.warmup=true                       # 是否在server启动时进行数据预热. 默认false
+            nacos.naming.expireInstance=true                    # 是否自动摘除临时实例. 默认true
+            nacos.naming.empty-service.auto-clean=true
+            nacos.naming.empty-service.clean.initial-delay-ms=50000
+            nacos.naming.empty-service.clean.period-time-ms=30000
+            > CMDB模块
+            nacos.cmdb.loadDataAtStart=false                    # 是否打开CMDB. 默认false
+            nacos.cmdb.dumpTaskInterval=3600                    # 全量dump的间隔, 单位为秒. 默认3600
+            nacos.cmdb.eventTaskInterval=10                     # 变更事件的拉取间隔, 单位为秒. 默认10
+            nacos.cmdb.labelTaskInterval=300                    # 标签集合的拉取间隔, 单位为秒. 默认300
+            > 访问控制
+            nacos.core.auth.system.type=nacos                   # 要使用的认证系统, 当前只支持'nacos'
+            nacos.core.auth.enabled=false                       # 是否启用认证系统, 默认false. 默认nacos/nacos. 针对nacos接口系统, 与console管理页面无关
+            nacos.security.ignore.urls=                         # 控制台权鉴跳过的接口
+            nacos.core.auth.default.token.expire.seconds=18000  # token失效时间, 单位秒. 默认18000
+            nacos.core.auth.default.token.secret.key=SecretKey012345678901234567890123456789012345678901234567890123456789      # 默认token
+            nacos.core.auth.caching.enabled=true                # 权限缓存开关, 开启后权限缓存的更新默认有15秒的延迟
+            nacos.core.auth.enable.userAgentAuthWhite=false     # 开启鉴权功能后, 服务端之间的请求也会受鉴权系统的影响. 通过User-Agent中是否包含Nacos-Server来进行判断请求是否来自其他服务端, 1.4.1版本后关闭
+            nacos.core.auth.server.identity.key=                # Nacos添加服务身份识别功能, 用户可以自行配置服务端的Identity, 不再使用User-Agent作为服务端请求的判断标准
+            nacos.core.auth.server.identity.value=              # 且集群中所有服务均需配置相同的key和value, 否则可能导致服务端之间数据不一致或无法删除实例等问题
+            > istio
+            nacos.istio.mcp.server.enabled=false                # 是否启用mcp服务
+
+          application.properties.example
+          cluster.conf.example: 集群配置示例
+          nacos-logback.xml
+          nacos-mysql.sql
+          schema.sql
+        target/
+          nacos-server.jar
+        data/       # 数据目录
+          config-data: 
+          derby-data: derby数据库目录
+          protocol: raft目录
+        losg/       # 日志目录
+        status/     # 
+		进程/端口
+      java:
+        8848/tcp: web服务端口
+        7848/tcp: raft端口, 根据web服务端口-1000
+        37589(随机端口)/udp: 用于接收naming模块UDP push ACK, 以获取已成功推送的数据
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+    单机模式:
+      - 使用Derby嵌入式数据库
+      - 使用MySQL数据库
+        1.安装nacos
+        2.安装MySQL
+        3.建立数据库和账号
+          > create database nacos_db;
+          > create user nacos identified by 'DreamSoft_321';
+          > grant all on nacos_db.* to nacos;
+        4.导入nacos数据库初始化文件(nacos/conf/nacos-mysql.sql)
+          .# mysql -unacos -pDreamSoft_321 nacos_db
+          > source nacos-mysql.sql
+        5.修改conf/application.properties文件, 增加支持mysql数据源配置
+          spring.datasource.platform=mysql
+          db.num=1
+          db.url.0=jdbc:mysql://db:3306/nacos_db?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+          db.user=nacos
+          db.password=DreamSoft_321
+        6.单机模式启动
+          .# ./bin/startup.sh -m standalone
+    集群模式: 至少3个nacos节点
+      1.安装三个nacos节点
+      2.配置数据源
+        2.1 使用内置数据源(无需进行配置, 依然使用derby)
+        2.2 使用外置数据源(MySQL)
+          2.2.1 安装MySQL
+          2.2.2 建立数据库及其账号, 并导入初始化文件
+      3.配置集群配置文件(3台)
+        .# vim nacos/conf/cluster.conf
+          node1
+          node2:8849
+          node3:8847
+      4.启动节点(3台)
+        4.1 使用内置数据源方式启动: # ./bin/startup.sh -p embedded
+        4.2 使用外置数据源方式启动: # ./bin/startup.sh
+      5.安装nginx代理后端nacos
+    多集群模式:
+具体服务相关
+	概念:
+    Region(地域): 物理的数据中心, 资源创建成功后不能更换
+    Available Zone(可用区): 同一地域内, 电力和网络相互独立的物理区域. 同一可用区内, 实例的网络延迟较低
+    Endpoint(接入点): 地域的某个服务的入口域名
+
+    Namespace --> Group --> Configuration Item(Data Id) --> Configuration Item
+    Namespace(命名空间): 用于进行租户粒度的配置隔离. 不同的命名空间下, 可以存在相同的Group和Data ID的配置. 其常用场景之一是不同环境的配置的区分隔离
+    Configuration Management(配置管理): 配置的编辑, 存储, 分发, 变更管理, 历史版本管理, 变更审计等与配置相关的活动
+    Configuration Item(配置项): 一个具体的可配置的参数及其值域. 通常以key=value的形式存在
+    Configuration Set(配置集): 一组相关或不相关的配置项的集合称为配置集. 在系统中, 一个配置文件通常就是一个配置集, 包含了系统各个方面的配置. 
+    Data ID(配置集ID): Nacos中的某个配置集的ID. 配置集是组织划分配置的维度之一.  一个系统或应用可以包含多个配置集, 每个配置集都可以被一个有意义的名称标识. data id通常采用类java包的命名规则保证全局唯一性(非强制)
+    Group(配置分组): Nacos中的一组配置集. 通过一个有意义的字符串对配置集进行分组从而区分data id相同的配置集. 未指定group的配置集默认使用DEFAULT_GROUP
+    Configuration Snapshot(配置快照): Nacos的客户端SDK会在本地生成配置的快照. 当client无法连接到Nacos时, 可以使用配置快照
+
+    Service --> Service Group --> Service Name --> Virtual Cluster --> Instance
+    Service(服务): 通过预定义接口网络访问的提供给客户端的软件功能
+    Service Name(服务名): 服务提供的标识, 通过该标识可以唯一确定其指定的服务
+    Service Registry(服务注册中心): 存储服务实例和服务负载均衡策略的数据库
+    Service Discovery(服务发现): 使用服务名对服务下的实例的地址和元数据进行探测, 并以预先定义的接口提供给客户端查询
+    Metadata(元数据): Nacos数据(eg: 配置和服务)描述信息, 如服务版本, 权重, 容灾策略, 负载均衡策略, 鉴权配置, 各种自定义标签(label). 从作用范围看, 分为服务级别的元信息, 集群的元信息和实例的元信息
+    Application(应用): 用于标识服务提供方的服务的属性
+    Service Group(服务分组): 不同的服务可以分为同一分组
+    Virtual Cluster(虚机集群): 同一个服务下所有实例组成一个默认集群, 集群可以被进一步按需求划分, 划分的单位可以是虚拟集群
+    Instance(实例): 提供一个或多个服务的具有可访问网络地址(ip:port)的进程
+    Weight(权重): 实例级别的配置. 权重为浮点数, 权重越大, 分配给该实例的流量越大
+    Health Check(健康检查): 以指定方式检查服务下挂载的实例的健康度, 从而确认该实例是否能提供服务. 根据检查结果, 实例会被判断为健康或不健康(对服务发起解析请求时, 不健康的实例不会返回给客户端)
+    Protect Threshold(监控保护阈值): 为防止因过多实例不健康导致流量全部流向健康实例, 继而造成健康实例崩溃并形成雪崩效应, 应将健康保护阈值定义为一个0到1之间的浮点数. 当健康实例占总实例的比例小于该值时, 不论实例是否健康, 都会将该实例返回给客户端
+	内部命令

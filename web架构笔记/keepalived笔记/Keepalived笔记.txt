@@ -22,6 +22,7 @@
 				# make install
         # systemctl enable keepalived
 			yum安装: (版本较低)
+        # 关闭selinux
 				# yum install keepalived
 				# 修改配置文件
 				# 添加日志
@@ -75,7 +76,7 @@
 									192.168.213.0/24 dev eth1 scope link
 								}
 						! VRRPD配置(包含VRRP同步组, VRRP实例和VRRP脚本)
-							! VRRP脚本: 定义脚本实现切换, script返回值为0时认为检测成功, 其它值都会当成检测失败(exit N)
+							! VRRP脚本: 定义脚本实现切换, script返回值为0时认为检测成功, 其它值都会当成检测失败(exit N). 且需要关闭selinux, 否则脚本失效
 								vrrp_script chk_run {
 									   script "/path/to/check_running.sh"	# 脚本的存放路径或直接写入命令
 									   interval 2                     	 	# 每隔多少秒运行此脚本

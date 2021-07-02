@@ -633,7 +633,7 @@ eval("str")   将str转为dict
       3.子类初始化过程中不会执行父类的构造和析构函数, 除非手动自定(子类的构造函数参数必须包含父类的参数):
           def __init__(self, name, age, sex):
             father.__init__(self.name, age)                   # 经典类写法
-            super(son.self).__init__(name, age)               # 新式类写法, 多继承时按照广度优先继承一个父类
+            super(son, self).__init__(name, age)              # 新式类写法, 多继承时按照广度优先继承一个父类
 
       新式类和经典类:
         py2: 经典类是按深度优先来继承的, 新式类是按广度优先来继承的
@@ -647,13 +647,13 @@ eval("str")   将str转为dict
       Python不支持多态, 但可以间接实现
 
   属性:
-    实例变量(静态属性, 通过class.var调用):  描述具体对象的属性
+    实例变量(静态/全局属性, 通过class.var调用):  描述具体对象的属性
     类变量(通过object.var调用):             公用的属性, 节省内存开销
     私有属性(__var)
   方法
     实例方法: fun(self), 第一个参数强制为类实例参数
       构造方法: __init__(self)
-      析构方法: __del__(seldf)
+      析构方法: __del__(self)
       私有方法: __fun(self)
     类的特殊成员方法:
       obj.__doc__           类的描述信息
@@ -670,12 +670,6 @@ eval("str")   将str转为dict
 
       __new__()
       __metaclass__()
-
-
-
-
-
-
     类方法(动态属性): @classmethod
       在实例方法上添加@classmethod. 只能访问类变量, 不能访问实例变量
     静态方法: @staticmethod

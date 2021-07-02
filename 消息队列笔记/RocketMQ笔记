@@ -1,0 +1,719 @@
+简介
+  时间, 作者, 开发语言, 定义
+    是一个统一消息传递引擎, 轻量级的数据处理平台
+  官网: https://rocketmq.apache.org/
+  版本
+  协议
+适用性(优缺)
+  1.低延迟
+  2.跟踪和审核功能的高可用性
+架构
+  模块
+  安装
+    .# 安装jdk
+    .# wget -c https://downloads.apache.org/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip
+    .# tar -xf   -C /opt/ ; ln -sv 
+    .# vim /etc/profile
+        export JAVA_HOME=/opt/jdk
+        export ROCKETMQ_HOME=/opt/rocketmq
+        export PATH=$ROCKETMQ_HOME/bin:$JAVA_HOME/bin:$PATH
+    .# cd /opt/rocketmq
+    .# vim bin/runserver.sh
+      -server -Xms1g -Xmx1g -Xmn250m
+    .# nohup ./bin/mqnamesrv -c conf/nameserver.conf &
+    .# vim bin/runbroker.sh
+      -server -Xms1g -Xmx1g -Xmn500m
+    .# nohup sh bin/mqbroker -n localhost:9876 &
+
+    .# sh bin/mqshutdown broker
+    .# sh bin/mqshutdown namesrv
+  结构
+    目录结构
+      安装目录
+        benchmark
+        bin
+        conf
+          2m-2s-sync:  常用配置
+          2m-2s-async: 常用配置
+          2m-noslave:  常用配置
+          nameserver.conf:                                        # 手动创建
+            rocketmqHome=/opt/rocketmq
+            kvConfigPath=/home/sky/namesrv/kvConfig.json
+            configStorePath=/home/sky/namesrv/namesrv.properties
+            productEnvName=center
+            clusterTest=false
+            orderMessageEnable=false
+            listenPort=9876
+            serverWorkerThreads=8
+            serverCallbackExecutorThreads=0
+            serverSelectorThreads=3
+            serverOnewaySemaphoreValue=256
+            serverAsyncSemaphoreValue=64
+            serverChannelMaxIdleTimeSeconds=120
+            serverSocketSndBufSize=65535
+            serverSocketRcvBufSize=65535
+            serverPooledByteBufAllocatorEnable=true
+            useEpollNativeSelector=false
+          broker.conf:
+            brokerClusterName = DefaultCluster                    # 集群名称
+            brokerName = broker-a                                 # broker名称
+            brokerId = 0                                          # 0表示为master, 非0表示为slave
+            listenPort = 10911                                    # 监听客户端地址
+            namesrvAddr = ip:port;ip:port
+
+            storePathRootDir=$HOME/store                          # 存储路径
+            storePathCommitLog=$HOME/store/commitlog/             # commit log存储路径
+            storePathConsumerQueue=$HOME/store/consumequeue/      # comsumer队列存储路径
+            storePathIndex=$HOME/store/index
+            mapedFileSizeCommitLog=1G                             # commit log映射文件大小
+
+            deleteWhen = 04                                       # 删除超过保留时间的commitlog文件的时间点. 默认凌晨4点
+            fileReservedTime = 48                                 # commitlog文件保留时间, 默认48h
+            brokerRole = ASYNC_MASTER                             # broker的角色. ASYNC_MASTER/SYNC_MASTER/SLAVE
+            flushDiskType = ASYNC_FLUSH                           # 刷盘方式. ASYNC_FLUSH/SYNC_FLUSH
+
+            haListenPort=10912
+
+            namesrvAddr=                                                                                                                                
+            brokerPermission=6                                                                                                                          
+            defaultTopicQueueNums=8                                                                                                                     
+            autoCreateTopicEnable=true                                                                                                                  
+            clusterTopicEnable=true                                                                                                                     
+            brokerTopicEnable=true                                                                                                                      
+            autoCreateSubscriptionGroup=true                                                                                                            
+            messageStorePlugIn=                                                                                                                         
+            msgTraceTopicName=RMQ_SYS_TRACE_TOPIC                                                                                                       
+            traceTopicEnable=false                                                                                                                      
+            sendMessageThreadPoolNums=1                                                                                                                 
+            pullMessageThreadPoolNums=18                                                                                                                
+            processReplyMessageThreadPoolNums=18                                                                                                        
+            queryMessageThreadPoolNums=9                                                                                                                
+            adminBrokerThreadPoolNums=16                                                                                                                
+            clientManageThreadPoolNums=32                                                                                                               
+            consumerManageThreadPoolNums=32                                                                                                             
+            heartbeatThreadPoolNums=1                                                                                                                   
+            endTransactionThreadPoolNums=10                                                                                                             
+            flushConsumerOffsetInterval=5000                                                                                                            
+            flushConsumerOffsetHistoryInterval=60000
+            rejectTransactionMessage=false
+            fetchNamesrvAddrByAddressServer=false
+            sendThreadPoolQueueCapacity=10000
+            pullThreadPoolQueueCapacity=100000
+            replyThreadPoolQueueCapacity=10000
+            queryThreadPoolQueueCapacity=20000
+            clientManagerThreadPoolQueueCapacity=1000000
+            consumerManagerThreadPoolQueueCapacity=1000000
+            heartbeatThreadPoolQueueCapacity=50000
+            endTransactionPoolQueueCapacity=100000
+            filterServerNums=0
+            longPollingEnable=true
+            shortPollingTimeMills=1000
+            notifyConsumerIdsChangedEnable=true
+            highSpeedMode=false
+            commercialEnable=true
+            commercialTimerCount=1
+            commercialTransCount=1
+            commercialBigCount=1
+            commercialBaseCount=1
+            transferMsgByHeap=true
+            maxDelayTime=40
+            regionId=DefaultRegion
+            registerBrokerTimeoutMills=6000
+            slaveReadEnable=false
+            disableConsumeIfConsumerReadSlowly=false
+            consumerFallbehindThreshold=17179869184
+            brokerFastFailureEnable=true
+            waitTimeMillsInSendQueue=200
+            waitTimeMillsInPullQueue=5000
+            waitTimeMillsInHeartbeatQueue=31000
+            waitTimeMillsInTransactionQueue=3000
+            startAcceptSendRequestTimeStamp=0
+            traceOn=true
+            enableCalcFilterBitMap=false
+            expectConsumerNumUseFilter=32
+            maxErrorRateOfBloomFilter=20
+            filterDataCleanTimeSpan=86400000
+            filterSupportRetry=false
+            enablePropertyFilter=false
+            compressedRegister=false
+            forceRegister=true
+            registerNameServerPeriod=30000
+            transactionTimeOut=6000
+            transactionCheckMax=15
+            transactionCheckInterval=60000
+            aclEnable=false
+            storeReplyMessageEnable=true
+            autoDeleteUnusedStats=false
+            serverWorkerThreads=8
+            serverCallbackExecutorThreads=0
+            serverSelectorThreads=3
+            serverOnewaySemaphoreValue=256
+            serverAsyncSemaphoreValue=64                                                                                                                
+            serverChannelMaxIdleTimeSeconds=120                                                                                                         
+            serverSocketSndBufSize=131072                                                                                                               
+            serverSocketRcvBufSize=131072                                                                                                               
+            serverPooledByteBufAllocatorEnable=true                                                                                                     
+            useEpollNativeSelector=false
+            clientWorkerThreads=4
+            clientCallbackExecutorThreads=1
+            clientOnewaySemaphoreValue=65535
+            clientAsyncSemaphoreValue=65535
+            connectTimeoutMillis=3000
+            channelNotActiveInterval=60000
+            clientChannelMaxIdleTimeSeconds=120
+            clientSocketSndBufSize=131072
+            clientSocketRcvBufSize=131072
+            clientPooledByteBufAllocatorEnable=false
+            clientCloseSocketIfTimeout=false
+            useTLS=false
+            mappedFileSizeCommitLog=1073741824
+            mappedFileSizeConsumeQueue=6000000
+            enableConsumeQueueExt=false
+            mappedFileSizeConsumeQueueExt=50331648
+            bitMapLengthConsumeQueueExt=64
+            flushIntervalCommitLog=500
+            commitIntervalCommitLog=200
+            useReentrantLockWhenPutMessage=false
+            flushCommitLogTimed=false
+            flushIntervalConsumeQueue=1000
+            cleanResourceInterval=10000
+            deleteCommitLogFilesInterval=100
+            deleteConsumeQueueFilesInterval=100
+            destroyMapedFileIntervalForcibly=120000
+            redeleteHangedFileInterval=120000
+            deleteWhen=04
+            diskMaxUsedSpaceRatio=75
+            fileReservedTime=72
+            putMsgIndexHightWater=600000
+            maxMessageSize=4194304
+            checkCRCOnRecover=true                                                                                                                      
+            flushCommitLogLeastPages=4                                                                                                                  
+            commitCommitLogLeastPages=4                                                                                                                 
+            flushLeastPagesWhenWarmMapedFile=4096                                                                                                       
+            flushConsumeQueueLeastPages=2                                                                                                               
+            flushCommitLogThoroughInterval=10000
+            commitCommitLogThoroughInterval=200
+            flushConsumeQueueThoroughInterval=60000
+            maxTransferBytesOnMessageInMemory=262144
+            maxTransferCountOnMessageInMemory=32
+            maxTransferBytesOnMessageInDisk=65536
+            maxTransferCountOnMessageInDisk=8
+            accessMessageInMemoryMaxRatio=40
+            messageIndexEnable=true
+            maxHashSlotNum=5000000
+            maxIndexNum=20000000
+            maxMsgsNumBatch=64
+            messageIndexSafe=false
+            haSendHeartbeatInterval=5000
+            haHousekeepingInterval=20000
+            haTransferBatchSize=32768
+            haMasterAddress=
+            haSlaveFallbehindMax=268435456
+            brokerRole=ASYNC_MASTER
+            flushDiskType=ASYNC_FLUSH
+            syncFlushTimeout=5000
+            messageDelayLevel=1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+            flushDelayOffsetInterval=10000
+            cleanFileForciblyEnable=true
+            warmMapedFileEnable=false
+            offsetCheckInSlave=false
+            debugLockEnable=false
+            duplicationEnable=false
+            diskFallRecorded=true
+            osPageCacheBusyTimeOutMills=1000
+            defaultQueryMaxNum=32
+            transientStorePoolEnable=false
+            transientStorePoolSize=5
+            fastFailIfNoBufferInStorePool=false
+            enableDLegerCommitLog=false
+            dLegerGroup=
+            dLegerPeers=
+            dLegerSelfId=
+          plain_acl.yml:    # acl配置文件, 可动态修改权限控制定义的属性, 而不需重新启动Broker服务节点
+            globalWhiteRemoteAddresses:                   # 全局白名单, 可使用字符串"*"
+            accessKey:
+            secretKey:
+            whiteRemoteAddress: 用户ip白名单
+            admin: true|false       # 是否管理员账号
+            defaultTopicPerm:       # 默认的topic权限
+            defaultGroupPerm:       # 默认的ConsumerGroup权限
+            topicPerms:             # 各个topic的权限
+            groupPerms:             # 各个ConsumerGroup的权限
+          dledger.conf: 自己定义
+            brokerClusterName = RaftCluster           # 集群名称
+            brokerName=RaftNode00                     # broker名称
+            listenPort=30911                          # 监听端口
+            namesrvAddr=ip1:9876;ip2:9876             # nameserver地址
+            storePathRootDir=/tmp/rmqstore/node00     # 存储路径
+            storePathCommitLog=/tmp/rmqstore/node00/commitlog   # 存储commit log路径
+            enableDLegerCommitLog=true                # 是否启动 DLedger 
+            dLegerGroup=RaftNode00                    # DLedger Raft Group的名字, 建议和brokerName保持一致
+            dLegerPeers=n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913      # DLedger Group内各节点的端口信息, 同一个Group内的各个节点配置必须要保证一致 
+            dLegerSelfId=n0                           # 节点id, 必须属于dLegerPeers中的一个;同Group内各个节点要唯一
+            sendMessageThreadPoolNums=16              # 发送线程个数, 建议配置成Cpu核数
+        lib
+    进程/端口
+      java(NamesrvStartup)/9876
+      java(BrokerStartup)
+        10909(fastRemotingServer): 主要是fastRemotingServer服务使用, 默认listenPort - 2. 通remotingServer相同, 唯一不同的是不可以处理consumer pull的请求
+        10911(remotingServer): 监听客户端端口. 可以处理所有客户端请求 
+        10912(haListenPort端口): haListenPort是haService中使用, 主要用于slave同master同步. 默认listenPort + 1
+
+        30909
+        30911
+        40911
+    编程接口
+    管理软件
+  命令
+    服务器
+    客户端
+      .# ./bin/mqadmin [command] [option]                   # mq管理客户端
+         command:
+          > topic
+            topicList            # 查看topic列表
+              -c
+              -n
+            updateTopic           # 创建或更新topic     
+              -b <arg>              # 指定创建topic的broker
+              -c <arg>              # 指定创建topic的集群
+              -n <arg>              # nameserver列表. eg: mq1:port;mq2:port
+              -o true|false         # 设置topic的顺序
+              -p <arg>              # 设置topic权限(2|4|6), 2:W, 4:R, 6:RW
+              -r <arg>              # 设置读队列数量
+              -s true|false         # has unit sub
+              -t <arg>              # 指定topic名称
+              -u true|false         # is unit topic
+              -w <arg>              # 设置写队列数量
+            deleteTopic            # 从nameserver和broker中删除topic
+              -c <arg>              # 指定集群名称
+              -n <arg>
+              -t <arg>
+            updateTopicPerm        # 更新topic权限
+              -b
+              -c
+              -n
+              -p <arg>              # 设置topic权限
+              -t <arg>              # topic名称
+            topicRoute           # 校验topic路由信息
+              -n
+              -t
+            topicStatus          # 校验topic状态信息
+              -n 
+              -t
+            topicClusterList     # 获取topic的集群信息
+              -n 
+              -t
+
+          updateSubGroup       Update or create subscription group                                                                                                                   
+          deleteSubGroup       Delete subscription group from broker.                                                                                                                
+
+          > broker
+            getBrokerConfig      # 获取broker配置
+              -b
+              -c
+              -n
+            updateBrokerConfig   # 更新broker配置
+              -b <arg>              # 指定broker
+              -c
+              -n
+              -k                    # key
+              -v                    # value
+            brokerStatus         # 获取broker运行状态数据
+              -b
+              -c
+              -n
+            wipeWritePerm        # 清除所有nameserver中的broker写入权限
+              -b <arg>            # 指定broker
+              -n
+
+          > nameserver
+            getNamesrvConfig     # 获取nameserver配置
+              -n
+            updateNamesrvConfig  # 更新nameserver配置
+              -k key
+              -v value
+              -n
+
+          > acl
+            updateAclConfig      # 更新broker中的acl配置
+              -a accesskey        # 设置accesskey
+              -s secretkey        # 设置secretkey
+              -b brokeraddr
+              -c clustername
+              -g groupperms       # 设置groupperms列表, eg: groupD=DENY, groupD=SUB
+              -u defaultgroupperm # 设置默认groupperm
+              -w whiteremoteaddress   # 为account设置白名单
+              -i defaulttopicperm # 设置默认topic_perm
+              -m admin            # 设置admin flag
+              -n
+            deleteAccessConfig   # 删除acl配置
+              -a accesskey        # 指定accesskey
+              -b broker           # 指定broker
+              -c clustername      # 指定cluster
+              -n
+            clusterAclConfigVersion # 列出集群中所有的acl版本信息
+              -b broker
+              -c cluster
+              -n
+            updateGlobalWhiteAddr   # 更新acl全局白名单
+              -b
+              -c
+              -g globalWhiteRemoteAddresses   # 设置全局白名单, eg: 10.10.103.*, 192.168.0.*
+              -n
+            getAccessConfigSubCommand # 列出集群所有acl配置
+              -b
+              -c 
+              -n
+
+         > 消息
+           checkMsgSendRT       # 检查消息发送响应时间
+            -a <arg>            # message总量, 默认100
+            -n
+            -s size             # message大小, 默认128byte
+            -t
+           queryCq              Query cq command.
+           sendMessage          # 发送消息
+            -b broker           # 指定broker
+            -c tags             # message tag
+            -i qid              # 指定queue
+            -k key              # message key
+            -n
+            -p body             # message body(utf8字符串)
+            -t topic            # 指定topic
+           consumeMessage       # 消费消息
+            -b broker           
+            -c msg_id           # 消费消息的message id
+            -s beginTimestamp   # begin timestamp
+            -e emdtimestamp     # end timestamp
+            -g consumergroup    # consumer group name
+            -i queueid          # queue id
+            -n
+            -o offset           # queue offset
+            -t topic
+           queryMsgById         # 通过id查询message
+            -d <arg>            # consumer的client id
+            -g <arg>            # consumer group名称
+            -i <arg>            # message id
+            -n
+            -s <arg>            # 重新发送信息
+            -u <arg>            # unit name
+           queryMsgByKey        Query Message by Key
+           queryMsgByUniqueKey  Query Message by Unique key
+           queryMsgByOffset     Query Message by offset
+           printMsg             # 打印消息详细信息
+            -b begintimestamp   # currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS
+            -e endtimestamp     
+            -c charset          # eg: UTF-8, GBK
+            -d printbody        # body
+            -s subexpression    # Subscribe Expression(eg: TagA||TagB)
+            -t topic
+
+           printMsgByQueue      Print Message Detail
+            -a broker
+            -b begintimestamp
+            -e endtimestamp
+            -c UTF-8|GBK
+            -d printbody
+            -f calculate        # 按标签过滤, true|false(default)
+            -i queueid          # 
+            -n
+            -p <arg>            # 
+            -s <arg>
+            -t topic
+           sendMsgStatus        send msg to broker. 
+
+           brokerConsumeStats   Fetch broker consume stats data
+           producerConnection   Query producer's socket connection and client version
+           consumerConnection   Query consumer's socket connection, client version and subscription
+           consumerProgress     Query consumers's progress, speed
+           consumerStatus       Query consumer's internal data structure
+           cloneGroupOffset     clone offset from other group.
+
+          > cluster
+            clusterList          # 查看集群信息
+              -i <arg>            # 间隔显示秒数
+              -m <arg>            # 显示更多信息
+              -n
+            clusterRT            # 列出集群消息响应时间List All clusters Message Send RT
+              -a <arg>              
+              -c <arg>            # 集群名称, 默认所有集群
+              -i interval         # 间隔时间, 默认10秒
+              -m <arg>            # machine root nme.默认noname
+              -n
+              -s
+
+         updateKvConfig       # 创建或更新KV配置
+          -k <arg>            # 设置key名称
+          -v <arg>            # 设置value名称
+          -n <arg>            
+          -s <arg>            # 设置namespace
+         deleteKvConfig       # 删除KV配置
+          -k
+          -s
+         resetOffsetByTime    # 通过timestamp重置consumer offset(无需重启client)
+          -c                  # 重置c++ client offset
+          -f true|false       # 设置通过timestamp强制回滚
+          -g <arg>            # 指定consumer group
+          -s <arg>            # 设置timestamp(eg: now|currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS)
+          -t <arg>
+         updateOrderConf      # 创建/更新/删除order配置
+          -m put|get|delete   # 方式
+          -n
+          -t
+          -v <arg>            # 设置order配置(eg: brokerName1:num;brokerName2:num)
+
+         cleanExpiredCQ       # 清除broker上过期consumer queue
+          -b
+          -c
+          -n
+         cleanUnusedTopic     # 清除broker上未使用topic
+          -b
+          -c
+          -n
+         startMonitoring      # 启动监控
+          -n
+         statsAll             # topic和consumer的tps状态
+          -a                  # 只显示active topic
+          -n
+          -t
+         allocateMQ           # 分配MQ
+          -i <arg>            # ipList
+          -n 
+          -t
+
+  日志
+    nameserver日志:
+      ~/logs/rocketmqlogs
+        namesrv_default.log
+        namesrv.log
+  优化
+  安全
+  集群
+    分类:
+      - 多master模式(至少2台)
+      - 多master多slave模式(主从异步复制)(至少4台): HA采用异步复制方式, 主备有短暂消息延迟(毫秒级).Master宕机后, 消费者仍然可以从Slave消费, 而且此过程对应用透明, 不需要人工干预, 性能同多Master模式几乎一样
+      - 多master多slave模式(主从同步双写)(至少4台): HA采用同步双写方式, 即只有主备都写成功, 才向应用返回成功. 性能比异步复制模式略低(大约低10%左右)
+    部署:
+      1.nameserver集群(4台)
+        - 在每台上安装jdk
+        - 在每台上安装rocketmq
+        - 启动nameserver
+      2.部署broker集群
+        - 多master集群
+          1.在每台上更改配置文件的brokerName, 其他配置相同
+            # vim ./conf/broker.conf
+              brokerClusterName=DefaultCluster
+              brokerName=broker-a               ##### uniq
+              brokerId=0
+              brokerRole=ASYNC_MASTER
+          2.依次启动broker
+        - 异步复制的多master多slave集群
+          1.在每台上更改配置文件
+            # vim ./conf/broker.conf
+              brokerClusterName=DefaultCluster
+              brokerName=broker-a
+              brokerId=0
+              brokerRole=ASYNC_MASTER
+              ---
+              brokerClusterName=DefaultCluster
+              brokerName=broker-a
+              brokerId=1
+              brokerRole=SLAVE
+
+
+              brokerClusterName=DefaultCluster
+              brokerName=broker-b
+              brokerId=0
+              brokerRole=ASYNC_MASTER
+              ---
+              brokerClusterName=DefaultCluster
+              brokerName=broker-b
+              brokerId=1
+              brokerRole=SLAVE
+          2.依次启动broker
+        - 同步复制的多master多slave集群
+          1.在每台上更改配置文件
+            # vim ./conf/broker.conf
+              brokerClusterName=DefaultCluster
+              brokerName=broker-a
+              brokerId=0
+              brokerRole=SYNC_MASTER
+              ---
+              brokerClusterName=DefaultCluster
+              brokerName=broker-a
+              brokerId=1
+              brokerRole=SLAVE
+
+
+              brokerClusterName=DefaultCluster
+              brokerName=broker-b
+              brokerId=0
+              brokerRole=SYNC_MASTER
+              ---
+              brokerClusterName=DefaultCluster
+              brokerName=broker-b
+              brokerId=1
+              brokerRole=SLAVE
+          2.依次启动broker
+
+    DLedger: rocketmq4.5版本之后引入, 主要用于解决自动故障转移的问题, 本质上里说是自动选主的问题(通过raft协议, 节点之间通过通信就可以完成选主)
+      说明:
+        1. RocketMQ-on-DLedger Group是指一组相同名称的Broker, 至少需要3个节点, 通过Raft自动选举出一个Leader, 其余节点作为Follower, 并在Leader和Follower之间复制数据以保证高可用
+        2. RocketMQ-on-DLedger Group能自动容灾切换, 并保证数据一致
+        3. RocketMQ-on-DLedger Group是可以水平扩展的, 也可以部署任意多个RocketMQ-on-DLedger Group同时对外提供服务. 
+      部署:
+        1.部署nameserver集群(3台)
+          - 在每台上安装jdk
+          - 在每台上安装rocketmq
+          - 启动nameserver
+        2.部署DLedger集群
+          - 添加配置文件(参考conf/dledger目录下的配置文件)
+            ./conf/dledger.conf
+              brokerClusterName = RaftCluster   
+              brokerName=RaftNode00
+              listenPort=30911
+              namesrvAddr=127.0.0.1:9876
+              storePathRootDir=/tmp/rmqstore/node00
+              storePathCommitLog=/tmp/rmqstore/node00/commitlog
+              enableDLegerCommitLog=true
+              dLegerGroup=RaftNode00
+              dLegerPeers=n1-mq1:40911;n2-mq2:40911;n3-mq3:40911
+              dLegerSelfId=n1       # 另外两台为n2, n3
+              sendMessageThreadPoolNums=16
+          - 启动broker
+            # nohuep ./bin/mqbroker -c ./conf/dleger.conf &
+          - 查看集群
+            # ./bin/mqadmin clusterList -n mq1:9876           # BID为0的是Leader
+    工作流程:
+      1.启动nameserver, 等待broker, producer, consumer的连接. 相当于一个路由控制中心
+      2.broker启动, 与所有的nameserver保持长连接(即向每一台nameserver注册自身的路由信息), 定时(30s)发送心跳(包含当前broker信息(ip+port))以及存储所有的topic信息. 
+      3.broker注册成功后, nameserver集群中保存topic和broker的映射关系
+      4.收发消息前, 先创建topic, 并指定其存储的broker. 或者在发送消息时自动创建topic
+      5.producer发送消息前, 同nameserver集群中的一台(随机)建立长连接, 并定期(30s)从nameserver中获取当前要发送topic所在的master broker, 与其建立长连接, 并选择一个队列发送消息或定时发送心跳
+      6.consumer接受消息前, 同nameserver集群中的一台(随机)建立长连接, 并定期从nameserver中获取当前要订阅topic存在的所有broker, 
+        与master和slaves建立长连接, 消费消息或定时发送心跳. consumer在向master拉取消息时, master会根据拉取偏移量与最大偏移量的距离(判断是否读老消息, 产生I/O), 以及slave是否可读等因素建议下一次拉取的角色(master/slave)
+    nameserver集群: 是一个几乎无状态节点, 集群之间无任何同步信息
+    broker集群:
+      1.broker分为master和slave. master和slave的对应关系通过指定相同的brokername, 不同的brokerid来定义. brokerid=0表示为master. 非0表示slave. 
+      2.通过brokerName和
+      2.master broker接受读写访问, slave broker仅接受读访问
+      3.每个broker与nameserver集群中的所有节点建立长连接. 定时注册topic信息到所有的nameserver(只有brokerid=1的slave才会参与消息的读负载)
+    
+具体服务相关
+  概念:
+    消息模型:
+                                                         __________________________________________
+                                                         |            nameserver cluster          |
+                                      broker discovery   |                     |                  |    broker discovery
+                                                -------> | name_server1 name_server2 name_server3 | <--------
+                                                |        |________________________________________|          |
+       ________________________________         |                     ↑               ↑                      |          _______________________________
+      |         producer cluster       |  <-----|                        routing info                        |-------> |       consumer cluster        |
+      |                                |                              ↓               ↓                                |              |                |
+      | producer1 producer2 producer2  |                 ___________________________________________                   | consumer1 consumer2 consumer3 |
+      |________________________________|                 |              broker cluster             |                   |_______________________________|
+                                        <------------->  | broker master1           broker master2 | <---------------->
+                                          send message   |     ↕                         ↕         |   receive message
+                                                         | broker slave1            broker slave2  |
+                                                         |_________________________________________|
+
+    Producer: 支持分布式集群方式部署. producer通过mq的负载均衡模块选择相应的broker集群队列进行消息投递. 
+      发送方式:
+        1.同步发送: 需要broker返回确认信息
+        2.异步发送: 需要broker返回确认信息
+        3.顺序发送
+        4.单向发送: 不需要broker返回确认信息
+    Consumer: 支持分布式集群方式部署
+      消费方式:
+        后台异步消费. Consumer会从Broker拉取消息, 并将其提供给应用程序. 从应用角度而言, 提供了两种消费形式: 拉取式消费和推动式消费
+        拉取式消费: 应用主动调用consumer的拉消息方法从broker拉取消息. 
+        推动式消费: broker收到消息后会主动推送给消费端
+    Broker: 负责消息的存储, 中转, 转发和查询. 且存储消息相关的元数据(消费者组, 消费进度偏移, 主题和队列消息等)
+      子模块:
+        1.remoting module: 负责处理来自client的请求
+        2.client manager: 负责管理客户端(producer/consumer)和维护consumer的topic订阅信息
+        3.store service: 提供简洁的API接口处理消息存储到磁盘和查询功能
+        4.HA service: 高可用服务, 提供master broker和slave broker之间的数据同步功能
+        5.index service: 根据特定的message key对投递到broker的消息进行索引服务, 以提供消息的快速查询
+    消息模式:
+      1.集群消费(clustering): 集群消费模式下, 相同Consumer Group的每个Consumer实例平均分摊消息. 
+      2.广播消费(broadcasting): 广播消费模式下, 相同Consumer Group的每个Consumer实例都接收全量的消息. 
+
+    普通顺序消息: 普通顺序消费模式下, 消费者通过同一个消费队列收到的消息是有顺序的, 不同消息队列收到的消息则可能是无顺序的. 
+    严格顺序消息: 严格顺序消息模式下, 消费者收到的所有消息均是有顺序的. 
+
+    顺序消息:
+      全局顺序消息: 某个topic下所有消息按照严格的FIFO顺序进行发布和消费. 
+      分区顺序消息: 某个topic下所有消息根据sharding key进行区块分区. 同一个分区内的消息按照严格的FIFO顺序进行发布和消费
+
+    消息过滤:
+      consumer可以根据Tag进行消息过滤(在broker端实现), 也支持自定义属性过滤. 
+
+    回溯消费: Broker在向Consumer投递成功消息后, 消息仍然需要保留. 并且重新消费一般是按照时间维度(时间维度可精确到毫秒)
+    事务消息: 应用本地事务和发送消息操作可以被定义到全局事务中, 要么同时成功, 要么同时失败
+      
+    定时消息: 消息发送到broker后, 不会立即被消费, 会暂存在名为SCHEDULE_TOPIC_XXXX的topic中, 等待特定时间投递给真正的topic.
+    消息重试: Consumer消费消息失败后, 要提供一种重试机制. 会为每个consumer group设置一个Topic名称为"%RETRY%+consumerGroup"的重试队列(针对整个消费组)
+      rocketmq将重试消息的处理是先保存到topic名为"SCHEDULE_TOPIC_XXXX"的延迟队列中, 后台定时任务按照对应的时间进行delay后重新保存至"%RETRY%+consumerGroup"的重试队列中
+    消息重投: 
+
+    同步消息会重投, 异步消息会重试
+
+    流量控制:
+    死信队列: 用于处理无法被正常消费的消息. 当一条消息初次消费失败, 消息队列会自动进行消息重试；达到最大重试次数后, 若消费依然失败则将其发送到该消费者对应的死信队列中
+      可通过console对死信队列中的消息进行重发
+
+    message: RocketMQ中每个消息拥有唯一的Message ID, 且可以携带具有业务标识的Key. 系统提供了通过Message ID和Key查询消息的功能
+    tag: 为消息设置的标志, 用于同一主题下区分不同类型的消息. 来自同一业务单元的消息, 可以根据不同业务目的在同一主题下设置不同标签. 标签能够有效地保持代码的清晰度和连贯性, 并优化RocketMQ提供的查询系统. 消费者可以根据Tag实现对不同子主题的不同消费逻辑, 实现更好的扩展性. 
+    topic: 一类消息的集合. 每个topic包含多条消息
+
+    name server: 简单的topic路由注册中心, 支持broker的动态注册和发现. 
+      说明: 
+        1.producer和consumer能通过name server服务查找各topic相应的broker ip列表. 
+        2.多个name server实例组成集群, 但相互独立, 没有信息交换
+        3.broker向每台nameserver注册自己的信息
+        4.NameServer通常也是集群的方式部署, 各实例间相互不进行信息通讯
+      功能:
+        1.broker管理: 接受broker集群的注册信息并保存下来作为路由信息的基本数据.然后提供心跳监测机制(监查broker是否存活)
+        2.路由信息管理: 每个nameserver将保存关于broker集群的整个路由信息和用于客户端查询的队列信息
+
+    producer group: 同一类producer的集合. 这类producer发送同一类消息并且发送逻辑一致. 若发送的是事务消息且原始生产者在发送之后崩溃, 则broker会联系同一生产者组的其他生产者示例以提交或回溯消费
+    consumer group: 同一类consumer的集合, 这类consumer消费同一类消息并且消费逻辑一致. 消费组的消费者实例必须订阅完全相同的topic, 可实现负载均衡和容错 
+
+
+    物理存储结构:
+      CommitLog: 
+        1.消息主体及元数据的存储主体. 存储producer端写入的消息主体内容. 消息内容不定长. 
+        2.单个文件大小默认1G. 文件名长度为20位, 左边补0, 剩余为起始偏移量
+        3.消息顺序写入文件, 当文件满了, 写入下一个文件
+      ConsumerQueue:
+        1.消息消费队列, 用于提高消息消费的性能
+        2.保存指定topic下的队列消息在CommitLog中的起始物理偏移量offset, 消息大小size和消息tag的hashCode
+        3.文件组织结构为store/consumequeue/{topic}/{queueId}/{fileName}, 可看成基于topic的commitlog索引文件
+        4.consumequeue的文件内容采取定长设计, 每一个条目20字节, 分别为8字节的commitlog物理偏移量, 4字节的消息长度, 8字节的tag hashcode. 
+        5.单个文件由30w个条目组成, 可以像数组一样随机访问每一个条目, 每个comsumequeue的文件大小约为5.72M
+      IndexFile:
+        1.提供一种可以通过key或时间来查询消息的方法
+        2.其文件名以创建时的时间戳命名, 固定单个文件大小为400M
+        3.一个indexFile文件可以保存2000W个索引(4字节的key hash, 8字节的commitlog offset, 4字节的timestamp, 4字节的)
+        4.indexfile的底层存储设计为在文件系统中实现hashmap结构
+
+    消息刷盘:
+      1.同步方式:
+      2.异步方式:
+
+    权限控制流程:
+      权限解析:
+        Broker端对客户端的RequestCommand请求进行解析, 拿到需要鉴权的属性字段:
+          1.AccessKey: 类似于用户名, 代指用户主体, 权限数据与之对应
+          2.Signature:客户根据SecretKey签名得到的串, 服务端再用SecretKey进行签名验证
+      权限校验:
+			  Broker端对权限的校验逻辑主要分为以下几步:
+          1.检查是否命中全局IP白名单. 如果是, 则认为校验通过. 否则走 2. 
+          2.检查是否命中用户IP白名单. 如果是, 则认为校验通过. 否则走 3.
+          3.校验签名, 校验不通过. 抛出异常; 校验通过, 则走 4. 
+          4.对用户请求所需的权限和用户所拥有的权限进行校验. 不通过, 抛出异常; 用户所需权限的校验需要注意已下内容: 
+            - 特殊的请求例如UPDATE_AND_CREATE_TOPIC等, 只能由 admin 账户进行操作 
+            - 对于某个资源, 如果有显性配置权限, 则采用配置的权限; 如果没有显性配置权限, 则采用默认的权限
+
+  内部命令

@@ -30,7 +30,7 @@
       .# setenforce 0
       .# vim /etc/my.cnf
       .# systemctl start mysqld
-      .# grep 'temporary password' /var/log/mysqld.log                     # 查找密码
+      .# grep 'temporary password' /data/mylog/mysqld.log | awk '{ print $NF}'                     # 查找密码
       .# mysql -uroot -p
         > alter user 'root'@'localhost' identified by 'DreamSoft_123';      # 更改密码
       安装包:
@@ -458,13 +458,24 @@
           group_replication_autorejoin_tries=0                            # server被group驱逐后自动尝试重新加入group的次数. 默认0, 范围0-2016
           group_replication_allow_local_lower_version_join=0              # 允许当前运行的低版本MySQL加入该组. 默认off(版本不一致会有问题)
           group_replication_auto_increment_increment=N                    # 默认7, 范围1-65536
+      X plugin
+        mysqlx=33060                                  # 值为0, 可关闭
     数据文件:
       说明:MySQL服务器会将每个数据库映射到MySQL数据目录下的一个目录中, 并将数据库中的表映射到数据库目录下的文件名
       表格式文件: .frm(表结构文件)
       MyISAM引擎: .MYD(数据文件)  .MYI(存放索引)
       Innodb引擎: 日志文件(ib_logfile0, ib_logfile1),表空间文件(ibdata1)
       服务器日志状态文件
-    进程/端口: 3306/tcp 33060(x plugin) 33061(mgr)
+    进程/端口: 
+      3306/mysqld: 用于客户端连接的经典MySQL协议
+      33060/mysqld(x plugin): 用于X协议连接
+      33061/mysqld(mgr): 用于mgr集群内部交互
+      33062/          : 专为MySQL管理连接配置的端口
+
+      6446/mysqlrouter: 客户端连接的读端口(经典协议)
+      6447/mysqlrouter: 客户端连接的写端口(经典协议)
+      64460/mysqlrouter:客户端连接的读端口(X协议)
+      64470/mysqlrouter:客户端连接的写端口(X协议)
     内存结构
       1.多线程结构(每个线程分配一段内存 Thread headlers)
       2.数据缓存(内存中有三种表(提高搜索效率): 权限表, 索引表, 表结构缓存, 查询结果缓存)
@@ -1013,7 +1024,6 @@
       6.使用sql_mode=no_engine_substitution
 
     统计信息:
-      
   安全
   集群
     切换数据目录:
@@ -1224,22 +1234,57 @@
         3.由多个server组成, 每个server可以在获得group批准后独立执行事务(只读事务不需要在group内进行协调, 可立即提交)
         4.集群数量为奇数(最少3台, 最多9台), 当正常server无法达到决策数量时会自动阻塞
         5.mgr只支持innodb引擎, 使用其它引擎可能会导致组复制出错
-      架构:
-        说明: MGR是一个MySQL插件, 它基于现有的MySQL复制基础, 利用了binlog, base_row, GTID等功能
+      架构: MGR是一个MySQL插件, 它基于现有的MySQL复制基础, 在实现事务处理, Binlog传输和持久化等操作时, 在代码逻辑中预埋了一些(Hook)钩子, Plugin可以在钩子上注册处理函数, 增加Plugin专有的功能实现
+      模块:
+        XCom: 
+          transaction message: 事务相关信息
+            - transaction_context_log_event:
+              write set: 事务更新行相关信息的hash值(Hash(库名+表名+主键字段信息))
+              gtid_executed: 已经执行过的事务gtid集合, 即事务快照版本
+            - gtid_log_event: 已经执行过的事务gtid集合
+            - log_event_group: 事务日志信息, 会更新到relay log中
+        certify模块: 冲突检测, 负责检查事务是否允许提交, 是否与其它事务存在冲突
+          certification info: certify模块的内存结构, 类似map. 用于冲突检测. 
+            key: 保存write set中提取的主键值
+            value: 保存gtid_executed事务快照版本
+      过程:
+        1.当事务在原始服务器上准备提交时, 服务器会通过Paxos模块(XCom)自动广播该事务信息(transaction message)至各个节点的XCom模块
+        2.所有节点的Xcom模块对事务信息进行投票, 若半数以上同意则达成共识. 若同时有多个事务, 则对事务之间的顺序关系也会有共识
+        3.共识信息进入各个节点的certify模块(certification info)
+        3.各节点都维护一个certification info的内存结构, 会各自进行冲突检测验证: 若transaction message中write set对应的gtid_executed(UUID_MGR) >= certification info中key对应UUID_MGR, 则检测通过, 
+          且certification info中的UUID替换为gtid_executed(若certification info中不存在其key, 则直接通过且替换), 否则冲突检测失败, 事务回滚或丢弃
+        4.若检测通过, 本地事物则直接写入binlog后提交, 远端事物则先更新到relay log(IO线程), 然后应用到binlog提交(SQL线程)
+        5.随着write set不断写入certificate info, 内存消耗会相应增大. MGR的write set清理线程会定时去清理已经在节点应用或回放事物的write set信息
       组复制服务:
-        1.group membership service: 定义哪些server在线并且加入了group(监控状态并实时更新). 该列表被称为view, group中所有server具有一致的view
-        2.failure detection service: 查看并报告哪些服务器是静默的(已死机). 从而将其驱逐出group(当某个server与其它server隔离, 则会怀疑其它所有server都已失败, 但其无法达成协议, 故怀疑没有结果, 且当该server以此种方式与group隔离时, 它无法执行任何本地事务)
-        3.fault-tolerance service: 基于Paxos算法, 在服务器之间提供分布式协调, 直接决定容错的故障数量(三台服务器可容错一台)
-        4.observability service: 可查看系统的整个状态
-      分类:
-        1.单主模式
+        group membership service: 
+          1.定义哪些server在线并且加入了group(监控状态并实时更新). 该列表被称为view, group中所有server具有一致的view
+        failure detection service: 
+          1.查看并报告哪些服务器是静默的(已死机). 从而将其驱逐出group(分布式服务)
+          2.当某个server与其它server隔离, 则会怀疑其它所有server都已失败, 但其无法达成协议, 故怀疑没有结果, 且当该server以此种方式与group隔离时, 它无法执行任何本地事务
+        fault-tolerance service: 
+          1.基于Paxos算法, 在服务器之间提供分布式协调, 直接决定容错的故障数量
+          2.容忍故障f所需要的服务器数量n: n=2*f+1
+          3.当没有可容忍的服务器时, group将阻塞
+        observability service: 
+          1.事务和元数据在组内同步使得查看组状态变得简单
+          2.可通过Performance Schema查看组复制信息
+      组复制系统变量:
+        group_replication_consistency: 组复制的一致性级别
+          EVENTUAL: RO和RW事务不等待之前的事务应用完成, 默认. 若新RO操作的数据与未完成的事务存在重叠, 则读取的数据可能不是最新的. 若新RW事务与之前未完成的事务存在冲突则会被回滚
+          BEFORE_ON_PRIMARY_FAILOVER: 在发生primary切换时, 等待新primary提交所有挤压的事务后, 新的RO和RW事务才能响应
+          BEFORE: 新事务(RO和RW)要等待先序事务在本节点提交后才执行
+          AFTER: 新事务(RW)要等待先序事务在所有节点上提交后才执行. 对RO事务无影响
+          BEFORE_AND_AFTER: 新事务(RW)等待先序事务在所有节点上提交. RO事务等待先序事务完成
+        group_replication_member_weight 
+      分类部署:
+        单主模式
           说明: 
-            1. 只有一个primary, 其它都是secondary
-            2. 自动选取primary, 只有该primary能接受更新, 其它自动设置为只读模式
+            1.只有一个primary, 其它都是secondary
+            2.自动选取primary, 只有该primary能接受更新, 其它自动设置为只读模式
           部署:
             1.安装MySQL(每台都操作)
             2. # vim /etc/my.cnf(每台都操作)
-              server_id=1               # 每台不一样 
+              server_id=1               # 唯一
               gtid_mode=on
               enforce_gtid_consistency=on
 
@@ -1258,12 +1303,12 @@
               group_replication_start_on_boot=off
               group_replication_bootstrap_group=off
 
-              group_replication_local_address="master1:33061"                               # 每台新ip
+              group_replication_local_address="master1:33061"                               # 指定本台域名
               group_replication_group_seeds="master1:33061,master2:33061,master3:33061"
 
-              binlog_checksum=none
+              # binlog_checksum=none
               group_replication_enforce_update_everywhere_checks=off
-            3.创建用户(每台都操作)
+            3.创建用户(每台都操作, replication slave权限用于分布式恢复, backup_admin权限用于clone操作)
               > set sql_log_bin=0;
               > create user repl@'%' identified with mysql_native_password by "DreamSoft@123456";
               > grant replication slave on *.* to repl@'%';
@@ -1280,10 +1325,15 @@
               > start group_replication;
             6.最终查看
               > select * from performance_schema.replication_group_members;
-        2.多主模式
+        多主模式
           说明: 
-            1. 没有成员具有特殊角色, 都是primary
-            2. 所有server都是读写模式, 即使它们是并发的
+            1.没有成员具有特殊角色, 都是primary
+            2.所有server都是读写模式, 即使它们是并发的
+            3.将由group_replication_enforce_update_everywhere_checks执行一致性检查
+              若事务在serializable隔离级别下执行, 则在组同步时其提交失败. 
+              若针对具有级联约束的外键的表执行事务, 则在组同步时提交失败
+            4.若新加入的成员版本高于group中的最低版本, 则新加入的成员将处于只读模式
+            5.不支持在多个节点上同时用ddl和dml语句操作同一对象(ddl语句不能在另一个事物内)
           部署:
             1.安装MySQL
             2. # vim /etc/my.cnf (唯一与单主模式不同)
@@ -1307,16 +1357,13 @@
               > start group_replication;
             6.最终查看
               > select * from performance_schema.replication_group_members;
-          注:
-            1.将由group_replication_enforce_update_everywhere_checks执行一致性检查: 1, 若事务在serializable隔离级别下执行, 则在组同步时其提交失败. 2, 若针对具有级联约束的外键的表执行事务, 则在组同步时提交失败
-            2.若新加入的成员版本高于group中的最低版本, 则新加入的成员将处于只读模式
       维护:
         > select * from performance_schema.replication_group_member_stats\G                 # group的每个成员同步情况
         > select * from performance_schema.replication_group_members;                       # 查看group成员
         > select * from performance_schema.replication_connection_status\G                  # 当前server中各个channel的使用情况
         > select * from performance_schema.replication_applier_status;                      # 当前server的各个channel是否启用
       组复制channel:
-        - group_replication_recovery: 用于分布式恢复阶段的复制更改
+        - group_replication_recovery: 用于分布式恢复阶段的复制更改, 也用于将节点加入group时进行同步
         - group_replication_applier: 用于应用来自group的事务
       组复制成员状态:
         online: 该成员已准备完全, 可随时连接. group已同步
@@ -1336,7 +1383,7 @@
               1.member_uuid(可用select * from performance_schema.replication_group_members查看)为新primary的uuid(可在group内任意成员上执行)
                 > select group_replication_set_as_primary("<member_uuid>")
               2.查看转换进度
-                > select event_name,  work_completed,  work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";
+                > select event_name, work_completed, work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";
               3.查看最新信息
                 > select * from performance_schema.replication_group_members;
         切换单/多主:
@@ -1348,7 +1395,6 @@
             > select group_replication_switch_to_multi_primary_mode()   # 在任意成员上执行
             > select event_name,work_completed,work_estimated from performance_schema.events_stages_current where event_name like "%stage/group_rpl%";      # 查看进度
             > select * from performance_schema.replication_group_members;
-
       数据不同步:
         说明:
           1.单主模式下切换primary, 新primary可能会有积压数据未处理
@@ -1382,7 +1428,7 @@
         5. > select group_replication_switch_to_multi_primary_mode()    # 当单主模式更改为多主模式
         6. > select group_replication_get_write_concurrency()           # 查看一个group可以并行执行的最大共识实例的数量
            > select group_replication_set_write_concurrency(N);         # 设置一个group可以并行执行的最大共识实例的数量, 范围10-200
-        7. > select group_replication_get_communication_protocol();     # 查看组复制通信协议版本
+        7. > select group_replication_get_communication_protocol();     # 查看组复制支持的最旧的通信协议版本. 以便当组成员使用不同版本的MySQL时, 使用都可以理解的通信协议
            > select group_replication_set_communication_protocol("5.7.25");                 # 设置组复制通信协议版本
     多种复制过程:
       主从异步复制: master写入binlog后异步发送数据给slave, 同时提交
@@ -1395,37 +1441,329 @@
         slave2:                                 ↘  ---> relay log ↗ (ack) ---> apply ---> binlog --- commit
         slave3:                                 ↘  ---> relay log ---> apply ---> binlog --- commit
       组复制:
-        master1:  sql ---> execute ---> certify ---> binlog ---> commit
+                                   consensus
+        node1:  sql ---> execute | --------> |  certify ---> binlog ---> commit
+        node2:                   | ↘         |  certify ---> relay log ---> apply ---> binlog ---> commit
+        node2:                   | ↘         |  certify ---> relay log ---> apply ---> binlog ---> commit
     Innodb集群:
       说明: 
-
+        1.基于MySQL Group Replication构建, 提供自动成员资格管理, 容错, 自动故障转移等
+        2.innodb集群至少用3个MySQL Server实例组成, 并提供高可用和扩展功能. 
+        3.innodb集群通常以单主模式运行, 具有一个primary(读写)和多个secondary(只读). 还可以使用多primary模式, 其中每个实例都是primary. 
       架构:
         
-                  Application        Application          Application
-                MySQL Connector    MySQL Connector      MySQL Connector
-                     |                   |                     |
-                MySql Router        MySql Router          MySql Router
+                  Application        Application          Application       
+                MySQL Connector    MySQL Connector      MySQL Connector    
+                     |                   |                     |          
+                MySql Router        MySql Router          MySql Router   
                      ↘                  ↓                    ↙ 
 
-                                 Group Replication     ←------→    MySQL Shell
+                                 Group Replication     ←-------------------→    MySQL Shell(Cluster Admin)
+                                                          MySQL X AdminAPI
 
+                  Primay Instance(R/W) 
 
+      部署:
+        1.三台安装MySQL, MySQL-shell, MySQL-router
+          # server_id唯一
+        2.三台通过MySQL-shell配置集群管理账号, 并检测是否可用于创建集群
+          # mysqlsh --py
+          > dba.configure_local_instance("root@localhost", {"password":"DreamSoft_123", "clusterAdmin":"icroot",  "clusterAdminPassword":"DreamSoft_321", "restart": True})
+        3.在db1上创建集群
+          # mysqlsh -uicroot -pDreamSoft_321 -h db1 --py
+          > cluster=dba.create_cluster("nj_cluster")
+          > cluster.add_instance("icroot@db2")
+          > cluster.add_instance("icroot@db3")
+        4.查看集群状态
+          # mysqlsh -uicroot -pDreamSoft_321 -h db1 --py --cluster
+          > cluster.status()
+        5.在每台上启动router
+          # mysqlrouter -u mysqlrouter --bootstrap icroot@db1
+          # systemctl start mysqlrouter
 
-      MySQL Router:
-        说明: 是MySQL Innodb集群的一部分, 是轻量级的中间件. 在应用程序和后端MySQL之间提供透明路由
-          1.是HA解决方案的构建块
-        安装:
-          1.配置MySQL官方源
-          2.# yum install mysql-router
+      MySQL技术:
+        MySQL Shell: MySQL的高级客户端和代码编辑器
+          说明: 
+            1.可以使用AdminAPI来操作Innodb Cluster. AdminAPI支持JavaScript和Python, 适于脚本化和自动化处理MySQL部署
+            2.连接时若未指明协议, 则首先尝试使用X协议, 若失败则尝试使用经典协议
+            3.连接后根据选择保存密码到~/.mylogin.cnf文件
+          安装:
+            .# yum install mysql-shell
+            .# mysqlsh
+          命令: 
+            外部命令:
+              # mysqlsh [option] [url]
+                option:
+                  -u user                     # 连接用户
+                  -h node                     # 连接主机
+                  -P port                     # 连接端口
+                  --password=passwd           # 连接密码
+                  -D schema                   # 连接库
+                  --database=db               # 同-D
 
-        配置:
-          说明:
-            1.bootstrapping是生成配置文件的首选方法, 会生成功能齐全的/etc/mysqlrouter/mysqlrouter.conf文件
+                  --mx                        # 使用X协议连接
+                  --mc                        # 使用经典协议连接
 
-          注:
-            1.安装mysql-router会自动安装用户mysqlrouter
-            2.为了获得最佳性能, MySQL router通常和使用它的应用程序安装在同一台主机
+                  --redirect-primary          # 直接连接集群中的primary
+                  --redirect-secondary        # 直接连接集群中的secondary
+
+                  --cluster                   # 若目标主机是innodb cluster一部分, 则设置cluster全局变量
+                  --replicaset                # 若目标主机是innodb replicaset一部分, 则设置rs全局变量
+
+                  --sql                       # 以sql模式启动, 自动选择协议
+                  --sqlc                      # 以经典协议, sql模式启动
+                  --sqlx                      # 以X协议, sql模式启动
+                  --js                        # 以js模式启动
+                  --py                        # 以Python模式启动
+                  --pym <module>
+
+                  --json[=<format>]           # 以json格式输出, 可用值为raw, pretty, off.默认pretty
+                  --table                     # 以table格式输出
+                  --tabbed                    # 以制表符分隔的方式输出
+                  -E                          # 垂直打印输出
+                  --result-format=<value>     # 指定结果格式, 可用值table, tabbed, vertical, json, ndjson, json/raw, json/arry, json/pretty
+
+                  -i                          # 使用批处理模式
+                  --force                     # 在sql批处理模式遇到错误依旧执行
+
+                  --recreate-schema           # 删除并重建指定schema
+                  --connection-timeout=ms     # 连接超时时间 
+                  -C str                      # client/Server之间是否使用压缩. 可用值"REQUIRED"/1, "PREFERRED", "DISABLED"/0, 默认使用classic协议则disabled, X协议则preferred
+                  --compression-algorithms=<list>   # 指定压缩算法(以逗号分割的列表), 可用值zstd, zlib, lz4(only X), uncompressed. 压缩协商失败不影响连接
+
+                  --import <file> <collection>      # 从json文件导入collection
+                  --import <file> <table> <col>     # 或表
+
+                  --log-level=<value>               # 记录日志级别, 必须是1-8之间的请求或[none, internal, error, warning, info, debug, debug2, debug3]
+                  --dba-log-sql[={0|1|2}]           # 记录通过AdminAPI执行的sql语句. 0: 禁用, 1: 记录除select和show以外的语句. 3: 记录所有语句
+                  --verbose[={0|1|2|3|4}]           # 
+                  --show-warnings={true|false}      # 在sql模式下自动显示warnings
+                  --column-type-info                # 在sql模式下显示列类型信息
+                  --pager=<value>                   # 
+                  --name-cache                      # 为自动完成和DevAPI启用数据库名称缓存
+                  -A                                # 为自动完成和DevAPI禁用数据库名称缓存
+                  --nw                              # 禁用wizard模式
+                  
+            内部命令: 用于修改代码编辑器的执行环境(与当前选择的语言无关)
+              \?                        # 在线帮助
+              \q                        # 退出
+              \                         # 在sql模式下,开始多行模式. 输入空行时, 将缓存并执行代码
+              \s                        # 显示当前的MySQL Shell状态
+              \js                       # 将执行模式切换为JavaScript
+              \py                       # 将执行模式切换为Python
+              \sql                      # 将执行模式切换为SQL
+              \c                        # 连接到MySQL服务器
+              \r                        # 重新连接到同一个MySQL服务器
+              \u                        # 选择数据库
+              \source | \. | source     # 执行脚本文件
+              \W                        # 显示语句生成的任何警告
+              \w                        # 不显示语句生成的任何警告
+              \history                  # 查看和编辑历史记录
+              \rehash                   # 手动更新自动完成
+              \option                   # 查询和更改MySQL Shell选项
+              \show                     # 使用提供的选项和参数运行指定的报告
+              \watch                    # 使用提供的选项和参数运行指定的报告, 并定期显示结果
+              \e                        # 打开系统编辑器编辑命令(或使用 c+x c+e)
+              \P                        # 配置MySQL Shell用于显示
+              \nopager                  # 
+              \syste | \!               # 在MySQL Shell中运行系统命令
+          MySQL AdminAPI: 由MySQL Shell提供. 可以管理MySQL实例, 进而创建innodb cluster, innodb replicasets并且集成MySQL Router
+            说明:
+              1.通过dba全局变量及其关联方法进行访问. dba变量的方法提供部署, 配置, 管理innodb cluster和innodb replicaset
+          内置全局对象: 
+            session: 在建立全局会话时可用, 代表全局会话
+            dba: 使用AdminAPI提供对innodb Cluster和innodb replicaset管理功能的访问
+              configure_instance([instance][, option])
+                instnace: 实例定义
+                option: 数据字典
+                  mycnfPath: MySQL实例的配置文件路径
+                  outputMycnfPath: 
+                  passord: 连接实例的密码
+                  clusterAdmin: 要创建的innodb集群管理员的名称
+                  clusterAdminPassword: 管理员密码
+                  interactive: 是否禁用命令执行中的交互式向导, 布尔类型
+                  restart: 目标实例是否执行远程启动, 布尔类型
+            cluster: 代表一个innodb集群. 仅在使用--cluster时才填充
+            rs: 代表innodb replicaset. 仅在使用--replicaset时才填充
+            db: 当使用X协议建立全局会话并指定默认数据库时可用, 表示该模式
+            shell: 提供对各种MySQL shell函数的访问
+            util: 提供各种MySQL shell工具
+          Session对象: MySQL shell连接MySQL实例由session对象处理
+            说明: 当创建第一个MySQL实例的连接时, 一个名为session的全局对象会被创建, 用来表示此连接. 它可以在所有的模式中使用
+            分类:
+              Session: 与使用X协议的MySQL实例进行通信. X协议提供了与MySQL实例的最佳集成
+              ClassSession: 与没有使用X协议的MySQL实例进行通信(经典协议). 该session的开发API有限, 没有X DevAPI, 没有集合处理, 不支持绑定
+        MySQL Server(组复制): 使MySQL实例提供高可用性, innodb使用一种可替代的, 易于使用的编程方式来处理组复制
+        MySQL Router:
+          说明: 是MySQL Innodb集群的一部分, 是轻量级的中间件. 在应用程序和后端MySQL之间提供透明路由
+            1.是HA解决方案的构建块. 客户端程序会连接到router发布的端口, router会根据端口传入自动将客户端连接重定向到mysql实例
+            2.为了获取最佳性能, MySQL router通常与使用它的应用程序安装在同一台主机上
+            3.不要尝试手动配置mysqlrouter, 应该使用--bootstrap选项, 可以确保mysqlrouter从元数据中获取配置
+          原理:
+            1.router在应用程序和MySQL server之间工作.
+            2.router自引导时会从innodb cluster中获取信息生成在线MySQL server的缓存列表
+            3.为保持缓存列表的更新, 元数据高速缓存组件保持与innodb cluster元数据的连接(通过查询集群的performance schema获取:
+              当innodb集群变化, MySQL server的group replicatin插件都会实时更新performance_schema表. 当router检测到mysql server无
+              法连接则尝试连接其它mysql server以获取元数据和集群状态) 
+            2.应用程序正常连接到路由器, 当程序连接到router时, router会从自身的候选池中选择合适的MySQL server连接      
+            3.之后router会在程序和mysql server之间转发所有网络流量
+          账号:
+            说明:
+              1.访问集群元数据的账号, 该用户的密码自动随机生成并存储在加密的秘钥环中, 该密码完全由router管理, 从不公开.
+              2.秘钥环位置取决于引导程序的配置, 若指定-d参数, 则存储在指定目录的run目录中. 若为系统安装则在/var/run/mysqlrouter/中
+              3.用户名规则: mysql_router_[0-9]{1, 6}_[0-9a-z]{12}. [0-9]{1, 6}: router实例id, 不能超过6位. [0-9a-z]{12}: 12位小写字符串
+            权限:
+              元数据: SELECT ON mysql_innodb_cluster_metadata.*
+              复制集: 
+                SELECT ON performance_schema.replication_group_members
+                SELECT ON performance_schema.replication_group_member_stats
+          安装: 会自动建立一个名为mysqlrouter的用户和组
+            1.配置MySQL官方源
+            2.安装
+              .# yum install mysql-router
+            3.自引导(生成配置文件)
+              .# mysqlrouter -u mysqlrouter --bootstrap icroot@db1
+            4.启动
+              .# systemctl start mysqlrouter
+          配置:
+            [DEFAULT]                                   # 一般配置
+              config_folder                             # 配置文件目录 
+              connect_timeout                           # 连接元数据超时时间, 默认30秒
+              read_timeout                              # 元数据服务器读取超时时间, 默认30秒
+              keyring_path                              # keyring文件路径
+              logging_folder=$router_basepath           # router日志目录, 日志文件名为mysqlrouter.log.为空则输出至stdout
+              master_key_path                           # master keyring文件路径
+              master-key-reader                         # 
+              master-key-reader                         # 
+              pid_file                                  # pid文件路径
+              plugin_folder                             # router插件目录
+              runtime_folder                            # runtime文件路径
+              sinks                                     # 
+              thread_stack_size                         # 分配给每个线程堆栈的内存大小, 单位kb, 默认64
+              user                                      # 运行router的用户
+              dynamic_state                             # 用于跟踪和存储active MySQL innodb集群地址的state.json文件路径
+            [routing]                                   # routing配置
+              bind_address                              # router监听地址
+              bind_port                                 # router监听端口
+              client_connect_timeout                    # 从MySQL接收数据的超时时间. 默认9
+              connect_timeout                           # 连接MySQL超时时间, 默认1秒, 范围1-65536
+              destinations                              # 以逗号分割的MySQL服务器列表或innodb集群的metadata-cache定义
+                                                        # 指定主机方式: destinations = a.example.com, b.example.com, c.example.com
+                                                        # 若服务器列表中的端口未指定, 则若protocol为classic或未设置, 则端口为3306, 若protocol为X则端口为33060
+                                                        # innodb集群元数据缓存方式: destinations=metadata-cache://mycluster/default?role=PRIMARY
+                                                        # role: 用于连接的实例类型. 可用值: PRIMARY|SECONDARY|PRIMARY_AND_SECONDARY
+                                                        # disconnect_on_promoted_to_primary: secondary节点升级为primary节点后是否关闭与其现有的客户端连接. 默认为no
+                                                        # disconnect_on_metadata_unavailable: group过载时是否关闭已存在的客户端连接, 默认no
+                                                        # 当primary降级为secondary时和节点脱离集群时, 客户端连接会断开
+              routing_strategy                          # 路由策略, 指定router如何选择MySQL. 可用值: 
+                                                        # first-available: 新连接使用distination列表中第一个可用的节点, 若其发生故障, 则使用第二个可用节点, 若此循环
+                                                        # next-available: 类似first-available, 但若其节点被标记为不可用, 则将被永远移除, 不再使用
+                                                        # round-robin: 对连接使用轮训方式
+                                                        # round-robin-with-fallback: 新连接在secondary节点中轮询, 若secondary不可用, 则在primary中轮询
+                                                        默认策略是round-robin
+              max_connect_errors                        # 最大MySQL连接失败数, 默认100.
+              max_connections                           # 分配给目标MySQL的最大连接数, 默认512. 范围1-65536
+              net_buffer_length                         # 
+              protocol                                  # 连接MySQL服务器的协议, 可选值: classic(默认)|x  
+              socket                                    # socket路径
+            [metadata_cache]                  
+              auth_cache_refresh_interval               # 两次身份验证缓存刷新尝试之间的时间. 单位秒, 默认2
+              auth_cache_ttl                            # 缓存失效超时时间
+              bootstrap_server_addresses                # 以逗号分割的元数据服务器(mysql)列表
+              cluster_type                              # AdminAPI类型. 可用值: gr(innodb cluster)|rs(innodb replicaset)
+              metadata_cluster                          # innodb cluster集群名称(通过select * from mysql_innodb_cluster_metadata.clusters;查看)
+              router_id                                 # router id
+              ssl_mode                                  # 用于连接到元数据服务器的SSL连接模式.默认FREFERRED
+              ttl                                       # 单位秒
+              use_gr_notifications                      # 组复制通知行为, 默认0(该功能须连接X协议端口)
+              user                                      # 访问MySQL元数据的用户
+            [logger]
+              destination                               # 
+              filename                                  # 日志文件名称
+              level                                     # 日志级别
+              timestamp_precision                       # 日志时间戳精度. 可用值: sec|msec|usec|nsec
+            [http_server] 
+              bind_address                              # http服务地址
+              port                                      # http端口
+              require_realm                             # [http_auth_realm]名称
+              static_folder                             # 静态文件目录
+            [http_auth_realm]
+              backend                                   # 
+              method                                    # http认证方式
+              name                                      # 
+              require                           
+            [http_auth_backend]
+              backend 
+              filename    
+            [io]
+              backend 
+              threads 
+          命令:
+            # mysqlrouter [option]
+              option:
+                -u <username>                           # 以指定用户的身份运行mysqlrouter
+                --account <account>                     # 创建访问集群元数据的账号. 设置此选项将触发密码提示, 而不管密码在秘钥环中是否可用. 在引导时不传入则不会重建现有的MySQL服务账号
+
+                --account-create <mode>                 # 指定账号创建策略, always: 仅当账号不存在时引导. never: 仅当账号存在时引导. if-not-exists: 默认, 如果存在则重用该账户, 否则创建
+                --account-host <account-host>           # 创建router上用户时的主机模式, 默认为%
+                -B <server_url>                         # 为innodb cluster引导配置(通过连接innodb集群元数据服务器获取信息以进行自我配置). 
+                                                        # 若url提供的是只读实例, 则自动连接读写实例以注册router(mysql_innodb_cluster_metadata.v2_routers)
+                                                        # 若配合文件已经存在, 则已存在的router_id将被重用, 且重新发生配置过程(现有配置全部丢弃)
+
+                --force-password-validation             # 
+                --password-retries <N>                  # 生成router的用户密码的尝试次数, 默认20
+
+                --boostrap-socket <socket_name>         # 通过socket引导配置路由
+                --conf-base-port <port>                 # 监听router端口
+                --conf-bind-address <address>           # 监听router地址, 默认0.0.0.0
+                --conf-skip-tcp                         # 是否为incoming连接禁用tcp端口
+                --conf-use-sockets                      # 是否使用socket连接
+                --connect-timeout <sec>                 # 尝试连接元数据服务器的超时时间
+                --read-timeout <sec>                    # 从元数据服务器读取的超时时间
+
+                -C <path>                               # 指定配置文件
+                -a <path>                               # 指定额外的配置文件(从-C指定的文件中读取配置文件后再读取此文件, 可用与重新配置时自定义配置)
+                --report-host <report-host>             # 主机名(未提供则从操作系统查询), 用作元数据的外部可见主机名, 应与集群节点中看到主机名匹配
+
+                --conf-use-gr-notifications             # 启用集群状态更改通知配置(use_gr_notifications), 当启用后, router被异步通知集群更改信息
+                -d <dir>                                # 指定实例目录
+                --name <name>                           # 指定router实例的名称, 默认system, 多个实例则名称须唯一
+                --pid-file <pidfile>                    # pid文件
+
+                --force                                 # 强制重新配置已存在的router实例
+                --disable-rest                          # 为router监控禁用REST web service
+                --https-port <port>                     # router监控 REST web service的https端口
+                --ssl-mode <mode>                       # 连接元数据服务器时, 在引导和正常连接时的ssl连接模式. 默认值 PREFERRED
+                --strict                                # 将账户验证失败警告升级为致命错误
+          结构:
+            目录结构:
+              /etc/mysqlrouter/mysqlrouter.conf
+              /usr/lib64/mysqlrouter          # 插件目录
+              /var/log/mysqlrouter            # 日志目录
+              /var/lib/mysqlrouter            # 数据目录
+              /run/mysqlrouter                # 运行状态目录
+            端口:
+              6446: MySQL Class协议, 用于读写(连接primary)
+              6447: MySQL Class协议, 用于只读(连接secondary)
+              64460: MySQL X协议, 用于读写(连接primary)
+              64470: MySQL X协议, 用于只读(连接secondary)
+              8443:
+          配置:
+            说明:
+              1.bootstrapping是生成配置文件的首选方法, 会生成功能齐全的/etc/mysqlrouter/mysqlrouter.conf文件
+
+      集群监控: 使用AdminAPI监控innodb集群
+        > cluster.describe()              # 获取有关innodb集群本身结构的信息
+        > cluster.status()
+        
     原理
+  文档服务功能:
+    说明:
+    X Plugin:
+      说明:
+      命令:
+        检查安装: > show plugins;
+        禁用: 在my.cnf中配置 mysqlx=off 可禁用
   内部命令
     管理:
       帮助: > help show 显示所有的show语句     
@@ -2323,8 +2661,6 @@
         在[client]下添加: default-character-set=utf8
         在[mysqld]下添加: default-character-set=utf8
         init-connect='SET NAMES utf8'
-
-
 
 MySQL三个线程:
   1.master上的binlogdump线程: 将binlog发送到slave上

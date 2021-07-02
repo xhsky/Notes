@@ -904,6 +904,8 @@ ex编辑器
     窗口大小:
       [number]ctrl+w +            窗口增加一行,若有number,增加number行
       [number]ctrl+w -            窗口减少一行,若有number,减少number行
+      [number]ctrl+w >            窗口增加一列,若有number,增加number列
+      [number]ctrl+w <            窗口减少一列,若有number,减少number列
       [height]ctrl+w _            使该窗口无限大,若有height,则为指定窗口高度
     移动窗口: 会扩展到整屏的宽度
       ctrl+w K                    向上移动窗口
@@ -915,7 +917,7 @@ ex编辑器
     :wall             # write all
     :wqall            # 保存所有文件并退出
     :qall!
-  标签页
+ g 标签页
     说明：vim标签页是容纳一系列窗口的容器.标签页可以把工作分离到不同的工作区。vim中的标签页更像是Linux中的虚拟桌面，而不是其他编辑器中的标签页
     打开：
       :tabedit filename           打开一个新标签页

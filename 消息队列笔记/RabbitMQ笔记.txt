@@ -172,7 +172,7 @@
             vm_memory_calculation_strategy = allocated    # 选择内存使用情况的策略. 可选: allocated(使用erlang内存分配统计器的统计信息. 默认). rss(使用OS RSS的内存报告), legacy(不使用). erlang(与legacy相同, 用于向下兼容)
             vm_memory_high_watermark_paging_ratio = 0.5   # 当内存使用达到vm_memory_high_watermark的0.5时, 队列开始将消息page到磁盘以释放内存. 默认0.5
             memory_monitor_interval = 2500                # 内存检查的间隔. 单位毫秒
-            #total_memory_available_override_value = 2GB  # 用于指定系统的可用内存总量. 适用于容器等获取内存值不准确的环境, 一般不适用
+            #total_memory_available_override_value = 2GB  # 用于指定系统的可用内存总量. 适用于容器等获取内存值不准确的环境, 一般不使用
             
             disk_free_limit.absolute = 50MB               # mq在存储数据分区磁盘上的可用空间限制. 当可用磁盘空间低于此限制时, 将触发流控制.可以设置为绝对值
             disk_free_limit.relative = 3.0                # 或相对于ram的总量设置
@@ -256,7 +256,7 @@
     进程/端口: 
       4369/epmd: epmd, rabbitmq节点和CLI工具使用的对等发现服务端口
       25672/beam.smp: 由Erlang分配用于节点间同CLI工具交互, 从动态范围(AMQP port+20000)分配
-      5672,5671/beam.smp: 启用或未启用TLS的AMQP 0-9-1
+      5672,5671/beam.smp: 启用或未启用TLS的AMQP 0-9-1,  client使用
       
       15672: http api客户端和rabbitmq admin交互(仅当management plugin被启用时)
       61613,61614: 若STOMP被启用
@@ -570,6 +570,11 @@
     说明: 
       组成集群前,每个rabbitmq节点都是独立的,拥有自己的元数据,并且不知道其它节点的存在.集群的第一个节点将初始元数据带入集群中,并且
       无须被告知加入.加入其它节点,需要停止Erlang节点上运行的rabbitmq应用程序,并reset其元数据.这样它们才可以被加入并获取集群的元数据
+    分类:
+      普通模式: 消息实体在其中一个节点上, 消费时同步
+        1.节点只拥有队列的结构, 当队列的消息在A节点, consumer从B节点消费, rabbimq会从A节点取出消息经过B发给consumer
+      镜像模式: 消息实体同步到所有节点上
+        1.需要高可用的队列做成镜像队列. 
     单机集群: 
       1.单机安装
       2.设置变量(避免节点名称和端口冲突)

@@ -1,58 +1,175 @@
 简介
-	时间，作者，开发语言，定义
+  时间, 作者, 开发语言, 定义
     开源数据库中间件, 支持读写分离以及分表分库, 容灾备份且可以用于多租户应用开发, 云平台基础设置.
     由java实现
-	官网: http://www.mycat.io/
-	版本
-    前身为阿里的Cobar.
-    2013年年底产生最早的Mycat版本
-	协议
+  官网: http://mycat.org.cn/
+  版本
+    前身为阿里的Cobar. 2013年年底产生最早的Mycat版本
+  协议
 适用性(优缺)
+  1.开源分布式数据库, 实现了MySQL协议的Server. 前端用户可以将其看作是一个数据库代理, 用MySQL客户端访问
+    而其后端可以用MySQL原生协议与多个MySQL服务器通信, 也可以用jdbc协议与大多数主流数据库服务通信
+  2.后端支持MySQL, SQL Server, Oracle, DB2, PostgreSQL, MongoDB等
+  3.支持读写分离, 主从切换, 分表分库, 多住户应用
 架构
-	模块
-	安装
-    0.安装MySQL
+  模块
+  安装
     1.安装jdk
     2.安装Mycat
-      .# wget -c http://dl.mycat.io/1.6.7.1/Mycat-server-1.6.7.1-release-20190213150257-linux.tar.gz
+      .# wget -c http://dl.mycat.org.cn/1.6.7.4/Mycat-server-1.6.7.4-release/Mycat-server-1.6.7.4-release-20200105164103-linux.tar.gz
       .# tar -xf 
       .# vim .bashrc
         export JAVA_HOME=/opt/jdk
         export MYCAT_HOME=/opt/mycat
         export PATH=$JAVA_HOME/bin:$MYCAT_HOME/bin:$PATH
       .# ./bin/mycat start
-	结构
-		目录结构
-			源码目录
-			安装目录
-        bin: 提供封装好的服务和shell脚本
-        catlet:
-        conf: 提供配置文件
-          server.xml: 服务器参数调整和用户授权文件
-          schema.xml: 逻辑库/表定义和分片定义的配置文件
-          rule.xml: 分片规则的配置文件
-        lib: mycat依赖的jar文件
-        logs: 日志目录
-          mycat.log: mycat日志
-          mycat.pid:
-          switch.log:
-          wrapper.log: Mycat的启动时经过warapper封装成启动脚本的, 所以有相应的日志文件
+  结构
+    目录结构
+      bin: 提供封装好的服务和shell脚本
+      catlet:
+      lib: mycat依赖的jar文件
+      conf: 提供配置文件
+        server.xml: 服务器参数调整和用户授权文件
+          <!-- system标签, 用于定义逻辑库. 可写多个schema 
+            charset: mycat字符集, 需要同mysql一致. 默认utf8
+            defaultSqlParser: 默认的解析器
+            processors: 可用线程数, 默认为系统CPU核心线程数. 影响processorBufferPool, processorBufferLocalPercent, processorExecutor, NIOProcessor
+            processorBufferChunk: 每次分配的Socket Direct Buffer大小. 默认4096b
+            processorBufferPool: 初始化时会建立一定长度的buffer池来加快读,写的效率, 减少建立buffer的时间. 默认值为bufferChunkSize*processors*1000
+            processorBufferLocalPercent: 控制分配ThreadLocalPool.默认100
+            processorExecutor: 指定NIOProcessor上共享的businessExecutor固定线程池大小
+            sequnceHandlerType: mycat全局序列的类型. 0为本地文件方式. 1为数据库方式, 2为时间戳方式, 3为分布式zk id生成器, 4为zk递增id生成
+            bindIp: mycat监听的ip地址, 默认0.0.0.0
+            serverPort: mycat服务端口, 默认8066
+            managerPort: 管理端口, 默认9066
 
-          
-        version.txt
-		进程/端口
-		编程接口
-		管理软件
-	命令
-		服务器
-		客户端
-	日志
-	优化
-	安全
-	集群
-		
+            <!-- mysql连接相关属性 -->
+            packetHeaderSize: 指定mysql协议中的报文长度. 默认4
+            maxPacketSize: 指定mysql协议可以携带最大的数据长度. 默认16M
+            idleTimeout: 空闲连接的超时时间. 默认30min, 单位毫秒
+            txIsolation: mycat连接的初始化事务隔离级别, 默认3
+            sqlExecuteTimeout: sql执行的超时时间. 默认为300秒
+            <!-- 心跳属性, 为周期性的任务, 用来异步处理>
+            processorCheckPeriod: 清理NIOProcessor上前后端空闲, 超时和关闭连接的时间间隔. 默认1秒, 单位毫秒
+            dataNodeIdleCheckPeriod: 对后端连接进行空闲, 超时检查的时间间隔. 默认300秒, 单位毫秒
+            dataNodeHeartbeatPeriod: 对后端所有读写库发起心跳的间隔时间. 默认10秒, 单位毫秒
+          -->
+            <property name="charset">utf8</property>
+            <property name="defaultSqlParser">defaultSqlParser</property>
+            <property name="processors">N</property>
+            <property name="processorBufferChunk">4096</property>
+          <!-- firewalld标签 -->
+          <!-- user标签 可写多个-->
+            <user name="user_name" defaultAccount="true">
+              <property name="password">123456</property>
+							<property name="schemas">TESTDB1,db2</property>
+							<property name="defaultSchema">TESTDB</property>
+							<property name="readOnly">true</property>
+            </user>
+        schema.xml: 逻辑库/表定义和分片定义的配置文件
+          <!-- schema标签, 用于定义逻辑库. 可写多个
+            name: 逻辑库名称
+            checkSQLschema: 将sql中表前指定的schema(name指定)去掉
+            sqlMaxLimit: 若sql未加limit语句, 则会自动加上对应的值. 若不设置该属性, 则会显示全部
+            dataNode: 用于绑定逻辑库到某个具体的database上
+          -->
+          <schema name="TESTDB" checkSQLschema="true" sqlMaxLimit="100" randomDataNode="dn1">
+            <!-- table标签. 定义逻辑表, 所有需要拆分的表都在该标签中定义
+              name: 逻辑表名称
+              dataNode: 定义逻辑表所属的dataNode(与dataNode标签中name属性值对应)
+              rule: 指定逻辑表要使用的规则名称(在rule.xml中定义, 且与tableRule标签中name属性对应)
+              ruleRequired: 是否绑定分片规则
+              primaryKey: 
+              type: 定义逻辑表的属性. 分为全局表和普通表. 值为global则为全局表, 不定义则为普通表
+              autoIncrement: 默认false. 当mysql上的表定义了auto_increment时, 设置为true则可用last_insert_id()返回主键值
+              subTables
+              needAddLimit: 默认为true, 自动加上limit 100. 
+            -->
+            <table name="t1,t2" dataNode="dn1,dn2,dn3" rule="auto-sharding-long" splitTableNames ="true"/>
+          <!-- dataNode标签. 用于定义数据节点(数据分片) 
+            name: 数据节点的名称 
+            dataHost: 指定该数据节点属于的数据库实例
+            database: 指定数据库实例上的具体物理数据库
+          -->
+						  <dataNode name="dn1" dataHost="localhost1" database="db1" />
+          <!-- dataHost标签. 定义具体的数据库实例, 读写分离配置和心跳语句
+            name: 数据库实例名称
+            maxCon: mycat每个读写实例的连接池的最大连接数
+            minCon: mycat每个读写实例的连接池的初始大小
+            balance: 读写均衡类型. 
+              "0": 不开启读写分离机制. 所有读操作都发送到可用的writeHost上. 
+              "1": 
+            writeType: 
+            dbType: 指定后端连接的数据库类型  
+            dbDriver: 连接后端数据库使用的Driver. 可选值为native和JDBC
+            switchType: 
+              "-1": 不自动切换
+              "1": 默认, 自动切换
+              "2": 基于MySQL主从状态决定是否切换(show slave status)
+              "3": 基于MySQL galary cluster的切换机制(show status like 'wsrep%')
+            tempReadHostAvailable: 默认0, 当writeHost指定的后端数据库宕机, 则writeHost绑定的所有readHost均不可用. 若设置为1, 则仍可用
+
+            heartbeat标签: 用于和后端数据库进行心跳检查的语句. 
+
+            writeHost/readHost标签: 指定读写实例
+              host: 标识实例名称
+              url: 后端实例连接地址. 若使用native连接, 则为ip:port形式. 若使用jdbc连接, 则使用jdbc:mysql://ip:port/
+              user: 用户名
+              password: 密码
+
+              weight: 在readHost中作为读节点的权重
+          -->
+            <dataHost name="localhost1" maxCon="1000" minCon="10" balance="0" writeType="0" dbType="mysql" dbDriver="native" switchType="1" slaveThreshold="100">
+							<heartbeat>select user()</heartbeat>
+							<writeHost host="hostM1" url="localhost:3306" user="root" password="123456">
+                <readHost host="hostS1" url="localhost2:3306" user="root" password="123456" />
+        rule.xml:   分片规则配置文件. 分片规则信息可单独存放为文件
+          <!-- tableRule标签, 定义表规则. 内嵌的rule标签则指定对物理表的某列拆分和使用的路由算法
+            name: 指定规则名称
+            columns: 指定要拆分的列名称
+            algorithm: 指定路由算法名称(function标签中的name)
+          -->
+            <tableRule name="rule1">
+              <rule>
+                <columns>id</columns>
+                <algorithm>func1</algorithm>
+              </rule>
+            </tableRule>
+          <!-- function标签 
+            name: 指定算法名称
+            class: 指定路由算法具体的类名称
+          -->
+						<function name="rang-long" class="io.mycat.route.function.AutoPartitionByLong">
+                <property name="mapFile">autopartition-long.txt</property>
+					  </function>
+
+        log4j2.xml: mycat日志配置文件
+      logs: 日志存放在mycat.log中. 每天轮替
+        mycat.log: mycat日志
+        mycat.pid:
+        switch.log:
+        wrapper.log: Mycat的启动时经过warapper封装成启动脚本的, 所以有相应的日志文件
+
+    进程/端口
+      8066: 服务端口
+      9066: 管理端口
+    编程接口
+    管理软件
+  命令
+    服务器
+    客户端
+  日志
+  优化
+  安全
+  集群
+    
 具体服务相关
-	概念:
-    1.拦截用户发来的SQL语句, 对其做特定分析(分片, 路由, 读写分离, 缓存等), 然后将此SQL发往后端的真实数据库, 并将返回结果做适当的处理, 最终返回给用户
-		原理
-	内部命令
+  概念:
+    Mycat概念:
+      逻辑库, 逻辑表, 分片节点(datanode), 主机节点(datahost), 分片规则(rule), 全局序列号(sequence), 多租户
+    原理
+      1.拦截用户发来的SQL语句, 对其做特定分析(分片, 路由, 读写分离, 缓存等), 然后将此SQL发往后端的真实数据库, 并将返回结果做适当的处理, 最终返回给用户
+    数据切分:
+      垂直切分: 不同表切分到不同数据库(主机)上
+      水平切分: 根据表中的逻辑关系, 将同一个表中的数据按照某种条件拆分到多台数据库(主机)上
+  内部命令
