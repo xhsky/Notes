@@ -35,7 +35,7 @@
 	模块
 	安装:
     Nginx编译安装,一般编译安装3分钟
-      .# yum install pcre-devel zlib-devel openssl-devel	
+      .# yum install pcre-devel zlib-devel openssl-devel	/ apt install libpcre3-dev libssl-dev zlib1g-dev
       .# tar -xvf nginx-version.tgz -C /opt/
       .# cd /opt/nginx-verson
       .# useradd -r nginx

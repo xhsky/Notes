@@ -640,7 +640,7 @@
     2.处理器：核心多时钟频率低的CPU比核心少时钟频率高的CPU更适合
     3.建议使用turbo boos和超线程技术
     4.在生产环境中建议禁止swap
-    5.clickhouse数据通常被压缩6-10倍，若数据存储在多个副本中，则最终数据量需要再乘以副本数】
+    5.clickhouse数据通常被压缩6-10倍，若数据存储在多个副本中，则最终数据量需要再乘以副本数
     6.网络：若可能，则使用10G或更高级别的网络。网络带宽影响处理大量中间数据的分布式查询和集群中的复制
   监控:
     说明: 
@@ -653,7 +653,7 @@
       2.若集群配置未指定用户，则default用户将用于分布式查询处理
       3.分布式表实际上是ck群集的本地表的一种view,来自分布式表的SELECT查询将使用所有群集分片的资源来执行。您可以为多个集群指定配置，并创建多个分布式表以提供对不同集群的视图
       4.为了在生产环境中提供弹性，建议每个分片应包含在多个数据中心之间分布的2-3个副本。ClickHouse支持无限数量的副本
-      5.replica中，新加入的副本不会自动同步原有的数据。因故障而重新恢复的副本可获取缺失的数据
+      5.replica中，新加入的副本不会自动同步原有的数据。因故障而重新恢复的副本不可获取缺失的数据
       6.使用异步多主复制技术. 当数据被写入任何一个副本后, 系统会在后台将数据分发给其它副本, 以保证系统在不同副本上保持相同的数据, 同时可实现故障恢复
     分类:
       分布式集群
@@ -664,7 +664,7 @@
           4.可以指定任意数量的shard, 每个shard可以指定任意数量的replica
           5.配置文件中的群集会即时更新，而无需重新启动服务器
           6.当向分布式表写入数据时，该表将在服务器本身之间分配插入的数据
-          7.数据是异步写入的。对于分配给表的INSERT ，数据块只写入本地文件系统。数据尽快发送到后台的远程服务器
+          7.数据是异步写入的。对于分布式表的INSERT ，数据块只写入本地文件系统。数据尽快发送到后台的远程服务器
         部署:
           1.在每个节点上安装ck
           2.每个节点设置集群配置
@@ -704,7 +704,7 @@
       多实例：
         安装：
           1. 正常单机安装
-          2. 修改配置文件(端口，目录)
+          2. 修改配置文件(端口, 目录)
           3. 启动
             .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck11/ck.pid
             .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck12/ck.pid
@@ -858,7 +858,7 @@
                   语法：
                     > create table [if not exists] [db_name.]tb_name [on Cluster cluster]()
                       engine=MergeTree()          # 引擎名称，无参数
-                      partition by part_key       # 指定分区键(必须为date类型)，默认按日期分区。若按月分区，可使用toYYYYMM(date_column)
+                      partition by part_key       # 指定分区键(必须为date类型)，默认按日期分区。若按月分区，可使用toYYYYMM(date_column), 按年分区, 可使用toYear(date_column)
                       order by key_name           # 排序键，列或元祖
                       primary key key_name        # 主键(若其不同于order by)。默认与order by指定键相同，故不必单独指定该语句
                       sample by expr              # 采样的表达式.如果使用采样表达式则主键中必须包含该表达式
@@ -981,9 +981,6 @@
                   物理文件：
                     data.bin: 数据文件
                     index.mrk: 带有标记的文件，标记包含每个插入的数据块的每一列的偏移量
-                    
-                    
-                    
                 3.Log
                   说明： 
                     1.支持并行读取数据

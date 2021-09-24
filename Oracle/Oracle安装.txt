@@ -61,7 +61,7 @@
 7.解压开始安装(在客户端输入ip:5901和密码登录图形化)
   $ unzip "linux-oracle11g 11.2.0.4-update-install-1.zip" -d /data/database
   $ unzip "linux-oracle11g 11.2.0.4-update-install-2.zip" -d /data/database
-  $ cd /data/database/dtabase/
+  $ cd /data/database/database/
   $ export LANG=C
   $ ./runInstaller -jreLoc /etc/alternatives/jre_1.8.0/
     图形化安装即可, 注意sid和编码
