@@ -1,0 +1,699 @@
+简介
+	时间, 作者, 开发语言, 定义
+    终端多路复用工具. 
+	官网
+	版本
+	协议
+适用性(优缺)
+架构
+	安装
+    $ apt install tmux
+	结构
+		目录结构
+      配置文件: ~/.tmux.conf或/etc/tmux.conf
+        tmux config的内容是tmux命令
+		进程/端口
+      tmux/None
+	命令
+    $ tmux [-2CDluvV] [-c shell-command] [-f file] [-L socket-name]
+      [-S socket-path] [-T features] [command [flags]]
+      -2        强制tmux支持终端256色. 等同于-T 256
+      -C        以control模式启动, -CC禁用echo
+      -c shell-command        使用默认shell执行shell-command. 
+      -D        不以daemon方式启动tmux
+      -f file   指定可选配置文件. 默认@SYSCONFDIR@/tmux.conf. 若不存在, 则寻找~/.tmux.conf
+                tmux会在创建的第一个session中显示来自配置文件的错误并继续处理配置文件的其余部分
+      -L socket-name          tmux在TMUX_TMPDIR或/tmp下存储server socket. 默认socket名称为default
+                              该选项允许多个tmux服务运行(通过指定不同的socket)
+      -S socket-path          指定一个socket路径. 默认为tmux-<uid>目录下
+      -u        utf-8输出, 等同于-T UTF-8
+      -T features             设置客户端终端特性, 多个以逗号分割
+      -v        详细日志记录. 文件在当前目录的tmux-client-<PID>.log和tmux-server-<PID>.log
+      -V        显示版本
+      command [flags]         指定控制命令. 若无则默认为new-session
+        clients and sessions:
+          attach-session [-dErx] [-c work-dir] [-f flags] [-t target-session]     # attched一个session
+            -d              其它attached此session的client都将被detach
+            -x
+            -f flags:       逗号分隔的client标志
+              active-pane     该client有一个独立的活动pane 
+              ignore-size     该client不影响其它客户端的大小
+              no-output       该client不接收pane输出
+              read-only       只读模式
+          detach-client args              # detach client(detach)
+            -t target-client              # 指定client
+            -s target-session             # detach所有attach到指定session的client
+            -a                            # 除了-t指定的client外其余全部kill
+          has-session [-t session]        # 判断session是否存在
+          kill-server                     # kill server和client. 并且摧毁所有session
+          kill-session args               # kill session
+            -t session                    # kill指定session
+            -a                            # kill除了-t指定的session外的所有session
+          list-clients                    # 列出所有clients(lsc)
+            -t session                    # 只列出连接该session的client
+          list-commands [command]         # 列出命令语法(lscm)
+          list-sessions                   # 列出所有session(ls)
+          lock-client [-t client]         # 锁定client
+          lock-session [-t session]       # 锁定所有session
+          new-session                     # 创建一个新session(new)
+            -n window-name                # 指定第一个window名称
+            -s session-name               # 指定session名称
+            -f flags
+            -t group-name                 # 指定session组(同组中的session共享同一组窗口)
+          refresh-client                  # 刷新客户端
+          rename-session
+          show-messages
+          source-file
+          start-server
+          suspend-client
+          switch-client
+        windows and panes
+          copy-mode                         # 进入copy mode
+          break-pane                        # 将src-pane从当前window中分离出来, 使其成为一个新window
+            -a/-b                           # 将pane移动到上一个/下一个索引window
+            -d                              # 新window不会变成当前window
+            -P                              # 打印新window信息. 默认#{session_name}:#{window_index}.#{pane_index}
+            -F format                       # 指定新window打印的信息
+            -n window-name            
+          capture-pane                      # 捕获pane内容(静态)
+            -p                              # 内容输出到stdout, 否则存储到buffer
+            -b buffer-name                  # 内容存储到命名buffer
+            -a                              # 使用备用screen
+            -e                              # 输出文本和包括背景属性的转义序列
+            -C                              # 将不可打印的字符转为八进制
+            -N                              # 保留每行行尾的保留空格
+            -J                              # 保留行尾空格并连接换行的行
+            -P                              # 仅捕获pane接收的输出
+            -S start-line                   # 指定开始行 
+            -E end-line                     # 指定结束行
+            -t pane
+          choose-client                     # 交互式选择client
+            -Z                              # 缩放pane
+          choose-tree                       # 从tree中选择session, window, pane
+            -s                              # 以session折叠显示
+            -w                              # 以window折叠显示
+            -Z                              # 缩放pane
+          customize-mode                    # 自定义模式
+            -Z                              # 缩放pane
+          display-panes                     # 显示pane
+            -d N                            # 持续时间, 为指定使用display-panes-time 0则表示需要按键
+            -b
+          find-window                       # 在window名称、标题、可见内容(默认CNT)中查询一个内容模式匹配
+            -Z                              # 缩放pane
+            -r                              # 使用正则匹配
+            -C                              # 仅匹配可见window内容
+            -N                              # 仅匹配window名称
+            -T                              # 仅匹配window title
+            -i                              # 忽略大小写
+          join-pane                         # 将其它pane变成当前窗口的pane
+            -b                              # 将src-pane放到dst-pane的左侧/上方
+            -s src-pane                     # 需要转变的pane. 若无则使用被标记的pane
+            -t dst-pane                     
+          move-pane                         # 将src-pane移动到dst-pane的下面(同join-pane)
+            -b
+            -s src-pane
+            -t dst-pane
+          select-pane                       # 选择pane
+            -U,-D,-L,-R                     # 上, 下, 左, 右
+            -Z                              # 保持缩放
+            -m/-M                           # pane标记/取消. 标记的pane是join-pane/move-pane/swap-pane/swap-window的默认src
+            -e/-d                           # 启用/禁用pane的输入
+            -T title                        # 设置pane title
+            -l                              # 使用last-pane
+          kill-pane                         # 摧毁当前pane
+            -a                              # 摧毁所有pane(除-t指定pane)
+            -t pane
+          kill-window                       # kill当前window
+            -a
+            -t window
+          last-pane                         # 返回上次选择的pane
+            -Z                              # 保持上次的缩放
+            -e/-d                           # 启用或禁用last pane的输入
+          last-window                       # 返回上次选择的window
+            -t session                      
+          link-window                       # 连接窗口
+              -s src-window                 # 将src-window连接到 -
+              -t dst-window                 # dst-window(需要不存在)
+          unlink-window
+            -k
+          list-panes                        # 列出当前window的panes
+            -a                              # 列出server上的所有panes
+            -s                              # 列出当前session的panes
+          list-windows
+            -a                              # 列出server上的所有windows
+            -t session
+          move-window                       # 移动window(更改index)
+            -s src-window
+            -t dst-window
+          new-window                        # 创建一个新window
+            -a/-b                           # 新window创建在后/前的window
+            -d                              # 新window不会变成当前window
+            -t window                       # 指定新window
+            -k                              # 若新window存在则摧毁
+            shell-command                   # 要执行的命令. 命令结束则window关闭
+            -c dir                          # 进入目录
+            -e var=value                    # 为新窗口设置环境变量
+          select-window                     # 选择window
+            -l/-n/-p                        # 等同于last-window/next-window/previous-window
+          split-window                      # 通过拆分pane创一个新pane
+            -h                              # 水平拆分
+            -v                              # 垂直拆分(默认)
+            -f                              # 创建一个跨越整个窗口高度(-h)/宽度(-v)的新pane
+            -l size                         # 新pane大小
+            -Z                              # 保持缩放
+            -b                              # 左侧/上方创建新pane
+            -c dir                          # 新工作目录
+            shell-command                   # command
+          rename-window new-name            # 重新命名当前window
+          next-layout                       # 依次重新布局panes
+          previous-layout                   # 
+          select-layout                     # 为window选择特定的布局
+            -n/-p                           # 相当于next-layout/previous-layout
+            -E                              # 将当前pane和它旁边的pane均匀分布
+            -o                              # 应用最后的布局
+          next-window                       # 移动到下一个window
+            -a                              # 移动到下一个带有alert的window
+          previous-window                   #
+            -a
+          pipe-pane
+
+          swap-pane                         # 交换两个pane(默认交换marked pane)
+            -U                              # 与上一个index pane交换
+            -D                              # 与下一个index pane交换
+            -d                              # 不更改活动pane
+            -Z                              # 保持缩放
+            -s src-pane
+            -t dst-pane
+          swap-window                       # 交换两个window(位置变化, 索引变化)
+            -d                              # 新window不会变成当前window
+            -s src-window
+            -d dst-window
+          resize-pane adjustment            # 调整pane大小
+            -U,-D,-L,-R                     # 上, 下, 左, 右
+            -x width, -y height             # 调整到绝对大小
+            -Z                              # pane缩放
+          resize-window                     # 调整窗口大小
+            -U,-D,-L,-R                     # 上, 下, 左, 右
+
+          respawn-pane                      #
+          respawn-window
+
+          rotate-window                     # 旋转window内的pane位置
+            -U                              # 向上旋转
+            -D                              # 向下旋转
+            -Z                              # 保持缩放
+        options
+          说明:
+            1.可以通过更改各种选项的值来定义tmux的外观和行为. 共有4中类型的opiton:
+              server options, session options, windows options, pane options
+            2. tmux有一组全局server option. 但它不适用于任何特定的window, session或pane
+            3. set-option命令用于设置或取消options, show-options用于显示options
+            4. 各个option可从上继承
+          set-option(set) [-aFgopqsuUw] [-t target-pane] option value   # 为session设置option
+            -p          # 设置pane option
+            -w          # 设置window option
+            -s          # 设置server option
+            -g          # global session or window
+            -F          # 扩展value的格式
+            -u          # 取消option
+          show-options(show)  [option]        # 显示session option
+            -p                                # 显示pane选项
+            -w                                # 显示window选项
+            -s                                # 显示server选项
+            -g                                # global session或window
+            -v                                # 只显示value不显示key
+            -H                                # 包含hooks
+            -A                                # 包含从父选项继承的选项(用星号标记)
+            -q                                # 若未设置选项, 则不反悔错误
+          server options
+            backspace key                   # 设置tmux的退格键
+            buffer-limit number             # 设置buffer的数量
+            command-alias[] name=value      # 命令的自定义数组
+            default-terminal terminal       # 在session中创建新window的默认终端. 必须为"screen", "tmux"或它们的派生词
+            copy-command shell-command      # 若不带参数使用copy-pipe复制模式命令, 则将命令传递给管道
+            escape-time time                # 在输入转义后tmux的等待时间(毫秒), 以确定它是函数还是meta key的一部分, 以确定它是函数还是meta key的一部分. 默认500毫秒
+            editor shell-command            # 设置tmux运行编辑器是的命令
+            exit-empty on|off               # tmux server在没有活动session时会退出. 默认on
+            exit-unattached on|off          # 如果启用, server会在没有attched client时退出
+            extended-keys on|off|always     # 
+            focus-events on|off             # 
+            history-file file               # 若非空, 则tmux在退出时写入历史记录并在启动时加载它 
+            message-limit number            # 为每个client设置保存的error或info数量
+            prompt-history-limit number     # 
+            set-clipboard on|external|off
+            terminal-features[] str         # 设置终端特性
+            terminal-overrides[] str
+            user-keys[] key 
+          session options
+            activity-action any|none|current|other  # 当monitor-activity为on时, 设置window的操作
+                                                    # any: 任何window的活动会在当前window导致响铃或消息(取决于visual-activity)
+                                                    # none: 忽略所有活动(monitor-activity off)
+                                                    # current: 忽略当前window以外的活动
+                                                    # other: 忽略当前window, 不忽略其它window
+            visual-activity on|off|both             # on: 显示一个信息, off:响铃, both: 显示信息并响铃
+            monitor-activity on|off                 # 监控window的活动. 有活动的window在状态行中突出显示
+            monitor-bell on|off                     # 监控window的响铃. 有响铃的window在状态行突出显示
+            visual-activity on|off|both
+            bell-action any|none|current|other      # 当monitor-bell为on时, 在window的bell上设置行为
+            monitor-silence interval                # 监控静音(非活动)window. 在interval秒内处于静默状态的window在状态行突出显示. 值为0表示禁用
+            visual-silence on|off|both
+            silence-action any|none|current|other   # 当monitor-silence打开时, 对window静默的操作
+
+            assume-paste-time milliseconds          # 若keys的输入速度超过1毫秒, 则表示它们是被黏贴而非键入, 且不会处理tmux的绑定. 0表示禁用
+            base-index index                        # 设置创建新window的索引. 默认从0开始
+
+            default-command shell-command           # 当创建新window时默认执行的命令. 默认为空
+            default-shell path                      # 指定默认shell
+            default-size 80x24                      # 当window-size设置为手动时设置新window的默认大小
+
+            destroy-unattached on|off               # on: 摧毁未attached的session
+            detach-on-destory off|on|no-detached    # on(默认): 当session被摧毁是, 其client被detach
+                                                    # off: client将被切换到剩余session中最活跃的session
+                                                    # on-detached:
+
+            display-panes-active-colour colour      # display-panes显示活动pane颜色
+            display-panes-colour colour             # display-panes显示非活动pane颜色
+            display-panes-time time                 # display-panes的显示时间
+            display-time time                       # 提示信息的持续时间
+
+            history-limit lines                     # 设置windows历史记录的最大行数
+
+            key-table key-table                     # 将默认key table设置为key-table而非root
+
+            lock-after-time seconds                 # 在非活动seconds时间后锁定session. 默认为0(不锁定)
+            lock-command shell-command              # 
+
+            message-command-style style             # 设置状态行消息命令style
+            message-style style                     # 设置状态行消息sytle
+
+            mouse on|off                            # 开启鼠标支持
+            prefix key                              # 设置前缀键. 可设置为None(无前缀键)
+            prefix2 key                             # 设置辅助前缀键. 可设置为None
+
+            renumber-windows on|off                 # 当window关闭后, 其它window自动按顺序重新编号
+
+            repeat-time time                        # 允许在指定时间内输入多个命令而无需按下前缀键.默认500(毫秒)
+            
+            set-titles on|off
+            set-titiles-string str                  # 用于设置client标题的字符串
+
+            status off|on|2|3|4|5                   # 显示或隐藏状态行或指定其高度. on高度为1
+            status-position top|bottom              # 状态行位置
+            status-format[] format                  # 用于指定状态行每行的格式
+            status-style style                      # 状态行样式
+            status-interval interval                # 每个15秒刷新一次状态行. 0为不刷新
+            status-justify left|centre|right|absolute-centre      # 设置window列表在状态行中的位置. absolute-centre:整个水平空间的中心
+            status-keys vi|emacs                    # 状态行中的键绑定样式
+            status-left str                         # 在状态行的左侧显示字符串
+            status-left-length length               # 状态行左侧最大长度. 默认10
+            status-left-style style                 # 状态行左侧样式
+            status-right str                        # 在状态行右侧显示字符串
+            status-right-length length              # 状态行右侧最大长度. 默认40
+            status-right-style style                # 状态行右侧样式
+            update-environment[] var
+            word-separators str
+          window options
+            aggressive-resize on|off
+
+            automatic-rename on|off             # 控制自动window重命名. 根据automatic-rename-format来自动重命名
+            automatic-rename-format format      # 自动window重命名的格式
+
+            clock-mode-colour colour            # 时钟颜色
+            clock-mode-style 12|24              # 时钟小时格式
+
+            main-pane-height height
+            main-pane-width width
+            other-pane-height height
+            other-pane-width width
+
+            pane-acitve-border-style style      # 设置当前活动pane border的style
+            pane-border-style style             # 非活动pane border的style
+            pane-border-format format           # 设置文本显示
+            pane-border-lines type              # 用于设置描绘边框的字符类型: 
+                                                # single, double, heavy, simple, number
+            pane-border-status off|top|bottom   # 边框状态线位置
+
+            pane-base-index index               # 设置pane索引起始
+
+            copy-mode-match-style style         # 在复制模式下设置搜索匹配的样式
+            copy-mode-mark-style style          # 在复制模式下设置包含标记的样式
+            copy-mode-current-match-style style # 
+            mode-keys vi|emacs                  # 复制模式的键绑定
+
+            mode-style style                    # 设置window模式样式
+
+            window-status-activity-style style  # 为带有活动警告的window设置状态行
+            window-status-bell-style style
+
+            window-status-format str            # window列表的格式
+            window-status-style style           # window列表的样式
+            window-status-current-format string # 当前window设置状态行格式
+            window-status-current-style style   # 当前window设置状态行样式
+            window-status-last-sytle style      # 上一个活动window的样式
+            window-status-separator str         # window列表名称之间的间隔
+
+            window-size largest|smallest|manual|lastest
+
+            wrap-search on|off
+          pane options
+            allow-rename on|off                 # 运行pane内的程序更改window名称
+            alternate-screen on|off             # 
+            pane-colours[] colour               # 
+            remain-on-exit on|off|failed
+            synchronize-panes on|off            # 同一个window内的pane同步输入
+            window-active-style                 # 设置活动pane样式
+            window-style style                  # 设置非活动pane样式
+        key bindings
+          说明:
+            1.tmux允许将命令绑定到大多数的按键(带或不带前缀均可)
+            2.Ctrl可被表示为C-或^, Shift键可被表示为S-, Alt键可被表示为M-. 其它按键可表示
+               Up, Down, Left, Right, BSpace, BTab, DC(Delete), End, Enter, Escape, F1 to F12, 
+               Home, IC(Insert), NPage/PageDown/PgDn, PPage/PageUp/PgUp, Space and Tab
+            3. \; 可以使一个键绑定多个执行命令
+          bind-key(bind) key command arg  # 绑定key和command. 默认情况下(无-T), key绑定在前缀表中
+            -T key-table                  # 将键绑定到指定key-table中
+            -n                            # -T root的别名
+            -N str                        # 添加键注释
+            -r                            # 表示该键可能重复
+          list-keys(lsk)                  # 列出键绑定
+            -T key-table                  # 默认显示所有key-table的键. -T指定显示key-table的键
+            -N                            # 只显示root和profix key table的键
+            -P prefix-str [-1]            # 打印指定前缀的键, -1只列出第一个匹配的key
+            -a                            # 列出没有注释的key
+            key                           # 
+          send-keys(send) key ...         # 发送一个或多个键到window. 每个key是要send的键的名称, 如果key未被失败为键, 则将其作为一系列字符发送
+            -l                            # 禁用键名称查找. 将key作为utf8字符处理
+            -H                            # 期望每个key都是ascii字符的十六进制数
+            -R                            # 导致terminal被重置
+            -M                            # 传递鼠标事件
+            -X                            # 被用于发送命令到复制模式
+            -N  repeat                    # 指定重复计数
+            -F
+          send-prefix                     # 发送前缀键到window(即按该键)
+            -2                            # 次要前缀键
+          unbind-key(unbind) key          # 从key解绑命令
+            -T key-table                  # 将键绑定到指定key-table中
+            -n                            # -T root的别名
+            -a                            # 所有key绑定都被移除
+            -q                            # 防止返回错误
+        hooks
+        formats
+        styles
+          fg=colour                     # 设置前景色. colour: 
+                                        # 1) black/red/green/yellow/blue/magenta/cyan/white
+                                        # 2) brightred/brightgreen/brightyellow
+                                        # 3) colour0 to colour255   
+                                        # 4) defalut/terminal/#ffffff
+          bg=colour                     # 设置背景色
+          none                          # 不设置任何属性
+          align=left/centre/right       # 文本左/中/右对齐
+          fill=colour                   # 使用背景颜色填充可用空间
+          list=on/focus/left-marker/right-marker
+                                        # 在status-format中标记各window列表位置
+          push-default/pop-default      # 将当前颜色和属性存储为默认值
+          range=left/right/window|X     # 在status-format中标记一个range
+        global and session env
+          setenv name [value]           # 在session中设置或取消env变量.
+            -g                          # 在global中更改
+            -u                          # 取消env变量
+            -r                          # 在启动新进程之前从env中删除该变量
+            -h                          # 将变量标记为隐藏变量
+          showenv [var]                 # 显示session的env变量
+            -g                          # 显示global
+            -h                          # 显示隐藏变量
+            -t session
+        status line
+          clear-prompt-history [-T prompt-type]
+          command-prompt [template]             # 在client中打开命令提示(在tmux内部使用, 交互式进行)
+            template                            # 如果指定了template, 则被用做命令
+            -F                                  # template将扩展为一种格式
+            -I inputs
+            -p prompts                          # 命令提示
+            -t client
+            -T prompt-type
+          confirm-befor command                 # 执行命令前要求确认
+            -p prompt                           # 显示确认的信息
+            -t client 
+            -b                                  # 提示会显示在后台
+          display-menu name key command         # 在目标客户上显示菜单. 每个菜单都是由项目和括号内的快捷键组成(按快捷键则选择相应的项目)
+            -x pos -y pos                       # 指定菜单显示的位置
+            -c client
+            -t pane
+            -T title                            # 菜单名称
+            name                                # 菜单项名称
+            key                                 # 快捷键
+            command                             # 要运行的命令   
+          display-message [msg]                 # 在状态行中显示信息delay毫秒
+            -p                                  # 将信息显示在stdout
+            -d delay                            # 显示信息持续的时间. 若无则使用message-time. 值为0则等候按键
+            -N                                  # 忽略按键, 仅在delay到期后关闭
+          display-popup                         # 在client弹出一个运行shell-command的窗口
+            -E                                  # 在退出时自动关闭窗口
+            -B                                  # 不会用边框包围弹出窗口
+            -C                                  # 关闭所有弹出窗口
+            -x pos -y pos                       # 指定弹出窗口的位置
+            -w width -h height                  # 指定弹出窗口的宽度和高度(可使用百分比). 默认为终端的一半
+            -e env                              # 为弹出窗口指定环境变量, 可多次指定
+          show-prompt-history                   # 显示提示类型prompt-type的状态提示历史记录
+            -T  prompt-type
+        buffers
+          choose-buffer                         # 进入buffer模式, 可交互式选择buffer
+                                                # Enter/p: 选择buffer; C-s: 查找内容; n: 重复查找; t: [取消]标记buffer
+                                                # T: 将所有buffer取消标记; C-t: 将所有buffer标记; P: 黏贴所有标记的buffer
+                                                # d: 删除改buffer; D: 删除标记的buffer; e: 在编辑器中打开该buffer
+                                                # f: 输入一个format以过滤选项; O: 更改排序字段; r: 反向排序; v: 切换内容预览; q: 退出
+            -Z                                  # 放大pane显示
+            -N                                  # 不显示内容预览
+            -r                                  # 反转排序顺序
+            -O sort-order                       # 指定排序字段(time, name, size)
+            -K key-format                       # 指定每个快捷键的格式
+            -F format                           # 指定buffer显示格式
+            -f filter                           # 指定初始过滤器
+            -t target-pane
+          clear-history                         # 移除并清空指定pane的history
+            -t target-pane
+          delete-buffer                         # 删除buffer(若未指定, 则删除最近的)
+            -b buffer-name                
+          list-buffers                          # 显示全局buffers
+          load-buffer file                      # 从指定文件加载内容值buffer
+            -w
+            -b buffer-name
+            -t client
+          paste-buffer                          # 将buffer的内容插入到指定pane. buffer中的任何换行符(LF)都将替换为分割符(默认CR)
+            -d                                  # 插入同时删除该buffer
+            -s separator                        # 指定分隔符
+            -r                                  # LF不进行替换
+            -p
+            -b buffer-name
+            -t target-pane
+          save-buffer file                      # 将指定buffer内容写入文件(saveb)
+            -a                                  # 追加而非覆盖文件
+            -b buffer-name                      # 指定buffer
+          set-buffer  [data]                    # 将buffer的内容改为data(setb)
+            -a                                  # data变为追加而非覆盖
+            -w
+            -b buffer-name                      # 指定buffer名称
+            -t client                           # 指定客户端
+            -n new-buffer-name                  # buffer重命名
+          show-buffer [-b buffer-name]          # 显示指定buffer的内容(showb)
+	日志
+具体服务相关
+	概念:
+    会话(session): 
+    窗口(window):
+    面板(panel):
+      模式:
+        - 复制模式: 将window的一部分或其历史信息复制到缓冲区, 以便插入到另一个windows
+        - 查看模式: 类似复制模式. 查看绑定键产生的命令
+        - 选择模式: 允许从列表中选择一个项目(client, session, window, pane, buffer)
+    控制模式(control mode):
+      1.tmux提供了一种称为控制模式的文本界面. 允许应用程序使用简单的纯文本协议与tmux通信
+      2.可以通过tmux -C attach -t session_name来监听session中发生的事情. 可以通过编写程序来对此做出反应
+    缓冲区(buffers)
+      1.tmux维护一组命名的黏贴缓冲区. 每个缓冲区可以显式(set-buffer/load-buffer)或自动命名(buffer0001, buffer0002)
+      2.当达到缓冲区限制时, 最旧的命名缓冲区将被删除. 显式命名缓冲区不受此限制(可通过delete-buffer删除)
+      3.为每个window维护一个可配置的历史缓冲区, 默认最多保留2000行
+    状态行(status line):
+      说明:
+        1.tmux包含一个可选的状态行, 它现实在每个终端的底部
+        2.默认高度为1行, 从做左到右为: 当前session的名称, window列表, 当前window的名称, 日期
+        3.每一行都可通过status-format配置. 默认由三部分组成: 可配置的左、右部分(status-left(right), status-left(right)-length)和中间的window列表(window-status-format, window-status-current-format)
+        4.如果状态行发生变化,则会间隔一段时间自动刷新(status-interval)
+      附加到window名称的符号:
+        *     当前窗口
+        -     标记上一个窗口
+        #     窗口活动被监控并检测到活动
+        !     窗口被监控, 并且窗口中发生了铃响
+        ~     窗口在监视器静音间隔内保持静音
+        M     该窗口包含被标记的pane
+        Z     该窗口的pane被放大
+    全局和session环境:
+      1.tmux启动时, 会将env拷贝到global env中. 除此之外, 每个session都有一个session env. 当window被创建, session和global env会被合并且取session的变量
+      2.global和session环境的变量可能被标记为隐藏. 隐藏变量不会传递到新进程中, 只能被tmux本身使用
+    name和title: tmux区分name和title
+      1.session和window具有名称(标志符), pane有title
+      2.session的name由new-session或rename-session决定 
+      3.window的name由1)命令参数(new-window), 2)转义序列(allow-rename on), 3)自动重命名(活动pane中的命令)
+    style: tmux指定了各种选项来指定界面的颜色和属性, 同时也可在format选项中使用"#[]"来嵌入样式
+    鼠标支持: 默认键绑定允许使用鼠标选择和调整窗格大小,复制文本和使用状态行更改窗口
+    formats:
+      某些命令的带有格式参数的-F标志. 这是一个控制命令输出格式的字符串. 格式变量使用#{var}方式
+      变量:
+        active_window_index         # session中活动window的索引
+        alternate_on                # 
+        alternate_saved_x
+        alternate_saved_y
+        buffer_created              # buffer创建的时间
+        buffer_name                 # buffer名称
+        buffer_sample
+        buffer_size                 # 指定buffer的大小
+        client_activity             # client上次活动的时间
+        client_cell_height          # client单元格的高度
+        client_cell_width           # client单元格的宽度
+        client_control_mode         # 若client为控制模式则为1
+        client_created              # client创建的时间
+        client_flags                # client flag列表
+        client_height               # client高度
+        client_width                # client宽度
+        client_key_table            # 当前key table
+        client_last_session         # client的上一个session的名称
+        client_name                 # client名称
+        client_pid                  # client进程的pid
+        client_prefix               # 若前缀键被按则显示1
+        client_readonly             # 若client只读则显示1
+        client_session              # session名称
+        client_termfeatures         # client的终端特性
+        client_termname             # client的终端名称
+        client_termtype             # client的终端类型
+        client_utf8                 # 若client支持utf8则显示1
+        client_written              # client写入的字节 
+        command
+        command_list_alias
+        command_list_name
+        command_list_usage
+        config_file                 # 配置文件
+        current_file
+        copy_cursor_line
+        copy_cursor_word
+        copy_cursor_x
+        copy_cursor_y
+        cursor_character
+        cursor_flag
+        cursor_x
+        cursor_y
+        history_bytes
+        history_limit
+        hook
+        hook_client
+        hook_pane
+        hook_session
+        hook_session_name
+        hook_window
+        hook_window_name
+        host  #H                      # 本地主机名
+        host_short #h                 # 本地主机名
+        insert_flag         
+        keypad_cursor_flag
+        keypad_flag
+        last_window_index             # 上一个window索引
+        line
+        origin_flag
+        pane_active                   # 活动pane则1
+        pane_at_bottom                # pane在window底部则1
+        pane_at_left                  # pane在window左侧则1
+        pane_at_right                 
+        pane_at_top
+        pane_bg                       # pane背景颜色
+        pang_fg                       # pang前景颜色
+        pane_bottom                   # pane底部
+        pane_current_command          # pane当前命令
+        pane_current_path             # pane当前路径
+        pane_dead                     # 若pane dead则1
+        pane_dead_status
+        pane_format
+        pane_height
+        pane_left
+        pane_id #D                    # pane id
+        pane_in_mode                  # 
+        pane_index                    # pane index
+        pane_input_off                # pane禁用输入则1
+        pane_last                     # 
+        pane_marked                   # pane被标记则1
+        pane_marked_set
+        pane_mode                     # pane mode名称
+        pane_path
+        pane_pid
+    HOOKS:
+      tmux允许命令在各种触发器上运行, 称为hooks. 大多数tmux命令都有一个after的hook, 且有许多与命令无关的hook
+    结对编程
+      共享账号结对编程
+        1.在同一台服务器上登录同一个账号
+        2.A创建一个新session
+          $ tmux new -s code
+        3.B附加到这个会话中
+          $ tmux attach -t code
+	内部命令
+    默认键绑定: 
+      说明:
+        1. tmux可以从附加的客户端通过使用前缀的组合键进行控制. 默认C+b, 后跟一个命令键
+        2. 可以使用bind-key和unbind-key命令更改键绑定
+        3. prefix key table(按下前缀表中的键后再按绑定键), root table(无需按前缀键, 直接按绑定键)
+      全局:
+        C-b           发送前缀键
+        C-z           暂停tmux客户端
+        ~             显示来自tmux的先前消息
+        :             输入tmux命令
+        ?             列出所有绑定键
+        D             detach选择的客户端
+        d             将当前客户端detach
+        L             将连接的客户端切换会上一个会话
+        r             强制重绘attached的client
+      缓冲区:
+        [             进入copy模式来拷贝文本或查看历史
+        ]             黏贴最近的文本buffer
+        #             列出所有的黏贴缓冲        
+        -             删除最近拷贝的文本缓存
+        =             从列表中选择要交互式黏贴的缓冲区
+      session:
+        $             重命名当前session
+        (             切换到上一个session
+        )             切换到下一个session
+        f             查找文本
+        s             交互式选择一个新session以attached
+        w             交互式选择一个新window
+      windows:
+        &             kill当前window
+        '             提示选择窗口索引
+        ,             重命名当前window
+        .             更改window索引
+        0-9           选择0-9索引的window
+        c             创建一个新window
+        l             移动到上一个选择的window
+        p             切换到上一个window
+        n             切换到下一个window
+        M-1到M-5      以5种预设布局之一排列pane
+        space         按M-1到M-5顺序排列pane
+        M-n
+        M-p           
+      pane:
+        C-o           在当前window向前循环pane
+        M-o           在当前window向后循环pane
+        {             将当前pane与上一个pane交换
+        }             将当前pane与下一个pane交换
+        !             将当前pane变为window
+        "             将当前pane变为上下两个
+        %             将当前pane变为左右两个
+        ;             移动到上一个活动pane
+        i             显示当前pane的一些信息
+        m             标记当前pane
+        M             清除标记的pane
+        o             切换下一个pane
+        q             显示当前window中pane的索引
+        t             显示时间
+        x             kill当前pane
+        z             切换当前pane的缩放状态
+        C-Up, C-Down
+        C-Left, C-Right 以1个单元格为单位调整当前pane的大小
+        M-Up, M-Down
+        M-Left, M-Right 以5个单元格为单位调整当前pane的大小
+

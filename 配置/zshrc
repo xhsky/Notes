@@ -4,6 +4,8 @@
 export PATH=/opt/go/bin:$PATH
 export GOPATH=/opt/gopath
 
+export PATH=/opt/tmux3_2/bin:$PATH
+
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
 
