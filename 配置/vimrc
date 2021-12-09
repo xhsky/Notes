@@ -108,6 +108,9 @@ set sidescroll=20
 
 set modelines=10
 
+" colorscheme morning
+
+
 " Automatic Completion
 noremap! ( ()<left>
 noremap! [ []<left>
@@ -153,6 +156,10 @@ nnoremap <F3> <Esc>:set expandtab<CR>:%retab<CR>
 nnoremap <F4> <Esc>:set foldlevel=100<CR>
 nnoremap <F5> o<Esc>:set paste<CR>i
 nnoremap <F6> <Esc>:set nopaste<CR>
+
+" 切换选项卡(缩放)
+noremap tt :tab split<CR>
+noremap tc :tabc<CR>
 
 
 " Completion display

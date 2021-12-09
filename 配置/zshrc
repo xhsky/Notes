@@ -75,6 +75,7 @@ plugins=(
   extract
   z
   vi-mode
+  tmux
   web-search
 )
 
@@ -122,6 +123,7 @@ alias automount_dev_arm="sshfs -o nonempty,reconnect,allow_other -p 22 dev_arm:/
 #alias proxy="export ALL_PROXY='socks5://127.0.0.1:1080'"
 alias chrome_proxy='google-chrome -user-data-dir="/home/sky/.google-chrome/proxy" --proxy-server=socks5://127.0.0.1:1080 &'
 #alias chrome='google-chrome -user-data-dir="/home/sky/.google-chrome/noproxy" &'
+alias weather="curl wttr.in\?lang=zh"
 
 # 配置direnv
 eval "$(direnv hook zsh)"

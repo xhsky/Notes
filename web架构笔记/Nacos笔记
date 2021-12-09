@@ -152,6 +152,8 @@
         4.1 使用内置数据源方式启动: # ./bin/startup.sh -p embedded
         4.2 使用外置数据源方式启动: # ./bin/startup.sh
       5.安装nginx代理后端nacos
+      6.查看集群:
+        # curl -X GET '127.0.0.1:9050/nacos/v1/ns/operator/servers'
     多集群模式:
 具体服务相关
 	概念:
