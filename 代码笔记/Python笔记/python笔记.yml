@@ -58,7 +58,7 @@
 			源码编译：	10分钟
 				python
 					# yum install readline-devel zlib-devel bzip2-devel xz-devel openssl-devel ncurses-devel libffi-devel sqlite-devel tcl-devel tk-devel	xz-devel
-          # apt-get install libc6-dev zlib1g-dev libssl-dev libbz2-dev libreadline-dev libffi-dev libsqlite3-dev tcl-dev tk-dev liblzma-dev
+          # apt-get install libc6-dev zlib1g-dev libssl-dev libbz2-dev libreadline-dev libffi-dev libsqlite3-dev tcl-dev tk-dev liblzma-dev libncurses-dev
 					# wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
 					# tar -xf Python-3.7.11.tar.xz
 					# cd Python-3.7.1
