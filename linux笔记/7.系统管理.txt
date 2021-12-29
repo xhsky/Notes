@@ -1327,10 +1327,37 @@ Cache(Page Cache)以页面形式缓存了文件系统的文件，给需要使用
 	查看内存
 		# free [-t|-b|-m|-g] -t
 			-t：显示出物理内存和swap的总量
+
+      total: 已安装的总内存(MemTotal/SwapTotal in /proc/meminfo)
+      used: total-free-buffers-cache
+      free: 未使用的内存(MemFree and SwapFree in /proc/meminfo)
+      shared: 被tmpfs使用的内存(Shmem in /proc/meminfo)
+      buffers: 被内核buffers使用的内存(Buffers in /proc/meminfo)
+      cache: 被page cache和slabs使用的内存(Cached and SReclaimable/Slab in /proc/meminfo)
+      buff/cache: buffers和cache的总和
+      available: 无需swap, 估计有多少内存可用于启动新程序(MemAvailable in /proc/meminfo)
+
+      total= used + free + buffer + cache
+      cache= page cache + slabs
+      slabs=recl slab + unrecl slab
+      page cache=memory segment + tmpfs + ramfs + *
+      total= used + free + buffer + page cache + slabs
+      available= free + buffer + cache(可回收部分)
+      available= free + buffer + reclaimable slab + page cache(可回收部分)
+
 		
-			buffers：缓冲
-			cache：缓存
-			第二行：显示的是减去缓存和缓冲的量
+			buffers：缓冲 cache：缓存
+          
+          程序
+          ↑
+           | read  
+           |        write
+        page cahce ------> buffer cahce
+          ↑                   |
+           | read             |
+         磁盘    <---- write--|
+              
+
 	系统信息
 		# uname -a
 	启动时间与负载

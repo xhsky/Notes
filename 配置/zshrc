@@ -114,7 +114,7 @@ source $ZSH/oh-my-zsh.sh
 alias rm="mv -f --target-directory=/tmp/"
 #alias automount="sshfs -o nonempty,reconnect,allow_other -p 22 root@192.168.1.97:/code/autodep/ /mnt/autodep/; cd /mnt/autodep"
 #alias automount="sshfs -o nonempty,reconnect,allow_other -p 22 node1:/abc/ /mnt/autodep/; cd /mnt/autodep"
-alias automount1="sshfs -o nonempty,reconnect,allow_other -p 22 dep1:/root/autodep /mnt/autodep/; cd /mnt/autodep"
+alias automount1="sshfs -o nonempty,reconnect,allow_other -p 22 dev:/code/ /mnt/soft; cd /mnt/soft"
 alias automount_dev="sshfs -o nonempty,reconnect,allow_other -p 22 dev:/code/ /mnt/code/; cd /mnt/code"
 alias automount_prod="sshfs -o nonempty,reconnect,allow_other -p 22 root@192.168.0.42:/data/tybs/upload/files /mnt/prod; cd /mnt/prod"
 alias automount_dev_arm="sshfs -o nonempty,reconnect,allow_other -p 22 dev_arm:/recovery/code/ /mnt/code_arm/; cd /mnt/code_arm"

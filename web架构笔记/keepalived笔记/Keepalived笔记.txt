@@ -48,14 +48,14 @@
 						  ! 全局定义: 主要设置keepalived的通知机制和标识
 								global_defs {								      # 全局定义
 								   notification_email {						# 指定keepalived发生事件时(如切换), 
-									 1922843550@qq.com						  # 需要发送邮件到的对象, 可以有多个, 
-									 failover@firewall.loc					# 一行一个 
-									 root@localhost
+                     1922843550@qq.com						  # 需要发送邮件到的对象, 可以有多个, 
+                     failover@firewall.loc					# 一行一个 
+                     root@localhost
 								   }
 								   notification_email_from HA1_keepalived@localhsot	# 指明邮件来源
 								   smtp_server 127.0.0.1	 	 			# 指定发送邮件的smtp服务器
 								   smtp_connect_timeout 30				# 连接smtp超时时间(单位秒)
-								   router_id HA1							    # 运行keepalived的机器的一个标识
+								   router_id node							    # 运行keepalived的机器的一个标识, 默认主机名
 								   vrrp_skip_check_adv_addr
 								   vrrp_strict
 								   vrrp_garp_interval 0
@@ -79,10 +79,12 @@
 							! VRRP脚本: 定义脚本实现切换, script返回值为0时认为检测成功, 其它值都会当成检测失败(exit N). 且需要关闭selinux, 否则脚本失效
 								vrrp_script chk_run {
 									   script "/path/to/check_running.sh"	# 脚本的存放路径或直接写入命令
-									   interval 2                     	 	# 每隔多少秒运行此脚本
+									   interval 2                     	 	# 每隔多少秒运行此脚本, 默认1秒
+                     timeout 2                          # 脚本运行超时时间(被认为失败)
 									   weight -4                      		# 脚本结果导致的优先级变更(-254:254)
+                     uesr root                          # 运行script的用户
 									   fall 2                          		# 失效多少次后进行切换
-									   rise 2                          		# 
+									   rise 2                          		# 成功多少次后进行切换
 								}
 								vrrp_instance nginx{			
 									...
@@ -106,15 +108,15 @@
 
 							! VRRP实例: 开启VRRP协议, 说明VRRP的特性
 								vrrp_instance VI_1 {					# 定义实例
+									state MASTER|BACKUP					# 指定实例的初始状态. 但并不作为依据. 在两台router都启动后, 
+																		          # 马上发生竞选, 高priority的会成为Master(当优先级指定为255
+																		          # 则启动后直接变为master, 若优先级小于255, 则启动后进入backup
+																		          # 然后与其它主机竞选, 产生master)
 									use_vmac							      # 使用虚拟mac
 									vmac_xmit_base						  # 代替vmac接收/发送VRRP的网卡接口
 									
 									native_ipv6							    # ipv4和ipv6混合时, 强制使用ipv6
 									
-									state MASTER|BACKUP					# 指定实例的初始状态. 但并不作为依据. 在两台router都启动后, 
-																		          # 马上发生竞选, 高priority的会成为Master(当优先级指定为255
-																		          # 则启动后直接变为master, 若优先级小于255, 则启动后进入backup
-																		          # 然后与其它主机竞选, 产生master)
 																			
 									interface eth0						  # 实例绑定的网卡, 通知机制的网卡
 									dont_track_primary					# 忽略VRRP的interface错误(默认不设置)
@@ -126,8 +128,15 @@
 										chk_run weight 20
 									}
 									mcast_src_ip IP						  # 发送多播数据包的地址, 即通过该ip发送VRRP通告, 相当于hearthbeat的心跳端口. 默认使用interface的primary IP
+
+                  unicast_src_ip IP           # 单播IP
+                  track_src_ip                # 当src_ip不存在或被移除, 则将实例变为fault状态
+                  unicast_peer {              # 使用单播向以下地址发送adverts
+                    ip1
+                    ip2
+                    }
 									grap_master_delay 10				# 在切换到master状态后, 延迟进行gratuitous ARP请求
-									virtual_router_id 51				# 设置VRID, 相同的VRID为一个组, 范围0:255
+									virtual_router_id 51				# 设置VRID, 相同的VRID为一个组(即主备需相同), 范围0:255
 									priority 100						    # 高优先级竞选为master, 数值越大优先级越高(0:255)
 									advert_int 1						    # 心跳检查间隔(单位秒)
 									authentication {					  # 认证设置
@@ -162,9 +171,9 @@
 
 		进程结构
 			说明: keepalived启动后会有三个进程
-				1.父进程: 内存管理, 子进程管理等
-				2.子进程: VRRP子进程
-				3.子进程: healthchecker子进程
+				1.父进程(keepalived): 内存管理, 子进程管理等
+				2.子进程(keepalived): VRRP子进程
+				3.子进程(keepalived): healthchecker子进程
 			端口: 无
 	命令
 		服务器: 

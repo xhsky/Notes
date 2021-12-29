@@ -1024,6 +1024,56 @@
       6.使用sql_mode=no_engine_substitution
 
     统计信息:
+    查询计划:
+      说明: 
+        1.MySQL优化器会考虑使用许多技术来有效地执行SQL查询中涉及的查询. 可以实现在不读取所有行的情况下对大表的查询, 可以在不比较每个行组合的情况下执行涉及多个表的连接. 优化器选择执行最高查询的一组操作称为"查询执行计划", 也称explain计划
+        2.支持语句:  select, delete, insert, replace, update
+      语法: > explain sql;
+      输出:
+        id: select标识符, 用来标识操作顺序. 从大到小执行, 若id相同, 则从上往下执行. NULL是最后执行, 如合并结果集等
+        select_type: select类型
+          simple: 简单select, 未使用union或子查询
+          primary: 外层select, 主查询
+          union: union中第二个语句或后面的语句
+          dependent union: union中第二个语句或后面的语句, 独立于外部查询
+          union result: union的结果
+          subquery: 在子查询中的第一个select
+          dependent subquery: 子查询中的第一个select, 依赖于外部查询
+          derived: 派生表
+          dependent derived: 依赖于另一个表的派生表
+          materialized: 物化子查询
+          uncacheable subquery: 结果不能被缓存的子查询, 必须针对外部查询的每一行重新评估
+          uncacheable union: 属于uncacheable subquery中union中的第二个或其后的子查询
+        table: 输出行的访问的表(表别名)
+        partitions: 匹配记录的分区. NULL为非分区表
+        type: join类型, 从最好的类型到最差的类型
+          NULL: MySQL能够在优化阶段分解查询语句, 在执行阶段用不着再访问表或索引
+          system: 该表只有一行. 这是const连接类型的一个特例
+          const: 该表最多有一个匹配行(使用主键或唯一索引查询)
+          eq_ref: 查找的条件列使用了主键或唯一索引. 当首次找到值后则停止查找
+          ref: 查找的条件列使用了索引但不是主键和unique. 即使用了普通索引, 则根据索引查到第一条数据后不能停止扫描, 要在目标值附近小范围扫描
+          fulltext: 使用fulltext索引执行的
+          ref_or_null: 类似ref, 但MySQL会额外搜索包含NULL值的行
+          index_merge
+          unique_subquery
+          index_subquery
+          range: 有范围的索引扫描(eg: between ... and, <, >, in, or等). range一定是基于索引的
+          index: 全索引扫描. 先扫描索引树, 然后根据索引去表中区数据. 若Extra中为"Using index", 则使用了覆盖索引, 即无需回表, 当前索引树满足了查询需求
+          all: 全表扫描
+        possible_keys: 供选择的可能索引
+        key: 实际选择的索引
+        key_len: 所选key的长度. 长度越小, 索引效果越好. 计算(根据列类型计算): 允许为空, key_len加1, 动态列+2, utf8mb4=4, utf8=3, gbk=2
+        ref: 与索引比较的列
+        rows: 估计要检查的行
+        filtered: 按表条件过滤的行的百分比
+        Extra: 额外的信息
+          using index: 表示覆盖索引, 不需要回表操作
+          using where: 
+          using temporary: 使用临时表来存储结果集. 常见于排序和分组
+          using filesort: 无法利用索引完成的排序操作称为文件排序
+          using join buffer: 在使用join条件时没有使用索引, 需要join缓冲区来存储中间结果
+          distinct: 在select部分使用了dist关键字
+
   安全
   集群
     切换数据目录:
