@@ -10,23 +10,26 @@
 架构
   模块
   安装
-    .# 安装jdk
-    .# wget -c https://downloads.apache.org/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip
-    .# tar -xf   -C /opt/ ; ln -sv 
-    .# vim /etc/profile
+    $ 安装jdk
+    $ wget -c https://downloads.apache.org/rocketmq/4.7.1/rocketmq-all-4.7.1-bin-release.zip
+    $ tar -xf   -C /opt/ ; ln -sv 
+    $ vim /etc/profile
         export JAVA_HOME=/opt/jdk
         export ROCKETMQ_HOME=/opt/rocketmq
         export PATH=$ROCKETMQ_HOME/bin:$JAVA_HOME/bin:$PATH
-    .# cd /opt/rocketmq
-    .# vim bin/runserver.sh
-      -server -Xms1g -Xmx1g -Xmn250m
-    .# nohup ./bin/mqnamesrv -c conf/nameserver.conf &
-    .# vim bin/runbroker.sh
-      -server -Xms1g -Xmx1g -Xmn500m
-    .# nohup sh bin/mqbroker -n localhost:9876 &
+    $ cd /opt/rocketmq
 
-    .# sh bin/mqshutdown broker
-    .# sh bin/mqshutdown namesrv
+    $ vim bin/runserver.sh
+      -server -Xms1g -Xmx1g -Xmn250m
+    $ nohup ./bin/mqnamesrv -c conf/nameserver.conf &
+
+    $ vim bin/runbroker.sh
+      -server -Xms1g -Xmx1g -Xmn500m
+    $ mkdir -p /opt/rocketmq/store/{consumequeue,index,commitlog}
+    $ nohup sh bin/mqbroker -c conf/broker.conf &
+
+    $ sh bin/mqshutdown broker
+    $ sh bin/mqshutdown namesrv
   结构
     目录结构
       安装目录
@@ -239,7 +242,7 @@
             defaultGroupPerm:       # 默认的ConsumerGroup权限
             topicPerms:             # 各个topic的权限
             groupPerms:             # 各个ConsumerGroup的权限
-          dledger.conf: 自己定义
+          dledger.conf: 自定义
             brokerClusterName = RaftCluster           # 集群名称
             brokerName=RaftNode00                     # broker名称
             listenPort=30911                          # 监听端口
@@ -248,8 +251,8 @@
             storePathCommitLog=/tmp/rmqstore/node00/commitlog   # 存储commit log路径
             enableDLegerCommitLog=true                # 是否启动 DLedger 
             dLegerGroup=RaftNode00                    # DLedger Raft Group的名字, 建议和brokerName保持一致
-            dLegerPeers=n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913      # DLedger Group内各节点的端口信息, 同一个Group内的各个节点配置必须要保证一致 
-            dLegerSelfId=n0                           # 节点id, 必须属于dLegerPeers中的一个;同Group内各个节点要唯一
+            dLegerSelfId=n0                           # 节点id, 必须属于dLegerPeers中的一个;同Group内各个节点要唯一. 且值必须为n0, n1, n2...(第二个字节必须是整数, 以确定brokerid)
+            dLegerPeers=n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913      # DLedger Group内各节点的端口信息(同时也是端口定义设置), 同一个Group内的各个节点配置必须要保证一致. 格式为dLegerSelfId-ip:port
             sendMessageThreadPoolNums=16              # 发送线程个数, 建议配置成Cpu核数
         lib
     进程/端口
@@ -261,7 +264,7 @@
 
         30909
         30911
-        40911
+        40911: 用作dledger内部通信
     编程接口
     管理软件
   命令
@@ -569,17 +572,24 @@
         2.部署DLedger集群
           - 添加配置文件(参考conf/dledger目录下的配置文件)
             ./conf/dledger.conf
-              brokerClusterName = RaftCluster   
-              brokerName=RaftNode00
+              brokerClusterName = mq_cluster
+              brokerName=node
               listenPort=30911
-              namesrvAddr=127.0.0.1:9876
-              storePathRootDir=/tmp/rmqstore/node00
-              storePathCommitLog=/tmp/rmqstore/node00/commitlog
+              namesrvAddr=mq1:9876;mq2:9876;mq3:9876
+
+              storePathRootDir=/opt/rocketmq/store
+              storePathCommitLog=/opt/rocketmq/store/commitlog
+              storePathConsumerQueue=/opt/rocketmq/store/consumequeue
+              storePathIndex=/opt/rocketmq/store/index
+              mapedFileSizeCommitLog=1G
+
               enableDLegerCommitLog=true
-              dLegerGroup=RaftNode00
+              dLegerGroup=mode
               dLegerPeers=n1-mq1:40911;n2-mq2:40911;n3-mq3:40911
               dLegerSelfId=n1       # 另外两台为n2, n3
               sendMessageThreadPoolNums=16
+          - 建立dledger目录
+            # mkdir -p /opt/rocketmq/store/dledger-n3/data
           - 启动broker
             # nohuep ./bin/mqbroker -c ./conf/dleger.conf &
           - 查看集群
