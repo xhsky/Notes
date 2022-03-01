@@ -1194,7 +1194,7 @@
             5.若无记录slave从relay log执行该gtid的事务, 并记录到binlog中
           操作:
             1.在master上启用binlog并配置唯一的server_id.
-              .# vim /etc/my.cnf
+              $ vim /etc/my.cnf
                 [mysqld]
                   server_id=1
                   log_bin=/path/binlog/binlog
@@ -1208,7 +1208,7 @@
               > create user 'repl'@'%' identified with mysql_native_password by "DreamSoft@123456";
               > grant replication slave on *.* to 'repl'@'%';
             3.在每个slave上配置唯一的server_id
-              .# vim /etc/my.cnf
+              $ vim /etc/my.cnf
                 [mysqld]
                   server_id=2
                   log_bin=/path/binlog/binlog
@@ -1219,7 +1219,7 @@
                   sync_binlog=1
                   innodb_flush_log_at_trx_commit=1
             5.同步原有数据(master上数据很大或缺失binlog则需同步, 否则不需要可直接第6步):
-              # mysqldump -uroot -ppassword -B db_name -RE --triggers --master_data --set_gtid_purged=on  > db_name.sql    # 在master上执行
+              $ mysqldump -uroot -ppassword -B db_name -RE --triggers --master_data --set_gtid_purged=on  > db_name.sql    # 在master上执行
               > source ./db_name.sql                                                                  # 在slave上
             6.在slave上配置同步信息并启动同步
               > change master to master_host='ip', master_user='repl', master_password='DreamSoft@123456', master_auto_position=1;
