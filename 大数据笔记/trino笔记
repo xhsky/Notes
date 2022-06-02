@@ -1,0 +1,477 @@
+简介
+	时间, 作者, 开发语言, 定义
+    用于大数据分析的快速分布式SQL查询引擎. Facebook赞助的开源项目. 开源分布式SQL查询引擎. 使用java开发
+	官网: https://trino.io/
+	版本:
+    服务端tar包和命令行客户端jar包
+	协议
+适用性(优缺)
+  1.允许查询其所在位置的数据, 例如Hive, Cassandra, 关系数据库甚至专有数据存储
+  2.每个trino查询可以组合来自多个来源的数据, 从而允许在整个组织中进行分析
+  3.trino旨在处理和分析数据仓库: 数据分析, 聚合大量数据和生成报告
+  4.trino本身并不存储数据(只有计算能力), 但可以接入多种数据源, 并支持跨数据源的级联查询
+  5.由于是基于内存的计算, 当多张大表关联操作时易引起内存溢出错误
+架构
+	模块
+	安装
+    Trino安装
+      $ 配置java环境(官方推荐使用Azul Zulu作为Trino的JDK, 必须为11版本. https://cdn.azul.com/zulu/bin/zulu11.54.25-ca-jdk11.0.14.1-linux_x64.tar.gz)
+      $ wget -c  https://repo1.maven.org/maven2/io/trino/trino-server/377/trino-server-377.tar.gz
+      $ tar -xf trino-server-377.tar.gz; ln -sv trino-server-377 trino ; cd trino
+      $ mkdir -p etc/catalog data 
+      $ edit etc/*
+      $ 启动服务需python环境, 默认服务器均有
+      $ ./bin/launcher start/stop/restart/kill/status/run
+    Trino Cli安装
+      $ 配置java环境(无要求, 可使用jdk8版本及以上)
+      $ wget -c https://repo1.maven.org/maven2/io/trino/trino-cli/377/trino-cli-377-executable.jar
+      $ mv trino-cli-377-executable.jar trino
+      $ chmod u+x trino
+      $ ./trino --server http://coordinator:8080 
+	结构
+		目录结构
+			安装目录
+        bin
+        lib
+        plugin
+        etc       # 手动建立
+          node.properties                               # 节点属性, 特定于每个节点的环境配置
+            node.environment=production                 # 环境名称. 集群中所有presto节点必须具有相同的环境名称. 格式为仅包含小写字母, 数字, 下划线
+            node.id=                                    # 每个节点的唯一标识符. 格式为仅包含数字, 字母, -, _
+            node.data-dir=                              # 数据目录的位置, 用于存储日志和其它数据
+          jvm.config                                    # jvm的命令行选项.格式为每行一个
+						-server
+						-Xmx16G
+						-XX:-UseBiasedLocking
+						-XX:+UseG1GC
+						-XX:G1HeapRegionSize=32M
+						-XX:+ExplicitGCInvokesConcurrent
+						-XX:+ExitOnOutOfMemoryError
+						-XX:+HeapDumpOnOutOfMemoryError
+						-XX:-OmitStackTraceInFastThrow
+						-XX:ReservedCodeCacheSize=512M
+						-XX:PerMethodRecompilationCutoff=10000
+						-XX:PerBytecodeRecompilationCutoff=10000
+						-Djdk.attach.allowAttachSelf=true
+						-Djdk.nio.maxCachedBufferSize=2000000
+          config.properties                             # 配置属性. presto服务的配置
+            coordinator=true                            # 是否允许该节点充当coordinator
+            node-scheduler.include-coordinator=false    # 是否允许在coordinator上调度worker
+
+            http-server.http.port=8080                  # http端口, 用于内、外部的所有通信
+            query.max-memory=50GB                       # 一个查询可以在整个集群上使用的最大分布式内存. 当一个query在所有worker上的内存超过此现在则被kill. 默认20G
+            query.max-memory-per-node=1GB               # 一个查询在一个worker上使用的最大内存量. 默认JVM xmx * 0.3. 超过此限制则会被kill
+            discovery.uri=http://coordinator_ip:8080    # discovery服务器的uri. 通常为coordinator的http server. 且不得以/结尾
+
+            general proporites
+              join-distribution-type=AUTOMATIC          # 分布式join的类型. 默认为AUTOMATIC
+                                                        > 当设置为PARTITIONED, presto会使用hash分布式join
+                                                        > 当设置为BROADCAST, presto会将右表广播到集群中具有左表数据的所有节点
+                                                        > 当设置为AUTOMATIC, presto将根据成本决定使用哪种方式. 如果无法计算成本则使用PARTITIONED
+              redistribute-writes=true                  # 默认为true. 允许在写入之前重新分配数据
+              protocol.v1.prepared-statement-compression.length-threshold=2048             # 提交给trino进行处理的语句, 若比此属性值长, 则被压缩以通过http header, 避免超过http header大小限制失败. 默认2048, 单位字节
+              protocol.v1.prepared-statement-compression.min-gain=512                      # 
+            资源管理:
+              query.max-cpu-time=1_000_000_000d         # 这是查询可以在整个集群中使用的最大CPU时间量. 超过此限制的查询将被终止
+              query.max-memory                          # 一个查询可以在整个集群上使用的最大user内存量. 当一个query在所有worker上的内存超过此现在则被kill. 默认20G
+              query.max-total-memory                    # 一个查询可以在整个集群上使用的最大内存量, 包含revocable内存. 当一个query在所有worker上的内存超过此现在则被kill. 默认query.max-memory * 2
+              query.max-memory-per-node                 # 一个query在一个worker上可使用的最大user内存量. 默认JVM xmx * 0.3. 超过此限制则会被kill
+                                                        > user memory是在query执行期间直接被query使用或query控制的事务使用的(如hash join, agg)
+              memory.heap-headroom-per-node             # 在jvm heap中为trino预留的headroom/buffer(第三方库的内存分配, 无法被统计跟踪). 默认jvm xmx * 0.3
+              exchange.deduplication-buffer-size        # 容错执行期间用于假脱机数据的缓冲区大小. 默认32M
+            查询管理:
+              query.execution-policy=phased             # 组织查询所有阶段的处理的算法. 默认phased
+                                                        > phased: 按顺序安排stage以避免由于stage间依赖性而导致的阻塞. 此策略最大限度地提高集群资源利用率并提供最短的查询时间
+                                                        > all-at-once: 一次安排查询的所有stage. 因此, 集群资源利用率最初很高, 但stage间的依赖关系通常会阻止完全处理并导致更长的队列时间, 从而增加整体的查询时间
+                                                        > legacy-phased: 具有与phased类似的功能, 但会增加查询时间, 因为它试图最小化运行stage的数量
+              query.hash-partition-count=100            # 用于处理分布式操作的分区数, 例如连接、聚合、分区窗口函数等. 默认100
+              query.low-memory-killer.policy=           # 当集群内存不足时(OOM)选择kill query的策略. 默认为total-reservation-on-blocked-nodes
+                                                        > None: 禁止集群OOM killer任何查询
+                                                        > total-reservation: kill集群中使用最多总内存的query
+                                                        > total-reservation-on-blocked-nodes: kill worker上使用最大内存的query
+              query.max-execution-time=100d             # 集群一个query主动执行的最大允许时间, 不包含在分析, 查询计划和队列中等待时间
+              query.max-planning-time=10m               # 一个查询计划执行的最大允许时间. 超时后coordinator将尽力停止(可能不会立即终止). 默认10天
+              query.max-run-time=100d                   # 集群上一个query被处理的最大允许时间.包括分析, 计划, 排队等待的时间(即自query被创建以来允许存在的时间)
+              query.max-stage-count=100                 # 每个查询允许生成的最大阶段数. 
+              query.max-history=100                     # 保留在查询历史记录中以提供统计信息和其他信息的最大查询数. 根据age来删除
+              query.min-expire-age=15m                  # 查询在过期之前在历史记录中的最小age
+              retry-policy=NONE                         # 用于容错执行的重试策略
+                                                        > NONE: 禁用容错执行
+                                                        > TASK: 如果失败, 重试查询中的各个任务. 需要配置exchange manager
+                                                        > QUERY: 如果失败, 重试整个查询
+            spilling属性
+              spill-enabled=false                       # 是否将内存溢出到磁盘以避免内存限制, 默认为false. 
+                                                        > 当前支持聚合, join(inner和outer), sorting和window函数. 该属性不会减少其它join类型使用的内存量
+              spiller-spill-path                        # 溢出到磁盘的位置, 可以是多个逗号分割的目录, 默认为空(不建议溢出到系统盘及jvm日志盘)
+              spiller-max-used-space-threshold=0.9      # 如果给定溢出路径的磁盘空间使用率高于此阈值, 则此溢出路径不符合溢出条件. 默认为0.9
+              spiller-threads=4                         # 溢出线程数. 默认为4
+              max-spill-per-node=100GB                  # 单个节点上的所有查询要使用的最大溢出空间. 默认100GB
+              query-max-spill-per-node=100GB            # 单个节点上的单个查询要使用的最大溢出空间. 默认100GB
+              aggregation-operator-unspill-memory-limit=4MB               # 用于解除单个聚合运算符实例的内存限制. 默认4MB
+              spill-compression-enabled=false           # 为溢出到磁盘的页面启用数据压缩. 默认false. 可减少磁盘IO, 但会增加CPU负载
+              spill-encryption-enabled=false            # 使用随机生成的秘钥(每个溢出文件)来加密和解密溢出到磁盘的数据. 默认false
+            exchange属性
+              exchange.client-threads                   # exchange client用于从其它presto node获取数据的线程数. 默认25
+              exchange.concurrent-request-multiplier    # 相对于可用buffer的并发请求数的乘数. 默认3
+                                                        > 最大请求数=每个请求的平均缓冲区使用率*该乘数
+              exchange.data-integrity-verification=ABORT                                    # 当内置验证检测到数据完整性问题时
+                                                                                            > ABORT: 会导致query终止
+                                                                                            > None: 禁用校验
+                                                                                            > RETRY: 会导致重复数据交换
+              exchange.max-buffer-size=32MB             # 在处理之前, exchange client保存从其它节点获取的数据的缓冲区大小. 默认32M
+              exchange.max-response-size=16MB           # 从exchange请求返回的最大响应的大小. 默认16M
+              sink.max-buffer-size=32MB                 # 等待上游任务拉去任务数据的输出缓冲区大小. 默认32M
+              sink.max-broadcast-buffer-size=200M       # 
+            task属性
+              task.concurrency=16                       # join和聚合等并行操作的本地并发. 默认16(必须是2的幂)
+              task.http-response-threads=100            # 创建处理http响应的最大线程数. 默认100
+              task.http-timeout-threads=3               # 生成HTTP响应时用于处理超时的线程数.默认3
+              task.info-update-interval=3s              # task信息的更新频率. 默认3s. 范围1ms-10s
+              task.max-drivers-per-task=2147483647      # 控制一个task同时运行的最大driver数. 默认2147483647
+              task.max-partial-aggregation-memory=16MB  # 分布式聚合中部分聚合的最大内存量
+              task.max-worker-threads=cpus*2            # 用于处理split的worker线程数. 默认是节点CPU个数*2
+              task.min-drivers=max-worker-threads*2     #
+              task.min-drivers-per-task
+              task.writer-count                         #
+            写入分区属性
+              use-preferred-write-partitioning=true     # 启用写入分区
+              preferred-write-partitioning-min-number-of-partitions=50                      # 
+            写入缩放属性
+              scale-writers=false
+              writer-min-size=32MB
+            node调度属性
+              node-scheduler.max-splits-per-node#
+              node-scheduler.max-pending-splits-per-task#
+              node-scheduler.min-candidates#
+              node-scheduler.network-topology#
+            log属性
+              log.path=                                 # 使用的日志文件的路径. 该路径是相对于数据目录的. 由启动器脚本配置为var/log/server.log
+              log.max-history=30                        # 轮替: 日志文件最大数量
+              log.max-size=100MB                        # 轮替: 日志文件最大大小
+              http-server.log.enabled=true              # 为HTTP服务器启用日志记录
+              http-server.log.compression.enabled=true  # 启用HTTP服务器日志文件压缩
+              http-server.log.path=var/log/http-request.log                                 # HTTP服务器使用的日志文件的路径. 该路径是相对于数据目录的
+              http-server.log.max-history=15            # 轮替: http日志文件最大数量
+              http-server.log.max-size=unlimited        # HTTP服务器的日志文件的最大文件大小. 默认为无限制
+            Web UI
+              web-ui.enabled=true                       # 控制Web UI是否启用. 默认true
+              web-ui.authentication.type=form           # 允许用户访问Web UI的身份验证机制, 可选form/fixed/certificate/kerberos/jwt/oauth2. 默认form
+              web-ui.shared-secret=                     # 共享密钥用于为Web UI的用户生成身份验证cookie. 如果未设置为静态值, 则任何重新启动的协调器都会生成一个新的随机值, 这反过来会使任何当前登录的Web UI用户的会话无效. 默认为随机产生
+              web-ui.session-timeout=1d                 # 登录session超时时间
+              web-ui.user=None                          # 自动用于对具有固定身份验证类型的Web UI进行身份验证的用户名
+            optimizer属性
+              optimizer.dictionary-aggregation#
+              optimizer.optimize-hash-generation#
+              optimizer.optimize-metadata-queries#
+              optimizer.optimize-single-distinct#
+              optimizer.push-aggregation-through-join#
+              optimizer.push-table-write-through-union#
+              optimizer.join-reordering-strategy#
+              optimizer.max-reordered-joins#
+            正则表达式函数属性
+              regex-library#
+              re2j.dfa-states-limit#
+              re2j.dfa-retries#
+          log.properties                                # 日志配置
+            io.trino=INFO						                    # DEBUG, INFO, WARN, ERROR
+          catalog/*.properties                          # catalog属性. 连接器(数据源)的配置
+        data: 
+          var:
+            log:                      # 日志目录
+              http-request.log        # http请求日志, 会自动进行日志轮替
+              launcher.log            # 由launcher创建, 包含初始化服务日志记录时的信息和jvm产生的信息
+              server.log              # Presto使用的主要日志文件, 会自动进行日志轮替
+            run:
+              launcher.pid            # pid文件
+          etc:    # 上级目录etc的软连接
+          plugin  # 上级目录plugin的软连接
+        ~/.trino_history        # Trino cli历史文件, 可通过TRINO_HISTORY_FILE环境变量来更改
+		进程/端口
+			trino-server: tcp/8080
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端: CLI使用Trino Client REST API(http/https)与集群上的协调器进行通信
+      $ ./trino 
+        --catalog=                                        # 指定catalog
+        --schema=                                         # 指定schema
+        --server=                                         # trino server.  默认localhost:8080
+
+        --user=<user>                                     # 用户, 默认root
+        --password                                        # 提示输入密码
+        --version                                         # 显示版本
+
+        --timezone=<timezone>                             # session的时区. 默认Asia/Shanghai                           
+
+        --client-info=        # 有关client查询的额外信息
+        --client-request-timeout=2m     # client请求超时时间, 默认2m
+        --client-tags=        # client tags
+
+        --debug               # 启用debug
+        --trace-token=<token> # 跟踪token
+        --disable-compress    # 禁用查询结果压缩
+        --editing-mode=       # 编辑模式: EMACS/VI. 默认EMACS
+        --execute=            # 执行指定语句
+        -f, --file=<file>     # 执行指定sql文件
+
+        --http-proxy=<proxy>  # 用于server连接的http proxy
+        --socks-proxy=<proxy> # 用于server连接的socket proxy
+
+        --source=<source>     # 查询源名称, 默认trino-cli
+
+        --ignore-errors       # batch模式忽略错误继续执行
+
+        --insecure            # 跳过http服务器的认证, 应只用于debugging
+
+        --external-authentication       # 启用额外认证
+        --external-authentication-redirect-handler=
+
+        --keystore-password=                                # keystore密码
+        --keystore-path=<path>                              # keystore路径
+        --keystore-type=<type>                              # keystore类型
+
+        --krb5-config-path=<path>                           # kerberos配置文件路径, 默认/etc/krb5.conf
+        --krb5-credential-cache-path=<path>                 # kerberos credential缓存路径
+        --krb5-disable-remote-service-hostname-canonicalization         # 
+
+
+        --use-system-truststore                             # 使用system(OS)的truststore
+        --truststore-password=<password>                    # truststore密码
+        --truststore-path=<path>                            # truststore路径
+        --truststore-type=<type>                            # truststore类型
+
+        --network-logging=<level>                           # 网络日志级别: NONE, BASIC, HEADERS, BODY. 默认NONE
+
+        --output-format=<format>                            # batch模式下的输出格式: ALIGNED/VERTICAL/TSV/TSV_HEADER/CSV/CSV_HEADER/CSV_UNQUOTED/CSV_HEADER_UNQUOTED/JSON/NULL. 默认CSV
+        --progress                                          # 在batch模式下显示查询进度
+
+        --resource-estimate=<estimate>                      # 资源估算. 格式为key=value 
+
+        --session=<session>                                 # session属性, 格式为key=value, 可多次使用
+        --session-user=<user>                               # 模拟的用户名
+	日志
+	优化
+    缓存: 改善Presto查询延迟的常见优化是缓存工作集以避免来自远程数据源或通过慢速网络的不必要I/O(eg: Alluxio作为Presto的缓存层)
+	安全:
+    说明: Trino的默认安装没有启用安全功能. 可以为Trino架构的不同部分启用安全性
+    分类:
+      客户端访问集群: 所有对集群的访问都由协调器管理. 因此, 保护对集群的访问意味着保护对协调器的访问. 
+        1. 启用TLS/HTTPS(加密): 可使用标准的HTTPS和TLS加密
+        2. 启用身份验证
+          密码文件验证
+            $ vim etc/config.properties
+            http-server.authentication.type=PASSWORD
+            $ 在coordinator上 vim etc/password-authenticator.properties
+              password-authenticator.name=file
+              file.password-file=/path/to/password.db
+            $ touch password.db
+            $ htpasswd -B -C 10 password.db username
+          LDAP身份验证
+          Salesforce 身份验证
+          OAuth 2.0 身份验证
+          证书认证
+          JSON Web 令牌 (JWT) 身份验证)
+          Kerberos 身份验证
+        3. 启用授权和访问控制
+      集群内部
+      集群对数据源的访问
+  Web界面:
+    1.Presto提供了一个用于监控和管理查询的Web界面. 可通过http://ip:8080访问
+    2.实现了Tableau Web连接器的作用, 可使用http://ip:8080/tableau/presto-connector.html来作为Tableau的数据源
+    3.监控 
+      集群状态相关: http://coordinator:8080/v1/cluster
+      集群内存相关: http://coordinator:8080/v1/cluster/memory
+      查询相关: http://coordinator:8080/v1/query
+	集群
+    架构:
+                                                    Presto Worker          Hive Connector  + Hive
+                                                   
+        Presto CLI <---> Presto Coordinator <--->   Presto Worker  <--->   Kafka Connector + Kafka
+                                                  
+                                                    Presto Worker          Redis Connector + Redis
+    部署
+      node1:
+        $ 安装presto
+        $ vim etc/config.properties
+          coordinator=true
+          node-scheduler.include-coordinator=false
+          discovery-server.enabled=true
+          http-server.http.port=8080
+          query.max-memory=10GB
+          query.max-memory-per-node=1GB
+          query.max-total-memory-per-node=2GB
+          discovery.uri=http://node1:8080
+        $ vim etc/node.properties
+          node.id=node1       # 唯一
+      node2:
+        $ 安装presto
+        $ vim etc/config.properties
+          coordinator=false
+          node-scheduler.include-coordinator=false
+          http-server.http.port=8080
+          query.max-memory=10GB
+          query.max-memory-per-node=1GB
+          query.max-total-memory-per-node=2GB
+          discovery.uri=http://node1:8080
+        $ vim etc/node.properties
+          node.id=node2       # 唯一
+      node3:
+        $ 安装presto
+        $ vim etc/config.properties
+          coordinator=false
+          node-scheduler.include-coordinator=false
+          http-server.http.port=8080
+          query.max-memory=10GB
+          query.max-memory-per-node=1GB
+          query.max-total-memory-per-node=2GB
+          discovery.uri=http://node1:8080
+        $ vim etc/node.properties
+          node.id=node3       # 唯一
+      $ curl  -X GET http://coordinator:8080/v1/cluster?pretty
+具体服务相关
+	概念:
+    组件类型:
+      Coordinators(协调器):
+        1.coordinate是负责解析语句, 规划查询和管理workers. 它是presto的大脑, 也是客户端连接以提交执行语句的节点
+        2.每个presto安装都必须有一个coordinate以及至少一个worker
+        3.跟踪每个worker的活动并协调查询的执行. 创建涉及一系列阶段的查询的逻辑模型, 然后将其转换为prestoworker集群上运行的一系列连接任务
+        4.使用REST API与worker和client进行通信
+      Discovery(发现服务)
+        1.presto使用Discovery服务来查找集群中的节点,
+        2.每个presto实例都会在启动时向Discovery服务注册
+        3.为了简化部署并避免运行额外的服务, coordinator可以运行Discovery服务的嵌入式版本(共享http服务及端口)
+      Workers(工作器):
+        1.负责执行任务和处理数据. worker通过连接器获取数据并相互交换中间数据. coordinate负责从workers获取结果并将最终结果返回给client
+        2.当worker进程启动时,它会将自己通告给coordinate中的发现服务
+        3.使用REST API与其它worker和coordinate通信
+      Catalog(数据源):
+        说明:
+          1.每个Catalog包含Connector和Schema
+          2.Connector是适配器, 用于Presto和数据源连接, 类似jdbc. Schema类似MySQL中的数据库
+        示例:
+    数据源: Catalog(数据源) -- Schema(数据库实例) -- Table(表)
+      概念:
+        connector(连接器):
+          1.使presto适应数据源, 类似数据库驱动
+          2.presto包含几个内置的连接器: 用于JMX的连接器, 对内置系统表的访问的系统连接器, Hive连接器和设计用于TPC-H基准数据的TPCH连接器
+        Catalog: 每个catalog都与一个指定的connector相关连, 它包含schema
+        Schema: 是组织表的形式. catalog和schema定义一组可查询的表
+        Table: 通关系数据库中的表相同
+      配置:
+        local file: 
+          说明:
+            1.允许查询存储在每个worker的本地文件系统上的HTTP请求日志文件(固定格式). 
+            2.提供了一个名为logs的单一schema和名为http_request_log的单一表
+            3.每个节点上都必须有该文件, 且查询是所有节点的数据汇总
+          配置
+            $ vim etc/catalog/localfile.properties
+              connector.name=localfile
+              trino-logs.http-request-log.location=var/log/http-request.log      # 写入HTTP请求日志的目录或文件
+              trino-logs.http-request-log.pattern=http-request.log*              # 如果日志位置是目录, 则此glob用于匹配目录中的文件名
+        memory:
+          说明:
+            1.将所有数据和元数据存储在工作人员的RAM中, 并且在Trino重新启动时都将被丢弃
+            2.当协调器失败/重新启动时, 有关表的所有元数据都会丢失. table仍然在worker身上, 但变得无法访问
+            3.执行DROP TABLE操作后, 内存不会立即释放. 而是在对catalog进行下一次写入操作后释放它
+          配置:
+            $ vim etc/catalog/memory.properties
+              connector.name=memory
+              memory.max-data-per-node=128MB            # 定义每个节点的内存限制, 默认128M
+        system:
+          说明:
+            1.提供有关当前运行的Trino集群的信息和指标
+            2.系统连接器不需要配置: 它可以通过名为system的catalog自动使用
+    查询执行模型:
+      1.Presto执行SQL语句时, 会将创建一个查询以及一个查询计划, 然后将其分布在一系列的presto的worker中
+      2.一个查询分为stages, tasks, splits, connectors, 
+		原理:
+      1. 一个完整的部署包括一个coordinator和多个worker. 查询从客户端提交给coordinator.经coordinator解析, 分析和计划执行, 然后分配给worker
+    溢出到磁盘: 此过程可以允许具有较大内存占用的查询以较慢的执行时间为代价通过
+      说明: 
+        1.在内存密集型操作的情况下, trino允许将中间操作结果溢出到磁盘. 这种机制的目标是能够执行需要超过每个查询或每个节点限制的内存量的查询(类似操作系统级别的页面交换, 但是在应用程序级别实现的)
+        2.溢出到磁盘并不能保证执行所有内存密集型查询. 有一些内存密集型操作不支持溢出
+        3.支持溢出功能的操作: 
+          Joins, 
+          Aggregations: 若聚合的数据量很大, 若内存不足, 则将中间累积聚合结果写入磁盘.当内存可用时, 它们会被加载并合并
+          Windows: 如果窗口中的行数很大, 则可能需要大量内存. 启用溢出到磁盘时, 如果没有足够的内存, 则中间结果将写入磁盘并在处理每个窗口时读回. 如果单个窗口太大, 查询仍然会耗尽内存
+          Order By: 当需要排序的行很多时, Order by会占用大量内存. 启用溢出到磁盘时, 如果内存不足, 则将排序的行写入磁盘, 然后在内存中重新合并
+
+      可撤销内存:
+        查询可以请求不计限制的内存, 但内存管理管理器可随时撤销此内存. 当内存被撤销时, 查询运行器会将中间数据从内存溢出到磁盘, 并在以后继续处理它(溢写中间数据到磁盘, 而后再加载到内存是一个高IO的操作)
+    内存管理
+        worker jvm xmx  =  max-memory-per-node(0.3)*n + heap-headroom-per-node(0.3) 
+    数据类型: Presto有一组内置的数据类型, 插件可以提供其他类型
+      boolean, tinyint, smallint, int, bigint, real, double, decimal, varchar, char, json, date, time, time with time zone, timestamp, timestamp with time zone, interval year to month, interval day to second
+      array, map, row, ipaddress, uuid, ipprefix, HyperLogLog, P4HyperLogLog, KHyperLogLog, QDigest, TDigest
+    优雅关闭woker: 
+      说明:给定足够的宽限期, 以确保worker在不影响正在运行的查询的情况下终止, 
+        1.API被调用
+        2.worker进入SHUTDOWN_DOWN状态
+        3.睡眠shutdown.grace-period时间(默认2min), 在此之后, 协调器知道关闭并停止向工作人员发送任务
+        4.阻塞直到所有活动任务完成
+        5.再此休眠shutdown.grace-period时间, 以确保协调器看到所有任务都已完成
+        6.关闭worker应用
+      操作: # curl -v -X PUT -d '"SHUTTING_DOWN"' -H "Content-type: application/json"  http://worker:8080/v1/info/state  -u root:""
+	内部命令
+    SQL: 
+      说明:
+        1.Trino验证接收到的SQL语句并将其转换为对连接数据源的必要操作
+        2.每个连接器的文档中提供了对特定语句的支持的详细信息
+        3.一些SQL在核心引擎中实现并且可用于任何连接器
+      全局支持的语句:
+        > use catalog.schema/use schema                         # 切换schema
+        > show session [like pattern]                           # 显示当前session属性
+        > show functions [like pattern]                         # 列出所有可用于查询的函数(内置函数和自定义函数)
+        > set time zone local/'Asia/Shanghai'                   # 设置当前会话的默认时区. local为设置为会话的初始时区
+        > set session name=expr                                 # 设置会话属性值
+        > reset session name                                    # 将会话属性值重置为默认值
+        > prepare statement_name from statement                 # 准备一个语句以供稍后执行. statement里参数可用?替代
+        > execute statement_name [using par1, par2]                # 执行一个名为statement_name的预处理语句
+        > deallocate prepare statement_name                     # 取消准备好的语句
+        > describe input prepare_statement_name                 # 列出准备好的语句的输入参数以及每个参数的位置和类型
+        > describe output prepare_statement_name                # 列出准备好的语句的输出列
+        > call procedure_name                                   # 调用过程
+
+        > explain [option] statement                            # 显示语句的逻辑或分布式执行计划, 或验证语句
+        > explain analyze [verbose] statement                   # 执行语句并显示语句的分布式执行计划以及每个操作的成本
+      read操作
+        > select
+        > describe table_name                                   # show columns的别名
+        > show columns from table [like pattern]                # 列出表中的列及其数据类型和其它属性
+        > show catalogs [like pattern]                          # 列出catalogs
+        > show create schema schema_name                        # 显示创建schema的SQL语句
+        > show create materialized view view_name               # 显示创建物化视图的SQL语句
+        > show create table table_name                          # 显示创建表的SQL语句
+        > show create view view_name                            # 显示创建视图的SQL语句
+        > show grants [on [table] table_name]                   # 列出当前用户对当前目录中指定表的授权. 
+        > show [current] roles [from catalog]                   # 
+        > show schemas [from catalog] [like pattern]            # 列出schema
+        > show tables [from schema] [like pattern]              # 列出当前schema中的table
+        > show stats for table/(query)                          # 返回表/查询结果的近似统计信息
+      写操作
+        > insert / update / delete / truncate
+
+        > create materialized view view_name as query                                       # 创建物化视图
+        > alter materialized view name rename to new_name                                   # 更改物化视图名称
+        > alter materialized view name set properties property_name = expression [,  ...]   # 更改物化视图属性
+        > drop materialized view view_name                                                  # 删除物化视图
+        > refresh materialized view view_name                                               # 刷新物化视图
+
+        > create table 
+        > create table as query
+        > drop table table_name                                                             # 
+
+        > create schema schema_name [...]                                                   # 创建schema
+        > drop schema schema_name                                                           # 删除空schema
+        > alter schema name rename to new_name                                              # 更改schema名称
+        > alter schema name set authorization ( user | user user | role role )              # 
+
+        > create view view_name [ security { definer | invoker } ] as query
+        > drop view view_name
+        > alter view name rename to new_name
+        > alter view name set authorization ( user | user user | role role )
+      安全操作
+        > 
+      事务
+        > start transaction [mode[, ...]] / commit [work] / rollback [work]

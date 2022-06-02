@@ -310,6 +310,7 @@
         clickhouse-server.err.log
         clickhouse-server.log    
   进程/端口
+    clickhosue-watchdog
     clickhouse-server
       8123: http请求端口, 用于外部客户端连接
       9000: tcp端口，用于接受本机客户端请求及在分布式查询中执行跨服务器通信
@@ -331,10 +332,11 @@
     说明: 服务器端和客户端大部分命令都是clickhouse的软连接
     服务器
       /usr/bin/clickhouse-server      # 服务运行程序
-      /usr/bin/clickhouse-copier      # 将数据从一个集群复制到另一个集群
+      /usr/bin/clickhouse-copier      # 将数据从一个集群复制/重分片到另一个集群
       /usr/bin/clickhouse-report
+      /usr/bin/clickhouse-odbc-bridge # odbc驱动的代理服务器
     客户端
-      /usr/bin/clickhouse-benchmark
+      /usr/bin/clickhouse-benchmark   # 使用自定义查询和设置加载ck
       /usr/bin/clickhouse-client      # 客户端程序
         说明: 默认情况下使用'default'用户, 空密码连接localhost:9000
 				选项:
@@ -630,10 +632,10 @@
 					--structure argstructure
 					--types argtypes
 					In addition, --param_name=value can be specified for substitution of parameters for parametrized queries.
-      /usr/bin/clickhouse-compressor
-      /usr/bin/clickhouse-format
-      /usr/bin/clickhouse-local       # 允许在不停止ck的情况下在数据上运行sql，类似awk
-      /usr/bin/clickhouse-obfuscator
+      /usr/bin/clickhouse-compressor  # 压缩或解压缩数据
+      /usr/bin/clickhouse-format      # 启用格式化输入查询
+      /usr/bin/clickhouse-local       # 允许在不启动ck的情况下在数据上运行sql，类似awk
+      /usr/bin/clickhouse-obfuscator  # 混淆数据
   日志
   优化
     1.clickhouse使用所有硬件资源来处理数据
