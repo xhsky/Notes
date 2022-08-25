@@ -8,7 +8,8 @@ Plug 'plasticboy/vim-markdown'   " 语法高亮
 "Plug 'ferreum/completor-tmux'
 Plug 'yianwillis/vimcdoc'
 
-Plug 'fatih/vim-go', { 'tag': '*' } " go 主要插件"
+"Plug 'fatih/vim-go', { 'tag': '*' } " go 主要插件"
+Plug 'fatih/vim-go',  { 'do': ':GoUpdateBinaries' }
 Plug 'dgryski/vim-godef' " go 中的代码追踪, 输入 gd 就可以自动跳转
 call plug#end()
 filetype plugin indent on

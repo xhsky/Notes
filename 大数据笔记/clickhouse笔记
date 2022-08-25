@@ -50,173 +50,243 @@
           配置:
             <?xml version="1.0"?>
             <yandex>
-              <logger>                                                                            # 日志配置
-                  <level>trace</level>                                                            # 日志级别，可用trace，debug，information，warning，error
-                  <log>/var/log/clickhouse-server/clickhouse-server.log</log>                     # 所有级别的日志文件
-                  <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>       # 错误日志的日志文件
-                  <size>1000M</size>                                                              # 日志轮替大小，log和err.log都适用
-                  <count>10</count>                                                               # ck存储的最大的归档日志文件数量
-              </logger>
+              > 本地配置
+                display_name: production                                                           # 客户端提示字符，默认使用主机名
+                default_database: default                                                          # 进入ck后的默认数据库。默认default
+                timezone: Europe/Moscow                                                            # 服务器的时区，指定为UTC时区或地理位置。若未指定则使用服务器的时区
+                umask: 027                                                                         # 服务启动时应用的umask,默认027
+                mlock_executable: false                                                            # 启动后自行mlockall来降低首个查询延迟并防止高负载下ck的可执行文件被paged out.推荐使用,但ck启动时间会增加几秒钟
+                uncompressed_cache_size: 8589934592                                                # 被MergeTree表使用的未压缩数据的缓存，单位字节.当use_uncompressed_cache被设置时使用. 它仅对非常短的查询和极少数情况下有效
+                mark_cache_size: 5368709120                                                        # MergeTree系列表的mark缓存的近似大小，单位byte
+                default_profile: default                                                           # 默认的profile设置，该配置在users_config参数指定的文件中
+                system_profile: default                                                            # 系统使用的profile文件，内部进程(缓冲区存储，已分发的DDL等)使用的设置
+               
+                max_session_timeout: 3600                                                          # 最大session超时时间，单位秒，默认3600
+                default_session_timeout: 60                                                        # 默认session超时时间，单位秒，默认60
+                max_partition_size_to_drop>0</max_partition_size_to_drop>                          # 类似max_table_size_to_drop选项
+
+              > 
+                max_table_size_to_drop: 0                                                         # 删除表的限制. 若某张表的大小超过该设置(字节), 则不能对此表适用drop语句. 若想强制删除，则创建<clickhouse-path>/flags/force_drop_table文件后再次执行drop.
+                                                                                                  > 默认为50G，设置为0则表示无限制
+                max_thread_pool_size: 10000                                                       # 最大线程池大小. 默认10000, ck使用全局线程池中的线程来处理query
+                max_thread_pool_free_size: 1000                                                   # 最大空心线程数. 若全局线程池中的空闲线程数超过该值, 则ck释放部分占用的线程资源
+                thread_pool_queue_size: 10000                                                     # 在全局线程池上调度的最大作业数. 默认10000, 建议等于max_thread_pool_size
+              > merges and mutations
+                background_pool_size: 16                                                          # 为使用 MergeTree 引擎的表设置执行后台merge和mutation的线程数
+                background_merges_mutations_concurrency_ratio: 2                                  # 设置线程数与可以并发执行的后台合并和突变数之间的比率
+                background_move_pool_size: 8                                                      # 设置使用 MergeTree 引擎为表执行后台moves的线程数
+
+                background_fetches_pool_size: 8                                                   # 设置使用ReplicatedMergeTree引擎为表执行后台fetches的线程数
+
+                background_common_pool_size: 8                                                    # 为具有MergeTree引擎的表设置执行后台非专业操作(如清理文件系统等)的线程数
+
+              > 性能配置
+                max_server_memory_usage: 0                                                        # ck能使用内存大小. 默认值为0则自动(memory_amount * max_server_memory_usage_to_ram_ratio)
+                max_server_memory_usage_to_ram_ratio: 0.9                                         # ck可使用的物理内存的比例. 默认为0.9. 0则可使用全部
+                concurrent_threads_soft_limit: 0                                                  # 最大查询处理线程数(非硬性限制). 不包括从远程服务器检索数据的线程. 默认值为0(不限制), -1(逻辑核心数*3)
+                max_concurrent_queries: 100                                                       # 最大并发query数.默认100. 0则无限制
+                max_concurrent_insert_queries: 0                                                  # 最大并发insert数量. 默认为0无限制
+                max_concurrent_select_queries: 0                                                  # 最大并发select数量. 默认为0无限制
+                max_concurrent_queries_for_user: 0                                                # 每个用户处理与mergetree表相关的query数量. 默认为0, 无限制
+                max_concurrent_queries_for_all_users: 0                                           # 所有用户处理与mergetree表相关的query数量. 默认为0, 无限制
+                max_open_files: maximum                                                           # 最大打开文件数量
+
+              > mergeTree
+                merge_tree:                                                                       # 微调MergeTree中的表 
+                  max_suspicious_broken_parts: 5
+              > 
+                replicated_merge_tree: 
               
-              # 本地配置
-              <display_name>production</display_name>                                             # 客户端提示字符，默认使用主机名
-              <default_database>default</default_database>                                        # 进入ck后的默认数据库。默认default
-              <timezone>Europe/Moscow</timezone>                                                  # 服务器的时区，指定为UTC时区或地理位置。若未指定则使用服务器的时区
-              <umask>027</umask>                                                                  # 服务启动时应用的umask,默认027
-              <mlock_executable>false</mlock_executable>                                          # 启动后自行mlockall来降低首个查询延迟并防止高负载下ck的可执行文件被paged out。推荐使用，但ck启动时间会增加几秒钟
-              <max_concurrent_queries>100</max_concurrent_queries>                                # 同时处理的最大请求数
-              <uncompressed_cache_size>8589934592</uncompressed_cache_size>                       # 被MergeTree表使用的未压缩数据的缓存，单位字节.当use_uncompressed_cache被设置时使用
-              <mark_cache_size>5368709120</mark_cache_size>                                       # MergeTree表的mark缓存的近似大小，单位字节，最小为5G
-              <default_profile>default</default_profile>                                          # 默认的profile设置，该配置在users_config参数指定的文件中
-              <system_profile>default</system_profile>                                            # 系统使用的profile文件，内部进程(缓冲区存储，已分发的DDL等)使用的设置
-             
-              <max_session_timeout>3600</max_session_timeout>                                     # 最大session超时时间，单位秒，默认3600
-              <default_session_timeout>60</default_session_timeout>                               # 默认session超时时间，单位秒，默认60
-              <max_table_size_to_drop>0</max_table_size_to_drop>                                  # 删除表的限制。若某张表的大小超过该设置(字节)，则不能对此表适用drop语句。若想强制删除，则创建<clickhouse-path>/flags/force_drop_table文件后再次执行drop。默认为50G，设置为0则表示无限制
-              <max_partition_size_to_drop>0</max_partition_size_to_drop>                          # 类似max_table_size_to_drop选项
-              
-              # 目录配置
-              <path>/var/lib/clickhouse/</path>                                                   # 数据目录路径
-              <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>                                       # 用户处理大型查询的临时数据目录
-              <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>                  # 用户文件的目录，在表函数file()中使用
-              <users_config>users.xml</users_config>                                              # 用户，权限，配额，设置的文件
-              <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>        # 如果通过HTTP接口输入或输出数据，则格式模式中指定的文件名应位于此目录
-              <include_from>/etc/metrica.xml</include_from>                                       # incl的文件路径. 若一个元素有incl属性，则其元素值被当前配置指定的文件替代
-              
-              # 网络配置
-              <listen_host>::</listen_host>                                                       # 监听地址，默认本机
-              <http_port>8123</http_port>                                                         # 通过http连接ck的端口
-              <tcp_port>9000</tcp_port>                                                           # 通过tcp连接ck的端口
-              <mysql_port>9004</mysql_port>                                                       # 使用MySQL协议的客户端连接ck的端口
-              <listen_backlog>64</listen_backlog>
-              <max_connections>4096</max_connections>                                             # 最大连接数
-              <keep_alive_timeout>3</keep_alive_timeout>                                          # ck的超时连接请求，默认3秒
-              <disable_internal_dns_cache>1</disable_internal_dns_cache>                          # 禁用内部DNS缓存，默认0. 推荐在基础设施频繁更改的系统(eg：k8s)
-              <dns_cache_update_period>15</dns_cache_update_period>                               # ck内部DNS缓存中存储的IP地址的更新时间，单位秒。默认15秒。更新是在单独的系统线程中异步执行的
-              <http_server_default_response><![CDATA[<html ng-app="SMI2"><head><base href="http://ui.tabix.io/"></head><body><div ui-view="" class="content-ui"></div><script src="http://loader.tabix.io/master.js"></script></body></html>]]></http_server_default_response>    # 当通过http(s)访问ck时的首页面显示
-              
-              <!-- Don't exit if ipv6 or ipv4 unavailable, but listen_host with this protocol specified -->
-              <!-- <listen_try>0</listen_try> -->
-              <!-- Allow listen on same address:port -->
-              <!-- <listen_reuse_port>0</listen_reuse_port> -->
-              
-              # SSL配置
-              <https_port>8443</https_port>                               # 通过https连接ck的端口, 使用该设置, openssl必须被配置
-              <tcp_port_secure>9440</tcp_port_secure>                     # 安全的tcp连接ck的端口，使用该设置，openssl必须被配置
-              <openSSL>                                                   # SSL客户端/服务器配置
-                  <server>
-                  </server>
-                  <client>
-                  </client>
-              </openSSL>
-              
-              # 集群
-              <interserver_http_port>9009</interserver_http_port>                                 # 集群中复制的通信的端口，用于数据交换
-              <interserver_http_host>example.yandex.ru</interserver_http_host>                    # 用于其它ck访问本ck的主机名，若无指定，则使用hostname -f的结果
-              <interserver_http_credentials>                                                      # 在replica时使用的认证的用户和密码。该凭据仅用于replica之间的通信和ck客户端用户无关。ck检查该凭据以连接replicas。因此所有ck的凭据设置都应相同，默认情况下，不使用身份验证
-                <user>admin</user>
-                <password>222</password>
-              </interserver_http_credentials>
-              
-              <remote_servers incl="clickhouse_remote_servers" >          # 分布式表的集群配置
-                <distributed_config_name>                                 # 分布式集群名称，自定义
-                  <shard>                                                 # 分片配置
-                    <weight>1</weight>                                    # 写入该分片的数据的权重，默认1
-                    <internal_replication>false</internal_replication>    # 默认false: 数据写入所有replica true: 数据写入replicas中的一个
-                    <replica>                                             # 副本设置
-                      <host>ip1</host>
-                      <port>9000</port>
-                      <user>default</user>                                # 连接远程ck的名称，默认default
-                      <password></password>                               # 连接远程ck的密码, 默认空
-                      <compression>true</compression>                     # 使用压缩，默认true
-                    </replica>
-                    <replica>
-                      <host>ip2</host>
-                      <port>9000</port>
-                    </replica>
-                  </shard>
-                  <shard>
+              > 目录配置, 尾部必须有/
+                path: /var/lib/clickhouse/                                                   # 数据目录路径, 
+                tmp_path: /var/lib/clickhouse/tmp/                                           # 处理大型查询的临时数据目录
+                tmp_policy: 
+                user_files_path: /var/lib/clickhouse/user_files/                             # 用户文件的目录，在表函数file()中使用
+                user_scripts_path: /var/lib/clickhouse/user_scripts/                         # 用户脚本文件的目录, 用于执行用户定义函数
+                user_defined_path: /var/lib/clickhouse/user_defined/                         # 用户定义文件的目录, 用于用户定义函数
+                format_schema_path: /var/lib/clickhouse/format_schemas/                      # 如果通过HTTP接口输入或输出数据，则格式模式中指定的文件名应位于此目录
+                include_from>/etc/metrica.xml</include_from>                                       # incl的文件路径. 若一个元素有incl属性，则其元素值被当前配置指定的文件替代
+
+
+                default_replica_path>/clickhouse/tables/{uuid}/{shard}</default_replica_path>      # zk中表的路径
+                default_replica_name>{replica}</default_replica_name>                              # zk中replica名称
+
+                user_defined_executable_functions_config>*_function.xml</user_defined_executable_functions_config>         # 可执行用户定义函数的配置文件的路径
+
+                users_config: users.xml                                                      # 用户,权限,配额,设置的文件
+                access_control_path: /var/lib/clickhouse/access/                             # ck存储由SQL命令创建的用户和角色配置的文件夹的路径
+                user_directories:                                                            # 若该配置会覆盖users_config和access_control_path
+                  users_xml:
+                    path: users.yaml
+                  local_directory:
+                     path: /var/lib/clickhouse/access/
+
+              > 网络配置
+                listen_host: '::'                                                               # 监听地址，默认本机
+                http_port: 8123                                                               # 通过http连接ck的端口
+                https_port: 9999                                                              # 通过https连接ck的端口
+                hsts_max_age: 600000                                                          # HSTS的过期时间, 单位秒. 默认为0则禁用HSTS. 
+                http_server_default_response: <![CDATA[<html ng-app="SMI2"><head><base href="http://ui.tabix.io/"></head><body><div ui-view="" class="content-ui"></div><script src="http://loader.tabix.io/master.js"></script></body></html>]]>
+                                                                                                    # 当通过http(s)访问ck时的首页面显示
+                tcp_port: 9000                                                                # 通过tcp连接ck的端口
+                tcp_port_secure: 9440                                                         # 通过tcp安全连接ck的端口, 和OpenSSL一起使用
+
+                mysql_port: 9004                                                              # 使用MySQL协议的客户端连接ck的端口
+                postgresql_port: 9005                                                         # 通过PostgreSQL协议的客户端连接ck的端口
+                listen_backlog: 64                                                            # 默认4096
+                max_connections: 4096                                                         # 最大连接数
+                keep_alive_timeout: 10                                                        # ck的超时连接请求，默认10秒
+                disable_internal_dns_cache: 1                                                 # 禁用内部DNS缓存，默认0. 推荐在基础设施频繁更改的系统(eg：k8s)
+                dns_cache_update_period: 15                                                   # ck内部DNS缓存中存储的IP地址的更新时间，单位秒。默认15秒。更新是在单独的系统线程中异步执行的
+
+              > 一般配置
+                total_memory_profiler_step: 4194304                         # 简单的服务器范围内存分析器. 在每个峰值分配步骤(以byte为单位)收集堆栈跟踪. 数据将存储在 system.trace_log 表中, query_id = 空字符串.  零表示禁用. 
+                total_memory_tracker_sample_probability: 0
+                mmap_cache_size:
+                compiled_expression_cache_size
+                compiled_expression_cache_elements_size:
+							
+              > 压缩
+                compression																																				# MergeTree引擎表的压缩设置
+									case: 																																					# 可以配置多个case,	data part和case相匹配。若有多个匹配，则使用第一个
+										min_part_size: 10000000000         																						# 一个data part的最小值
+										min_part_size_ratio: 0.01                     																# 数据部分大小和table大小的比率
+										method: ...         																													# 压缩方法: lz4(默认), lz4hc, zstd, deflate_qpl
+										level:1				            																										# 压缩级别
+
+              > 集群
+                interserver_http_port: 9009                                                   # 集群中复制的通信的端口，用于数据交换
+                interserver_http_host: ck                                                     # 用于其它ck访问本ck的主机名，若无指定，则使用hostname -f的结果
+                interserver_listen_host: 10.0.0.1                                             # 对能够在多个ck之间交互数据的主机进行限制, 默认值为listen_host
+
+                interserver_https_port: 9010                                                  # 集群中通过https交换数据的端口
+                interserver_https_host: ck                                                    # 类似interserver_http_host
+
+                <interserver_http_credentials>                                                      # 在replica时使用的认证的用户和密码。该凭据仅用于replica之间的通信和ck客户端用户无关。ck检查该凭据以连接replicas。因此所有ck的凭据设置都应相同，默认情况下，不使用身份验证
+                  <user>admin</user>
+                  <password>222</password>
+                </interserver_http_credentials>
+                
+                <remote_servers incl="clickhouse_remote_servers" >          # 分布式表和集群表函数使用的集群配置
+                  <distributed_config_name>                                 # 分布式集群名称，自定义
+                    <shard>                                                 # 分片配置
+                      <weight>1</weight>                                    # 写入该分片的数据的权重，默认1
+                      <internal_replication>false</internal_replication>    # 默认false: 数据写入所有replica true: 数据写入replicas中的一个
+                      <replica>                                             # 副本设置
+                        <host>ip1</host>
+                        <port>9000</port>
+                        <user>default</user>                                # 连接远程ck的名称，默认default
+                        <password></password>                               # 连接远程ck的密码, 默认空
+                        <compression>true</compression>                     # 使用压缩，默认true
+                      </replica>
+                      <replica>
+                        <host>ip2</host>
+                        <port>9000</port>
+                      </replica>
+                    </shard>
+                    <shard>
+                      ...
+                    </shard>
                     ...
-                  </shard>
-                  ...
-                </distributed_config_name>
-              </remote_servers>
+                  </distributed_config_name>
+                </remote_servers>
 
-              <zookeeper incl="zookeeper-servers" optional="true" />                  # zk和ck集群进行交互的设置，zk用于存储replicas的元数据，用于复制表
-              <distributed_ddl>                                                       # 允许在集群上执行分布式的DDL语句(create,drop,alter,rename), 只有在zk启用时才使用
-                  <path>/clickhouse/task_queue/ddl</path>                             # zk中DDL语句的队列的路径
-                  <profile>default</profile>                                          # 这些DDL语句的使用的profile设置
-              </distributed_ddl>
-              <macros incl="macros" optional="true" />                                # 复制表的参数替换
+                <zookeeper incl="zookeeper-servers" optional="true" />                  # zk和ck集群进行交互的设置，zk用于存储replicas的元数据，用于复制表
+                distributed_ddl:                                                        # 允许在集群上执行分布式的DDL语句(create,drop,alter,rename), 只有在zk启用时才使用
+                    path: /clickhouse/task_queue/ddl                                    # zk中DDL语句的队列的路径
+                    profile: default                                                    # 这些DDL语句的使用的profile设置
+                    pool_size: 1                                                        # 控制可以同时运行多少ON CLUSTER查询
+                    task_max_lifetime:
+                    cleanup_delay_period:
+                    max_tasks_in_queue:
 
-              # graphite配置
-              <graphite>                                              # 发送数据到graphite，可配置多个graphite，以便以不同间隔发送数据
-                  <host>localhost</host>                              # Graphite服务器
-                  <port>42000</port>                                  # Graphite端口
-                  <timeout>0.1</timeout>                              # 发送数据的超时时间
-                  <interval>60</interval>                             # 每隔N秒发送数据
-                  <root_path>one_min</root_path>                      #   Prefix for keys
-                  <hostname_in_path>true</hostname_in_path>
+                <macros incl="macros" optional="true" />                                # 复制表的参数替换
 
-                  <metrics>true</metrics>                             # 是否从system.metrics表中发送数据
-                  <events>true</events>                               # 是否从system.events表发送在该时间段内累积的增量数据
-                  <events_cumulative>false</events_cumulative>        # 是否从system.events表发送累积数据
-                  <asynchronous_metrics>true</asynchronous_metrics>   # 是否从system.asynchronous_metrics表发送数据
-              </graphite>
-              
-              # 查询相关日志配置
-              <query_log>                                                             # 查询日志。当log_queries=1时记录接收到的查询   
-                  <database>system</database>                                         # 记录的数据库
-                  <table>query_log</table>                                            # 记录的表，若表不存在则自动创建
-                  <partition_by>toYYYYMM(event_date)</partition_by>                   # 分区键
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>     # 将数据从内存刷新到磁盘的间隔时间
-              </query_log>
+              > graphite配置
+                <graphite>                                              # 发送数据到graphite，可配置多个graphite，以便以不同间隔发送数据
+                    <host>localhost</host>                              # Graphite服务器
+                    <port>42000</port>                                  # Graphite端口
+                    <timeout>0.1</timeout>                              # 发送数据的超时时间
+                    <interval>60</interval>                             # 每隔N秒发送数据
+                    <root_path>one_min</root_path>                      #   Prefix for keys
+                    <hostname_in_path>true</hostname_in_path>
 
-              <trace_log>                                                             # 存储查询分析器收集的堆栈跟踪
-                  <database>system</database>                                         # 记录的数据库
-                  <table>trace_log</table>                                            # 记录的表，若表不存在则自动创建
-                  <partition_by>toYYYYMM(event_date)</partition_by>                   # 分区键
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>     # 将数据从内存刷新到磁盘的间隔时间
-              </trace_log>
-              
-              <query_thread_log>                                                      # 使用log_query_threads = 1设置记录接收到的查询的线程的设置
-                  <database>system</database>                                         # 记录的数据库
-                  <table>query_thread_log</table>                                     # 记录的表，若不存在则自动创建
-                  <partition_by>toYYYYMM(event_date)</partition_by>                   # 分区键
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>     # 将数据从内存中的缓冲区刷新到表的时间间隔
-              </query_thread_log>
+                    <metrics>true</metrics>                             # 是否从system.metrics表中发送数据
+                    <events>true</events>                               # 是否从system.events表发送在该时间段内累积的增量数据
+                    <events_cumulative>false</events_cumulative>        # 是否从system.events表发送累积数据
+                    <asynchronous_metrics>true</asynchronous_metrics>   # 是否从system.asynchronous_metrics表发送数据
+                </graphite>
 
-              <part_log>                                                              # 有关MergeTree表中所有part log的信息(创建，删除，合并，下载)
-                  <database>system</database>
-                  <table>part_log</table>
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-              </part_log>
+              > 日志
+                logger:                                                               # 日志配置
+                    level: trace                                                      # 日志级别，可用trace，debug，information，warning，error
+                    log: /var/log/clickhouse-server/clickhouse-server.log             # 所有级别的日志文件
+                    errorlog: /var/log/clickhouse-server/clickhouse-server.err.log    # 错误日志的日志文件
+                    size: 1000M                                                       # 日志轮替大小，log和err.log都适用
+                    count: 10                                                         # ck存储的最大的归档日志文件数量
+                    console: 0                                                        # 将日志和错误日志发送到console而非file
+                metric_log:                                                           # 默认启用, 指标历史收集. 包含ProfileEvents的值
+                  database: system
+                  table: metric_log
+                  flush_interval_milliseconds: 7500
+                  collect_interval_milliseconds: 1000                                 # 收集间隔
+                  _remove: 1                                                          # 禁用
+                part_log:                                                             # 记录有关MergeTree表中所有part log的信息(创建，删除，合并，下载)
+                  database: system
+                  table: part_log
+                  partition_by: toMonday(event_date)                                  # 系统表的自定义分区键
+                  flush_interval_milliseconds: 7500                                   # 将数据从内存缓冲区flush到表的间隔时间
+                query_log:                                                            # 查询日志. 当log_queries=1时记录接收到的查询   
+                  database: system                                                    # 记录的数据库
+                  table:query_log                                                     # 记录的表，若表不存在则自动创建
+                  partition_by: toYYYYMM(event_date)                                  # 分区键
+                  flush_interval_milliseconds: 7500                                   # 将数据从内存刷新到磁盘的间隔时间
+                query_thread_log:                                                     # 使用log_query_threads = 1设置记录接收到的查询的线程的设置
+                  database: system                                                    # 记录的数据库
+                  table: query_thread_log                                             # 记录的表，若不存在则自动创建
+                  partition_by: toYYYYMM(event_date)                                  # 分区键
+                  flush_interval_milliseconds: 7500                                   # 将数据从内存中的缓冲区刷新到表的时间间隔
+                query_views_log:
+                  database: system
+                  table: query_views_log
+                  partition_by: toYYYYMM(event_date)
+                  flush_interval_milliseconds: 7500
+                text_log:                                                             # 记录文本信息, 常规服务器日志中的所有信息，但以结构化且有效的方式存储
+                  level: Trace
+                  database: system
+                  table: text_log       
+                  flush_interval_milliseconds: 7500
+                trace_log:                                                            # 存储查询分析器收集的堆栈跟踪
+                  database: system                                                    # 记录的数据库
+                  table: trace_log                                                    # 记录的表，若表不存在则自动创建
+                  partition_by: toYYYYMM(event_date)                                  # 分区键
+                  flush_interval_milliseconds: 7500                                   # 将数据从内存刷新到磁盘的间隔时间
+                asynchronous_metric_log:
+                  database: system
+                  table: asynchronous_metric_log
+                  flush_interval_milliseconds: 60000                                  # 异步指标每分钟跟新一次
 
-              <text_log>                                                              # 常规服务器日志中的所有信息，但以结构化且有效的方式存储
-                  <database>system</database>                                         
-                  <table>text_log</table>
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-              </text_log>
+              > zookeeper                                                   # 包含ck与zk交互的设置. ck在使用复制表时使用zk存储副本的元数据
+                zookeeper:
+                  node:                                                       # zk的endpoint, 可多个
+                    "-index": 1                                               # 指定尝试连接到zk集群时的节点顺序
+                    host: node1
+                    port: 2181
+                  node:                                                       # zk的endpoint, 可多个
+                    "-index": 2                                               # 指定尝试连接到zk集群时的节点顺序
+                    host: node2
+                    port: 2181
+                  session_timeout_ms: 30000                                   # 客户端会话的最大超时时间
+                  operation_timeout_ms: 10000                                 # one operatoin的最大超时时间
+                  root: /path/to/zookeeper/node                               # ck使用的znodes的根的znode, 可选
+                  identity: user:password                                     # 访问znodes的用户和密码, 可选
+                use_minimalistic_part_header_in_zookeeper:                    # zk数据部分标头的存储方法, 只用于mergeTree表
 
-              <metric_log>                                                            # 包含ProfileEvents的值
-                  <database>system</database>
-                  <table>metric_log</table>
-                  <flush_interval_milliseconds>7500</flush_interval_milliseconds>
-                  <collect_interval_milliseconds>1000</collect_interval_milliseconds> # 收集间隔
-              </metric_log>
+              > 字典
+                dictionaries_config: *_dictionary.xml                                   # 外部字典的配置文件(相对于服务器配置文件路径或绝对路径)
+                dictionaries_lazy_load: true                                            # 若为true，则每个字典在首次使用时创建，若创建失败则使用该字典的函数将触发异常。若为false，则在服务器启动时创建所有字典，若有错误则服务器在没有这些dict的情况下继续启动并尝试创建这些dict
+                builtin_dictionaries_reload_interval: 3600                              # ck每隔N秒重新加载内置词典, 以便即时编辑词典. 默认3600秒
 
-              # 字典
-              <dictionaries_config>*_dictionary.xml</dictionaries_config>             # 外部字典的配置文件(相对于服务器配置文件路径或绝对路径)
-              <dictionaries_lazy_load>true</dictionaries_lazy_load>                   # 若为true，则每个字典在首次使用时创建，若创建失败则使用该字典的函数将触发异常。若为false，则在服务器启动时创建所有字典，若有错误则服务器将关闭
-              <builtin_dictionaries_reload_interval>3600</builtin_dictionaries_reload_interval>   # ck每隔N秒重新加载内置词典，以便即时编辑词典。默认3600秒
-              <!-- Path to file with region hierarchy. -->
-              <!-- <path_to_regions_hierarchy_file>/opt/geo/regions_hierarchy.txt</path_to_regions_hierarchy_file> -->
-              <!-- Path to directory with files containing names of regions -->
-              <!-- <path_to_regions_names_files>/opt/geo/</path_to_regions_names_files> -->
-
-              <merge_tree>                                                            # 对MergeTree中的表进行微调
-                  <max_suspicious_broken_parts>5</max_suspicious_broken_parts>
-              </merge_tree>
               
               <query_masking_rules>                                                   # 查询屏蔽规则
                   <rule>
@@ -230,30 +300,47 @@
           说明：
             1.用于对查询，用户等配置和限制
             2.几乎所有限制仅适用于select, 对于分布式查询处理，限制分别应用于每个服务器
+            3.以下参数也可通过set setting=value和--seting=value方式进行临时设置
           配置：
             <?xml version="1.0"?>
             <yandex>
-              <profiles>
-                <default>                                             # 对查询的限制
-                  <max_memory_usage>10000000000</max_memory_usage>    # 单个查询在单个服务器上可使用的最大内存，单位byte。默认10G
-                  <max_memory_usage_for_user>0<max_memory_usage_for_user>                  # 单个用户在单台服务器上可使用的最大内存。默认值为0，代表无限制
-                  <max_memory_usage_for_all_queries>0</max_memory_usage_for_all_queries>   # 单台服务器上所有查询可用的内存
-                  <max_rows_to_read>0</max_rows_to_read>              # 运行查询时可以从表中读取的最大行数
-                  <max_bytes_to_read>0</max_bytes_to_read>            # 运行查询时可以从表中读取的最大字节数(未压缩的数据)
-                  <read_overflow_mode>break</read_overflow_mode>      # 当读取的数据量超过限制时的选择。可用值: throw(抛出异常)，break(返回部分结果), 默认'throw'
-                  <max_rows_to_group_by></max_rows_to_group_by>       # 从聚合收到的唯一键的最大数量。使用此设置可以限制聚合时的内存消耗
-                  <group_by_overflow_mode></group_by_overflow_mode>   # 超过限制时的选择。可用值：throw, break, any
-                  <max_bytes_before_external_group_by></max_bytes_before_external_group_by>
+              profiles:
+                default:                                             # 对查询的限制
+                  allow_nondeterministic_mutations: 0                     # 允许复制表上的突变以利用非确定性函数. 默认0
+                  distributed_product_mode: global                        # 指定分布式子查询的方式. 当分布式表的查询包含分布式表的非GLOBAL子查询时，ClickHouse将应用此设置
+                                                                          > deny: 默认. 禁止使用这些类型的子查询
+                                                                          > local: 将子查询中的表替换为目标服务器(分片)的本地表.  保留正常的in/join
+                                                                          > global: 使用global in/global join替代in/join
+                                                                          > allow: 允许这些类型的子查询
+                  prefer_global_in_and_join: 0                            # 
+
+                  enable_optimize_predicate_expression: 1                 # 启用谓词下推. 默认启用
+                  fallback_to_stale_replicas_for_distributed_queries: 1   # 如果更新的数据不可用, 则强制查询过期副本
+                  force_index_by_date: 0                                  # 强制查询的索引使用日期, 否则抛出异常. 用于MergeTree表
+                  force_primary_key: 0                                    # 强制查询的索引使用主键, 否则抛出异常. 用于MergeTree表
+                  use_skip_indexes: 1                                     # 在查询执行期间使用数据跳过索引. 默认启用, 用于MergeTree表
+
+
+
+
+
+                  max_memory_usage: 10000000000    # 单个查询在单个服务器上可使用的最大内存，单位byte。默认10G
+                  max_memory_usage_for_user>0<max_memory_usage_for_user>                  # 单个用户在单台服务器上可使用的最大内存。默认值为0，代表无限制
+                  max_memory_usage_for_all_queries>0</max_memory_usage_for_all_queries>   # 单台服务器上所有查询可用的内存
+                  max_rows_to_read>0</max_rows_to_read>              # 运行查询时可以从表中读取的最大行数
+                  max_bytes_to_read>0</max_bytes_to_read>            # 运行查询时可以从表中读取的最大字节数(未压缩的数据)
+                  read_overflow_mode>break</read_overflow_mode>      # 当读取的数据量超过限制时的选择。可用值: throw(抛出异常)，break(返回部分结果), 默认'throw'
+                  max_rows_to_group_by></max_rows_to_group_by>       # 从聚合收到的唯一键的最大数量。使用此设置可以限制聚合时的内存消耗
+                  group_by_overflow_mode></group_by_overflow_mode>   # 超过限制时的选择。可用值：throw, break, any
+                  max_bytes_before_external_group_by></max_bytes_before_external_group_by>
                   
-                  <distributed_product_mode>global</distributed_product_mode> # 指定分布式子查询的方式，当分布式表的查询包含分布式表的非GLOBAL子查询时，ClickHouse将应用此设置
-                  <use_uncompressed_cache>0</use_uncompressed_cache>  # 
-                  <max_rows_to_read>0</max_rows_to_read>              # 运行查询时可以从表中读取的最大行数
-                  <load_balancing>random</load_balancing>             # 在分布式查询期间的副本选择
-                                                                      # random: 从具有最小错误数的副本集中选择
-                                                                      # nearest_hostname: 从具有最小错误数的副本集中，
-                                                                      # in_order:
-                                                                      # first_or_random: 
-                </default>
+                  use_uncompressed_cache>0</use_uncompressed_cache>  # 
+                  max_rows_to_read>0</max_rows_to_read>              # 运行查询时可以从表中读取的最大行数
+                  load_balancing>random</load_balancing>             # 在分布式查询期间的副本选择
+                                                                      > random: 从具有最小错误数的副本集中选择
+                                                                      > nearest_hostname: 从具有最小错误数的副本集中，
+                                                                      > in_order:
+                                                                      > first_or_random: 
                 
                 <readonly>                                            # 只读配置
                   <readonly>1</readonly>                              # 可选值：0(不启用), 1(只读)，2(只读和更改设置)
@@ -313,8 +400,21 @@
     clickhosue-watchdog
     clickhouse-server
       8123: http请求端口, 用于外部客户端连接
+      8443: https请求端口
       9000: tcp端口，用于接受本机客户端请求及在分布式查询中执行跨服务器通信
-      9009: 用于集群间复制数据
+      9004: MySQL协议端口
+      9005: pg协议端口
+      9009: 用于集群间数据复制, 交换, 服务器间通信
+      9010: 用于集群内的SSL/TLS内部沟通
+      9011: 本机协议 PROXYv1 协议端口
+      9019: JDBC桥接
+      9100: gRPC端口
+      9181: ClickHouse Keeper端口
+      9234: ClickHouse Keeper Raft端口(如果启用了 <secure>1</secure>, 也用于安全通信)
+      9363: Prometheus 默认指标端口
+      9281: SSL ClickHouse Keeper端口
+      9440: 本机协议 SSL/TLS 端口
+      42000: Graphite默认端口
   编程接口:
     说明：默认情况下，clickhouse提供两个网络接口
     分类：
@@ -1094,7 +1194,7 @@
         3.非激活片段(合并到较大片段之后剩余的数据源片段/损坏的数据片段)会在合并后的10分钟左右删除
       手动优化： > optimize table tb_name [partition partiton_name]          # 该语句会产生对大量数据的读和写
     突变(Mutations):
-      1. 表数据的修改是通过Mutation机制实现的, ALTER TABLE … DELETE and ALTER TABLE … UPDATE是类似mergetree表的异步异步后台合并
+      1.表数据的修改是通过Mutation机制实现的, ALTER TABLE … DELETE and ALTER TABLE … UPDATE是类似mergetree表的异步异步后台合并
       2.突变没有原子性, 数据一旦修改好就会被替换. 在突变期间执行的selelct语句, 可以查到已经修改好的数据和尚未修改好的数据
       3.突变完全按照其创建顺序排序, 并按顺序应用于每个部分(异步执行可并发). 若有插入语句, 在突变之前的插入提交奖杯修改, 在突变提交之后的插入语句不会被修改
       4.即使重启ck, 突变也会继续执行. 突变一旦提交, 就无法回滚
