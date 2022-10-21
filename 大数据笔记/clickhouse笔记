@@ -316,17 +316,27 @@
 
                   enable_optimize_predicate_expression: 1                 # 启用谓词下推. 默认启用
                   fallback_to_stale_replicas_for_distributed_queries: 1   # 如果更新的数据不可用, 则强制查询过期副本
+
                   force_index_by_date: 0                                  # 强制查询的索引使用日期, 否则抛出异常. 用于MergeTree表
                   force_primary_key: 0                                    # 强制查询的索引使用主键, 否则抛出异常. 用于MergeTree表
                   use_skip_indexes: 1                                     # 在查询执行期间使用数据跳过索引. 默认启用, 用于MergeTree表
+                  //force_data_skipping_indices: ""                       # 强制查询时使用跳数索引, 否则抛出异常
+                  fsync_metadata: 1                                       # 当写入sql文件时, 是否启用fsync. 默认启用
+                  function_range_max_elements_in_block: 500000000
+                  enable_http_compression: 0                              # 在对HTTP请求的响应中启用或禁用数据压缩
+                  http_zlib_compression_level: 3                          # 若对http请求压缩, 则指定压缩级别. 范围1-9. 默认3
+                  http_native_compression_disable_checksumming_on_decompress: 0
+                  http_max_uri_size: 1048576                              # 设置http请求的最大uri长度
+                  table_function_remote_max_addresses: 1000
+                  glob_expansion_max_elements: 1000
 
 
 
 
-
-                  max_memory_usage: 10000000000    # 单个查询在单个服务器上可使用的最大内存，单位byte。默认10G
-                  max_memory_usage_for_user>0<max_memory_usage_for_user>                  # 单个用户在单台服务器上可使用的最大内存。默认值为0，代表无限制
-                  max_memory_usage_for_all_queries>0</max_memory_usage_for_all_queries>   # 单台服务器上所有查询可用的内存
+                  # 查询复杂度限制
+                  max_memory_usage: 10000000000                                 # 单个查询在单个服务器上可使用的最大内存，单位byte。默认10G
+                  max_memory_usage_for_user: 0                                  # 单个用户在单台服务器上可使用的最大内存。默认值为0，代表无限制
+                  max_memory_usage_for_all_queries: 0                           # 单台服务器上所有查询可用的内存
                   max_rows_to_read>0</max_rows_to_read>              # 运行查询时可以从表中读取的最大行数
                   max_bytes_to_read>0</max_bytes_to_read>            # 运行查询时可以从表中读取的最大字节数(未压缩的数据)
                   read_overflow_mode>break</read_overflow_mode>      # 当读取的数据量超过限制时的选择。可用值: throw(抛出异常)，break(返回部分结果), 默认'throw'
@@ -342,52 +352,40 @@
                                                                       > in_order:
                                                                       > first_or_random: 
                 
-                <readonly>                                            # 只读配置
-                  <readonly>1</readonly>                              # 可选值：0(不启用), 1(只读)，2(只读和更改设置)
-                </readonly>
+                readonly:                                            # 只读配置, 默认0
+                  readonly: 1                                        # 可选值: 0(不启用), 1(只读), 2(只读和更改设置)
                 
-                <allow_ddl>                                           # 是否启用ddl
-                  <allow_ddl>1</allow_ddl>                            # 可选值：0(禁用ddl), 1(可用ddl)
-                </allow_ddl>
-              </profiles>
+                allow_ddl:                                          # 是否允许ddl语句
+                  allow_ddl: 1                                      # 可选值：0(禁用ddl), 1(可用ddl)
               
+              # 用户配额设置
+              quotas:
+                default:
+                  interval:                               # 时间间隔限制
+                    duration: 3600                        # 间隔长度, 单位秒.默认情况下,配额仅跟踪每小时的资源消耗而无限制
+                    queries: 0                            # 请求的总数
+                    errors: 0                             # 引发异常的查询数量
+                    result_rows: 0                        # 查询结果的总行数
+                    read_rows: 0                          # 在所有的服务器上从表中读取的总行数
+                    execution_time: 0                     # 查询的总的执行时间
+                  interval:
+                 ... 
+
               # 用户权限设置
-              <users>
+              users
                 <user_name>
-                  <password>DreamSoft_123</password>                # 明文密码
-                  <networks>                                        # 允许访问的网络列表
-                    <ip>::/0</ip>                                   # 全部允许访问
-                    
-                    <ip>::1</ip>                                    # 只允许本地访问
-                    <ip>127.0.0.1</ip>
-                  </networks>
-                  <profile>default</profile>                        # 用户设置
-                  <quota>default</quota>                            # 用户配额
-                  <allow_databases>                                 # 用户允许访问的数据库，默认可以使用全部数据库
-                    <database>test</database>
-                  </allow_databases>
-                  <allow_dictionaries>                              # 用户允许访问的数据字典，默认可以使用全部数据字典
-                    <dictionary>test</dictionary>
-                  </allow_dictionaries>
-                </user_name>
-              </users>
-              
-              <quotas>
-                <default>
-                  <interval>                                        # 时间间隔限制
-                    <duration>3600</duration>                       # 间隔长度, 单位秒。默认情况下，配额仅跟踪每小时的资源消耗而无限制
-                    <queries>0</queries>                            # 请求的总数
-                    <errors>0</errors>                              # 引发异常的查询数量
-                    <result_rows>0</result_rows>                    # 查询结果的总行数
-                    <read_rows>0</read_rows>                        # 在所有的服务器上从表中读取的总行数
-                    <execution_time>0</execution_time>              # 查询的总的执行时间
-                  </interval>
-                  <interval>
-                   ... 
-                  </interval>
-                </default>
-              </quotas>
-            </yandex>
+                  password: DreamSoft_123                 # 明文密码
+                  password_sha256_hex:                    # SHA256哈希分配密码
+                  access_management: 0                    # 是否启用用户使用SQL驱动的访问控制和帐户管理. 默认为0
+                  networks:                               # 允许访问的网络列表
+                    ip: '::/0'                            # 全部允许访问
+                    ip: '::1'                             # 只允许本地访问
+                    ip: '127.0.0.1'
+                  profile: default                        # 指定用户设置
+                  quota: default                          # 指定用户配额
+                  allow_databases:                        # 指定用户允许访问的数据库，默认可以使用全部数据库
+                    database: test
+          </yandex>
       /etc/clickhouse-client/
         config.xml
       /usr/bin/clickhouse-copier
@@ -810,7 +808,6 @@
           3. 启动
             .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck11/ck.pid
             .# sudo -u clickhouse clickhouse-server --config-file=/data/ck12/config/config.xml --daemon  --pidfile=/data/ck12/ck.pid
-      
     部署:
       1.在每个节点上安装ck
       2.每个节点设置集群配置
@@ -829,7 +826,6 @@
         sha256: 
           配置：<password_sha256_hex></password_sha256_hex>
           生成：# PASSWORD=$(base64 < /dev/urandom | head -c8); echo "$PASSWORD"; echo -n "$PASSWORD" | sha256sum | tr -d '-'      # 第一行为密码，第二行为配置文件中的密码
-
         sha1:
           配置：<password_double_sha1_hex></password_double_sha1_hex>
           生成：# PASSWORD=$(base64 < /dev/urandom | head -c8); echo "$PASSWORD"; echo -n "$PASSWORD" | openssl dgst -sha1 -binary | openssl dgst -sha1    # 第一行为密码，第二行为配置文件中的密码
@@ -977,15 +973,15 @@
                   物理结构：
                     ./data/db_name/
                       分区名称_数据块最小编号_数据块最大编号_块级别/
-                        column_name.bin
-                        column_name.mrk2
-                        checksums.txt
-                        columns.txt
-                        count.txt
-                        minmax_partiton_name.idx
-                        partition.dat
-                        primary.idx
-                      detached/                 # 使用detach语句从表中分离的片段,损坏的片段也会移到该目录，而不是删除. 服务器不会使用该目录中的数据。可随时修改此目录中的数据，且在执行attach语句前，服务器不会感知到修改
+                        column_name.bin               # 列数据文件(压缩块), 按主键排序
+                        column_name.mrk2              # 快速定位bin文件的数据位置(压缩块偏移量)
+                        checksums.txt                 # 校验文件, 存储其它各类文件的大小及hash值, 用于快速校验文件的完整性和正确性
+                        columns.txt                   # 列信息文件, 使用明文存储, 报错此分区下的列字段信息
+                        count.txt                     # 计数文件, 使用明文存储, 记录当前分区下的数据总数
+                        minmax_partiton_name.idx      # 分区键min-max索引文件, 以便加速分区键的查找
+                        partition.dat                 # 保存当前分区下分区表达式最终生成的值
+                        primary.idx                   # 主键索引文件, 以便加速主键的查找
+                      detached/                       # 使用detach语句从表中分离的片段,损坏的片段也会移到该目录，而不是删除. 服务器不会使用该目录中的数据。可随时修改此目录中的数据，且在执行attach语句前，服务器不会感知到修改
                       format_version.txt
                 2.ReplacingMergeTree
                   说明：

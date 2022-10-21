@@ -124,9 +124,11 @@ alias automount_dev_arm="sshfs -o nonempty,reconnect,allow_other -p 22 dev_arm:/
 #alias proxy="export ALL_PROXY='socks5://127.0.0.1:1080'"
 alias chrome_proxy='google-chrome -user-data-dir="/home/sky/.google-chrome/proxy" --proxy-server=socks5://127.0.0.1:1080 &'
 #alias chrome='google-chrome -user-data-dir="/home/sky/.google-chrome/noproxy" &'
-alias weather="curl wttr.in\?lang=zh"
+alias weather="curl wttr.in\?lang=zh | less"
 alias scp="rsync -P --rsh=ssh"
 alias ssh="zssh"
+alias cat="bat --theme=zenburn"
+alias penetration='connect() { \ssh -TNng -R doc:8192:$1 doc }; connect'
 
 # 配置direnv
 eval "$(direnv hook zsh)"
@@ -141,6 +143,13 @@ export PROMPT='$(show_virtual_env)'$PROMPT
 #bindkey ',' autosuggest-accept
 bindkey '^P' history-search-backward
 bindkey '^N' history-search-forward
+bindkey \\e. insert-last-word
+bindkey "^[1" digit-argument
+bindkey "^[2" digit-argument
+bindkey "^[3" digit-argument
+bindkey "^[4" digit-argument
+bindkey "^[5" digit-argument
+bindkey "^[-" digit-argument
 
 # 显示编辑模式
 #VIMODE='-- INSERT --'

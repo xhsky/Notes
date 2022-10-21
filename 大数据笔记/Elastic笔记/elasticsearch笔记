@@ -285,9 +285,9 @@
     引导检查:
 
     开发模式和生产模式:
-      1.默认情况下, ES会假定当前处于开发模式下, 若没有正确配置, 将在日志文件中写入警告, 但仍能启动
-      2.若配置了网络设置(eg: network.host), ES则认为当前处于生产模式, 会将上述警告升级为异常, 这些异常将阻止启动.
-      3.这项措施主要是为了因服务器配置错误而丢失数据
+      1.这项措施主要是为了防止因服务器配置错误而丢失数据
+      2.默认情况下, ES会假定当前处于开发模式下, 若没有正确配置, 将在日志文件中写入警告, 但仍能启动
+      3.若配置了网络设置(eg: network.host), ES则认为当前处于生产模式, 会将上述警告升级为异常, 这些异常将阻止启动.
     REST API:
       说明: 可以直接调用从而配置和访问ES功能
     Dangling indices:
@@ -316,14 +316,6 @@
         index.mapping.depth.limit: 20                               # 一个字段的最大深度
         index.mapping.nested_fields.limit: 50
         index.mapping.nested_objects.limit
-
-
-
-
-
-
-        
-    
 
 
     RDBMS     Elasticsearch

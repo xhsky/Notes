@@ -8,12 +8,12 @@
 架构
 	模块
 	安装
-    .# https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.5.1-linux-x86_64.tar.gz
-    .# tar -xf filebeat-7.5.1-linux-x86_64.tar.gz -C /data/ ; cd /data
-    .# ln -sv filebeat-7.5.1-linux-x86_64 filebeat
-    .# cd filebeat
-    .# vim filebeat.yml
-    .# ./filebeat 
+    $ https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.5.1-linux-x86_64.tar.gz
+    $ tar -xf filebeat-7.5.1-linux-x86_64.tar.gz -C /data/ ; cd /data
+    $ ln -sv filebeat-7.5.1-linux-x86_64 filebeat
+    $ cd filebeat
+    $ vim filebeat.yml
+    $ nohup ./filebeat -c filebeat.yml &
 	结构
 		目录结构
 			安装目录
@@ -32,7 +32,7 @@
         - module: system
         .# Filebeat输入
         filebeat.inputs
-        - type: log                         # 使用log input, 从指定的日志文件中读取行
+        - type: filestream                  # 使用filestream input, 从指定的日志文件中按行读取
           enabled: true                     # 是否启用该输入
           paths:                            # 获取日志文件的列表
             - /data1/*.log
@@ -109,18 +109,18 @@
         .# Outputs                        # 只能定义一个输出
         .## ES output
         output.elasticsearch:             # 输出到ES
-        enabled: true                     # 是否启用该输出
-        hosts: ["ip1:9200", "ip2:9200"]   # 指定ES地址列表, 默认使用ES的http API. 格式为http://ip:port或ip:port或ip. 事件以循环方式分配到这些节点, 若一个节点不可用, 则将事件自动发到另一个节点
-        loadbalance: true                 # 是否启用负载, 默认false. 可用于redis, logstash, ES. Kafka输出在内部处理负载
-        protocol: http                    # 当指定的host为ip:port时, 协议和路径由此指定, 默认为http
-        path: /elasticsearch
+          enabled: true                     # 是否启用该输出
+          hosts: ["ip1:9200", "ip2:9200"]   # 指定ES地址列表, 默认使用ES的http API. 格式为http://ip:port或ip:port或ip. 事件以循环方式分配到这些节点, 若一个节点不可用, 则将事件自动发到另一个节点
+          loadbalance: true                 # 是否启用负载, 默认false. 可用于redis, logstash, ES. Kafka输出在内部处理负载
+          protocol: http                    # 当指定的host为ip:port时, 协议和路径由此指定, 默认为http
+          path: /elasticsearch
 
-        index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"         # 事件写入索引的名称. 若更改则需同时更改index: setup.template.name和setup.template.pattern
-        username:                         # 用户名
-        password:                         # 密码
-        compression_level: 0              # gzip压缩级别: 1-9, 0为禁用压缩, 默认为0
-        escape_html: false                # 
-        worker: 1                         # 每个配置的host的worker数量
+          index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"         # 事件写入索引的名称. 若更改则需同时更改index: setup.template.name和setup.template.pattern
+          username:                         # 用户名
+          password:                         # 密码
+          compression_level: 0              # gzip压缩级别: 1-9, 0为禁用压缩, 默认为0
+          escape_html: false                # 
+          worker: 1                         # 每个配置的host的worker数量
 
         .## Logstash output
         output.logstash:
@@ -143,6 +143,7 @@
         setup.ilm.check_exists: false
         setup.ilm.overwrite: false
 		进程/端口
+      filebeat
 		编程接口
 		管理软件
 	命令
@@ -177,7 +178,6 @@
           test [command]        # 测试配置
             config                  # 测试配置文件
             output                  # 测试当前配置能否连接output
-
           version               # 显示版本
 		客户端
 	日志
@@ -189,9 +189,9 @@
 	概念:
     工作过程:
       1.当启动filebeat时, 它将启动一个或多个输入(在指定的位置中查找)
-      2.对于filebeat找到的每一个日志文件, 它都会开启一个收集器
+      2.对于filebeat找到的每一个日志文件, 它都会开启一个收集器(Harvester)
       3.每个收集器都会读取单个文件以获取新内容, 并将新数据发送到libbeat
-      4.libbeat将汇聚事件并发送汇聚的数据到指定的输出(ES, Logstash, Kafka, Redis)
+      4.libbeat汇聚事件并发送汇聚的数据到指定的输出(ES, Logstash, Kafka, Redis)
     harvester(收集器):
       1.收集器负责逐行读取单个文件的内容
       2.每个文件启动一个收集器

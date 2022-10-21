@@ -1,0 +1,53 @@
+简介
+	时间, 作者, 开发语言, 定义
+	官网
+	版本
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    $ pip install jupyter_server
+	结构
+		目录结构
+      $ jupyter --paths     按优先级顺序列出
+				config:                    
+						/root/.jupyter                    
+						/root/.local/etc/jupyter
+						/opt/python3/etc/jupyter
+						/usr/local/etc/jupyter
+						/etc/jupyter
+				data:
+						/root/.local/share/jupyter
+						/opt/python3/share/jupyter
+						/usr/local/share/jupyter
+						/usr/share/jupyter
+				runtime:
+						/root/.local/share/jupyter/runtime
+      配置文件:
+        生成: $ jupyter server --generate-config
+
+		进程/端口
+		编程接口
+		管理软件
+	命令
+		服务器 $ jupyter [option] [subcommand]
+      option:
+        --version:                      # 显示核心jupyter的包的版本
+        --config-dir:                   # 显示jupyter配置目录
+        --data-dir:                     # 显示jupyter数据目录
+        --runtime-dir:                  # 显示jupyter运行目录
+        --paths [--json] [--debug]:     # 显示所有目录, json
+      subcommand:
+        server [subcommands]            # 启动一个基于Tornado的Jupyter服务器. 
+			
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		原理
+	内部命令
