@@ -1674,7 +1674,7 @@
         # escape=\                                    # 定义转义字符
         ARG key=value                                 # 唯一一个在FROM前的指令, 用于定义FROM指令可用的变量(FROM base:${value})
         FROM <image>[:tag] AS <name>                  # 基础镜像, 当前新镜像是基于哪个镜像的. 该指令必须位于非注释第一行
-        EXPOSE port port/udp ...                      # 该指令通知docker容器在运行时监听指定的端口
+        EXPOSE port port/udp ...                      # 该指令通知docker容器在运行时监听指定的端口, 类似VOLUME, 但仅提醒, 不会开启这个端口
 
         SHELL ["executable", 'para1']                 # 覆盖shell模式下指令的默认shell, 可多次出现, 依次覆盖
         RUN command|["executable", "para1", "para2"]  # 容器在构建时需要运行的命令(分为shell模式(默认为/bin/sh -c)和exec模式(不会调用shell, 若需要则明确指定))
@@ -1696,7 +1696,7 @@
         COPY [--chown=<user>:<group>] <src>... <dest> # 类似add, 但src只能是文进或目录, 且不能处理tar包
         COPY --from=<name|index> src dest             # 多阶段构建
                         
-        VOLUME ["/data1", "/data2"]                   # 容器数据卷, 用于数据保存和持久化工作
+        VOLUME ["/data1", "/data2"]                   # 容器数据卷(匿名卷), 用于数据保存和持久化工作. run的时候没有使用-v绑定匿名卷的话, 那么docker就会在/var/lib/docker/volumes这个目录下创建一个目录来绑定匿名卷, 防止删除容器后数据丢失. 如果-v和volume指定了同一个位置, 会以-v设定的目录为准
 
         WORKDIR /path/workdir                         # 为之后的run, cmd, entrypoin, copy和add命令指定工作目录(会自动创建), 可多次使用. 若提供了相对路径, 则相对于前一条的WORKDIR
         USER user[:group]|uid[:gid]                   # 用户运行后续命令的用户, 未指定时默认root用户.
