@@ -25,123 +25,179 @@
         module/
         modules.d/                  # 模块配置目录
       配置选项: filebeat.yml
-        .# 模块配置
-        filebeat.modules:           # 启用模块
-        - module: nginx
-        - module: mysql
-        - module: system
-        .# Filebeat输入
-        filebeat.inputs
-        - type: filestream                  # 使用filestream input, 从指定的日志文件中按行读取
-          enabled: true                     # 是否启用该输入
-          paths:                            # 获取日志文件的列表
-            - /data1/*.log
-            - /var/log/*/*.log
-          tag: []                           # 
-          fields:
-          fields_under_root:
-          processors
-          pipeline
-          keep_null
-          index:
+        所有Elastic Beats都支持的选项
+          name: hostname                                                # 该beat的名称. 默认为主机名
+          tags: []                                                      # Beat包含在每个已发布交易的标签字段中的标签列表. 会和input中的tags合并
+          fields:                                                       # 指定用于向输出添加附加信息的可选字段. 会和input中tags合并
+            key1: value1
+            key2: value2
+          fields_under_root: false                                      # 此选项设置为true,则自定义字段将作为顶级字段存储在输出文档中,而不是在字段子字典下分组
+          max_procs:                                                    # 设置可以同时执行的最大CPU数. 默认是系统可用的逻辑CPU个数
+        目录配置
+          path.home: /usr/share/beat                                    # 默认filebeat安装的家目录
+          path.config: /etc/beat                                        # 默认filebeat安装的家目录
+          path.data: /var/lib/beat                                      # 默认path.home/data, 若启动多个filebeat, 则须使用不同的data
+          path.logs: /var/log/                                          # 默认path.home/logs
+        模块配置
+          filebeat.modules:                                             # 启用模块
+          - module: nginx
+          - module: mysql
+          - module: system
+        Filebeat输入
+          filebeat.inputs
+            # 所有inputs通用选项
+            enable: true                                                # 启用/禁用该input, 默认为true
+            tags: []                                                    # 包含在每个event中的tag列表
+            fields:                                                     # 指定用于向输出添加附加信息的可选字段(key在fields下)
+              key1: value1
+              key2: value2
+            fields_under_root: false                                    # 定义字段将作为顶级字段存储在输出文档中(没有fields这个key)
+            processors:                                                 # 应用于输入数据的处理器列表
+            keep_null: false                                            # 将在输出文档中发布具有空值的字段, 默认为false
+            publisher_pipeline.disable_host: false                      # 默认情况下,所有event都包含host.name. 可以将此选项设置为true以禁用将此字段添加到所有event
+          - type: filestream                                            # 使用filestream input, 从指定的日志文件中按行读取
+            id: aaa                                                     # 流输入的唯一标识符. 每个文件流输入必须有一个唯一的ID
+            enabled: true                                               # 是否启用该输入
+            paths:                                                      # 获取文件的列表, 支持简单的正则
+              - /data1/*.log                                            # 
+              - /var/log/*/*.log                                        # 不会从/var/log/目录匹配
+              - /var/log/**/*.log                                       # 目录递归, 须启用prospector.scanner.recursive_glob
+            encoding: utf8                                              # 用于读取文件编码: plain(纯ascii编码), utf-8/utf8, gbk等
 
-          recursive_glob.enabled: true      # expanding ** into recursive glob patterns. 默认启用
-          encoding: utf8                    # 用于读取文件编码: plain(纯ascii编码), utf-8/utf8, gbk等
-          exclude_lines: []                 # 正则表达式列表, 用于排除匹配到的行. 默认不删除任何行, 空行将被忽略
-          include_lines: []                 # 正则表达式列表, 用于包含匹配到的行. 默认所有行均被导出, 空行将被忽略. 若两个都被定义(无关位置), 则现执行include, 再执行exlude
-          exclude_files: []                 # 正则表达式列表, 用于排除匹配到的文件. 默认无文件匹配
-          ignore_older: 0                   # 忽略修改时间在N前的文件内容(新数据依然会被记录, 因为偏移量会被设置在文件末尾). 默认为0, 禁用此设置. 值可为2h或5m. 若设置该值, 则其值必须比close_inactive大
+            prospector.scanner.recursive_glob: true                     # 启用将**扩展为递归glob模式, 实现目录递归(8级目录深度). 默认启用
+            prospector.scanner.exclude_files: []                        # 正则表达式列表, 用于排除匹配到的文件. 默认无文件匹配
+            prospector.scanner.include_files: ['^/var/log/.*']          # 正则表达式列表, 用于仅收集匹配到的文件. 默认无文件匹配
+            prospector.scanner.symlinks: false                          # 是否可以读取链接文件(读取原始文件). 若软连接和原始文件在同一个id, 则检测到问题并处理它找到的第一个文件. 若在不同的id, 则两个文件都会收集(数据重复发送)
+            prospector.scanner.resend_on_touch: false                   # 文件大小未更改但其modify时间已更改为比以前更晚的时间, 则会重新发送文件. 默认禁用
+            prospector.scanner.check_interval: 10s                      # 指定用于收集的路径中检查新文件的频率. 默认10s
 
-          harvester_buffer_size: 16384      # 每个harvester读取文件的buffer大小(读取文件时, 每次读取N字节), 单位字节, 默认16k
-          max_bytes: 10485760               # 一条日志信息的最大大小. 超过此大小后的字节将被丢弃而不发送. 默认10M. 多用于多行设置
-          json.*             
-          # 日志中的多行信息可能为一条记录(eg: java异常). 不要在logstash中处理多行问题, 可能会导致数据混乱
-          multiline.pattern: '^\['          # 指定匹配的正则表达式
-          multiline.negate: false           # 定义匹配否定模式
-          multiline.match: after            # 指定如何合并行. 值为after|before
-          multiline.flush_pattern           # 指定正则, 将其刷新到磁盘. 结束多行
-          multiline.max_lines: 500          # 可以合并为一行最大行数, 超过行丢弃. 默认500
-          multiline.timeout: 5s             # 一次合并的超时时间, 默认5s
+            ignore_older: 0                                             # 忽略修改时间在N前的文件内容(新数据依然会被记录, 因为偏移量会被设置在文件末尾). 默认为0, 禁用此设置. 值可为2h或5m. 若设置该值, 则其值必须比close_inactive大
+            file_identity.native: ~                                     # 默认行为是使用它们的 inode 和设备 ID 来区分文件
+            file_identity.path: ~                                       # 要根据路径识别文件, 请使用此策略
 
-          .# close选项主要用于关闭收集器
-          close_inactive: 5m                # 从上次收集数据后. N时间内收集器未收集数据则关闭该文件句柄. 若关闭的文件再次更改则将启动新的收集器并在scan_frequency时间后获取最新更改
-                                            # 设置过小则文件句柄经常被关闭而在关闭期间无法实时发送新数据. 默认5m
-          close_renamed: false              # 当启用此选项, filebeat会在文件重命名时关闭收集器. 默认情况收集器保持打开状态并读取文件(不依赖文件名而是inode). 若启用了该选项且重命名后的文件名与指定的文件模式不再匹配, 则filebeat不会在读取该文件
-          close_removed: true               # 当启用此选项, filebeat会在文件删除时关闭收集器. 默认启用
-          close_eof: false                  # 启用此选项, 一旦到达文件末尾则关闭文件. 当文件属于一次写入且不更新时可用
-          close_timeout: 0                  # 为每个收集器指定预定义的生存期, 无论读取到文件任何位置, 经过该时间后, filebeat都会关闭该文件. 若文件更新, 则filebeat经过scan_frequency后启动新的收集器且同样根据此时间倒计时
-                                            # 默认禁用
-          .# clean选项主要用于清理注册表
-          clean_inactive: 0                 # 经过N时间后filebeat会删除注册表中文件的状态. 仅当文件早于ingore_older是才能删除, 且该值必须大于ignore_older+scan_frequency
-          clean_removed: true               # 当磁盘上找不到文件时则移除该文件状态. 默认为true
 
-          scan_frequency: 10s               # filebeat扫描指定路径中的新文件的频率. 默认值为10s
-          tail_files: false                 # 设置为true, 则filebeat从文件末尾而非开头读取. 默认false
-          symlinks: false                   # 是否可以读取链接文件
-          backoff: 1s                       # 扫描文件收集数据的间隔, 默认1s
-          max_backoff:
-          backoff_factor:
-          harvester_limit: 0                # 针对一个input并行启动的收集器数量. 这与open file有关. 默认为0, 表示没有限制
-        - type: log                         # 若对不同文件应用不同的设置, 可设置多个log. 同时确保一个文件不要被定义两次以上(可能会导致意外行为)
-          enabled: true     
-          paths:
-            - /data2/*.log
-        - type: stdin                       # 使用stdin, 从标准输入读取(该方式不能同其他输入同时配置)
-          enabled: true                     # 是否启用该输入
-          tag: []                           # 
-          fields:
-          fields_under_root:
-          processors
-          pipeline
-          keep_null
-          index:
 
-          encoding: utf8                    # 用于读取文件编码: plain(纯ascii编码), utf-8/utf8, gbk等
-          exclude_lines: []                 # 正则表达式列表, 用于排除匹配到的行. 默认不删除任何行, 空行将被忽略
-          include_lines: []                 # 正则表达式列表, 用于包含匹配到的行. 默认所有行均被导出, 空行将被忽略. 若两个都被定义(无关位置), 则现执行include, 再执行exlude
-          harvester_buffer_size: 16384      # 每个harvester读取文件的buffer大小(读取文件时, 每次读取N字节), 单位字节, 默认16k
-          max_bytes: 10485760               # 一条日志信息的最大大小. 超过此大小后的字节将被丢弃而不发送. 默认10M. 多用于多行设置
-          json.*            
-          multiline.pattern: '^\['          # 日志中的多行信息可能为一条记录(eg: java异常)
-        .# 注册表存储
-        filebeat.registry.path: registry    # 注册表的目录. 若为相对路径, 则从数据目录开始, 默认值${path.data}/registry
-        filebeat.registry.file_permissions: 0600          # 注册表文件的权限, 默认0600
-        .# Outputs                        # 只能定义一个输出
-        .## ES output
-        output.elasticsearch:             # 输出到ES
-          enabled: true                     # 是否启用该输出
-          hosts: ["ip1:9200", "ip2:9200"]   # 指定ES地址列表, 默认使用ES的http API. 格式为http://ip:port或ip:port或ip. 事件以循环方式分配到这些节点, 若一个节点不可用, 则将事件自动发到另一个节点
-          loadbalance: true                 # 是否启用负载, 默认false. 可用于redis, logstash, ES. Kafka输出在内部处理负载
-          protocol: http                    # 当指定的host为ip:port时, 协议和路径由此指定, 默认为http
-          path: /elasticsearch
+            # close选项主要用于特定条件或时间后关闭收集器
+            close.on_state_change.inactive: 5m                          # 从上次收集数据后. N时间内收集器未收集到数据则关闭该文件句柄(基于harvester读取文件的最后一行开始). 若关闭的文件再次更改则将启动新的收集器并在prospect or.scanner.check_interval时间后获取最新更改
+                                                                        # 设置过小则文件句柄经常被关闭而在关闭期间无法实时发送新数据. 默认5m
+            close.on_state_change.renamed:                              # 当启用此选项, filebeat会在文件重命名时关闭收集器. 默认情况收集器保持打开状态并读取文件(不依赖文件名而是inode). 若启用了该选项且重命名后的文件名与指定的文件模式不再匹配, 则filebeat不会在读取该文件
+            close.on_state_change.removed:                              # 若启用, 则Filebeat会在删除文件时关闭收集器. 默认为true
+            close.reader.on_eof: false                                  # 启用此选项, 一旦到达文件末尾则关闭文件. 当文件属于一次写入且不更新时可用
+            close.reader.after_interval: 0                              # 默认0, 禁用 为每个收集器指定预定义的生存期, 无论读取到文件任何位置, 经过该时间后, filebeat都会关闭该文件. 若文件更新, 则filebeat经过check_interval后启动新的收集器且同样根据此时间倒计时
 
-          index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"         # 事件写入索引的名称. 若更改则需同时更改index: setup.template.name和setup.template.pattern
-          username:                         # 用户名
-          password:                         # 密码
-          compression_level: 0              # gzip压缩级别: 1-9, 0为禁用压缩, 默认为0
-          escape_html: false                # 
-          worker: 1                         # 每个配置的host的worker数量
+            # clean选项用于清理注册表文件中的状态条目.这些设置有助于减小注册表文件的大小,并且可以防止潜在的inode重用问题
+            clean_inactive: 0                                           # 经过N时间后filebeat会删除注册表中文件的状态. 仅当文件早于ingore_older是才能删除, 且该值必须大于ignore_older+scan_frequency
+            clean_removed: true                                         # 当磁盘上找不到文件时则从注册表中移除该文件状态. 默认为true
 
-        .## Logstash output
-        output.logstash:
-          hosts: ["127.0.0.1:5044"]       # 
+            # backoff指定Filebeat抓取打开文件以进行更新的程度
+            backoff.init: 2s                                            # 在到达EOF后再次检查文件之前第一次等待的时间. 退避间隔呈指数增长. 默认为2秒. 因此,文件会在2秒、4秒、8秒后检查, 以此类推, 直到达到backoff.max中定义的限制. 每次文件中出现新行时, backoff.init值都会重置为初始值
+            backoff.max: 10s                                            # 在达到EOF后再次检查文件之前等待的最长时间. backoff.init <= backoff.max <= prospector.scanner.check_interval
 
-        .## console output
-        output.console:                   # 控制台输出, 指定json或format格式
-          codec.json:
-            pretty: true                  # 格式打印, 默认false
-            escape_html: false
-          codec.format:
-            string: '%{[@timestamp]} %{[message]}'                    # 指定format格式
 
-        .#ILM index lifecycle management
-        setup.ilm.enabled: auto           # 对filebeat上创建的索引是否启用ILM. 可用值: true|false|auto. 
-        setup.ilm.rollover_alias: "filebeat"                        # 索引周期写的别名, 默认filebeat-%{[agent.version]}
-        setup.ilm.pattern: "{now/d}-000001"                         # 设置翻转模式
-        setup.ilm.policy_name: "mypolicy"
-        setup.ilm.policy_file:
-        setup.ilm.check_exists: false
-        setup.ilm.overwrite: false
+            buffer_size: 16384                                          # 每个收集器在获取文件时使用的缓冲区大小, 默认16384(16k), 单位byte
+            message_max_bytes: 10485760                                 # 单个日志消息可以拥有的最大字节数, 之后的消息被丢弃不发送. 默认10485760(10M)
+
+            exclude_lines: []                                           # 正则表达式列表, 用于排除匹配到的行. 默认不删除任何行, 空行将被忽略
+            include_lines: []                                           # 正则表达式列表, 用于包含匹配到的行. 默认所有行均被导出, 空行将被忽略. 若两个都被定义(无关位置), 则现执行include, 再执行exlude
+
+
+
+
+            pipeline
+            # 日志中的多行信息可能为一条记录(eg: java异常). 不要在logstash中处理多行问题, 可能会导致数据混乱
+            multiline.pattern: '^\['          # 指定匹配的正则表达式
+            multiline.negate: false           # 定义匹配否定模式
+            multiline.match: after            # 指定如何合并行. 值为after|before
+            multiline.flush_pattern           # 指定正则, 将其刷新到磁盘. 结束多行
+            multiline.max_lines: 500          # 可以合并为一行最大行数, 超过行丢弃. 默认500
+            multiline.timeout: 5s             # 一次合并的超时时间, 默认5s
+
+
+            tail_files: false                 # 设置为true, 则filebeat从文件末尾而非开头读取. 默认false
+            backoff_factor:
+            harvester_limit: 0                # 针对一个input并行启动的收集器数量. 这与open file有关. 默认为0, 表示没有限制
+          - type: log                         # 若对不同文件应用不同的设置, 可设置多个log. 同时确保一个文件不要被定义两次以上(可能会导致意外行为)
+            enabled: true     
+            paths:
+              - /data2/*.log
+          - type: stdin                       # 使用stdin, 从标准输入读取(该方式不能同其他输入同时配置)
+            enabled: true                     # 是否启用该输入
+            tag: []                           # 
+            fields:
+            fields_under_root:
+            processors
+            pipeline
+            keep_null
+            index:
+
+            encoding: utf8                    # 用于读取文件编码: plain(纯ascii编码), utf-8/utf8, gbk等
+            exclude_lines: []                 # 正则表达式列表, 用于排除匹配到的行. 默认不删除任何行, 空行将被忽略
+            include_lines: []                 # 正则表达式列表, 用于包含匹配到的行. 默认所有行均被导出, 空行将被忽略. 若两个都被定义(无关位置), 则现执行include, 再执行exlude
+            harvester_buffer_size: 16384      # 每个harvester读取文件的buffer大小(读取文件时, 每次读取N字节), 单位字节, 默认16k
+            max_bytes: 10485760               # 一条日志信息的最大大小. 超过此大小后的字节将被丢弃而不发送. 默认10M. 多用于多行设置
+            json.*            
+            multiline.pattern: '^\['          # 日志中的多行信息可能为一条记录(eg: java异常)
+        注册表存储
+          filebeat.registry.path: registry                        # 注册表的目录. 若为相对路径, 则从数据目录开始, 默认值${path.data}/registry
+          filebeat.registry.file_permissions: 0600                # 注册表文件的权限, 默认0600
+          registry.flush: 0s                                      # 控制何时将注册表项写入磁盘(刷新)的超时值. 默认为0s, 每批event发布成功后将注册表写入磁盘
+                                                                  # 异常关闭后,如果registry.flush值>0s,则注册表将不会是最新的. Filebeat将再次发送已发布的事件(取决于上次更新的注册表文件中的值)
+          shutdown_timeout:                                       # 在Filebeat关闭之前等待发布者完成发送事件的时间. 默认情况下, 该选项处于禁用状态, Filebeat不会等待发布者完成发送事件后才会关闭.这意味着任何发送到输出的事件,在Filebeat关闭之前未得到确认, 会在重新启动Filebeat时再次发送
+        Outputs至                                                 # 只能定义一个输出
+          output.elasticsearch:                                   # 输出到ES
+            enabled: true                                         # 是否启用该输出
+            hosts: ["ip1:9200", "ip2:9200"]                       # 指定ES地址列表, 默认使用ES的http API. 格式为http://ip:port或ip:port或ip. 事件以循环方式分配到这些节点, 若一个节点不可用, 则将事件自动发到另一个节点
+            worker: 1                                             # 每个配置的host的worker数量
+            loadbalance: true                                     # 是否启用负载, 默认false. 可用于redis, logstash, ES. Kafka输出在内部处理负载
+            protocol: http                                        # 当指定的host为ip:port时, 协议和路径由此指定, 默认为http
+            path: /elasticsearch                                  # 附加到HTTP API调用的HTTP路径前缀. 这对于Elasticsearch侦听在自定义前缀下导出API的HTTP反向代理后的情况很有用
+
+            index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"   # 事件写入索引的名称. 若更改则需同时更改index: setup.template.name和setup.template.pattern
+            username:                                             # 用户名
+            password:                                             # 密码
+            compression_level: 0                                  # gzip压缩级别: 1-9, 0为禁用压缩, 默认为0
+            escape_html: false                                    # 配置字符串中HTML的转义. 设置为true以启用转义. 默认false
+
+            proxy_url: url                                        # 连接到Elasticsearch服务器时要使用的代理的URL
+            proxy_headers:                                        # 在connect请求期间发送给代理的附加标头
+            index:                                                # 使用每日索引时要写入事件的索引名称. 默认为"filebeat-%{[agent.version]}-%{+yyyy.MM.dd}". 若更改此设置, 则需要定义setup.template.name和setup.template.pattern
+                                                                  # 若启用ILM管理, 则默认名称为filebeat-%{[agent.version]}-%{+yyyy.MM.dd}-%{index_num},  且忽略自定义索引设置
+            indices:                                              # 一组索引选择器规则. 每个规则指定用于匹配规则的事件的索引
+
+            max_retries:                                          # 默认情况下,Filebeat会忽略max_retries设置并无限期地重试
+            bulk_max_size: 50                                     # 在单个Elasticsearch批量API索引请求中批量处理的最大事件数. 默认值为50
+
+            backoff.init: 1s                                      # 网络错误后尝试重新连接到Elasticsearch之前等待的秒数.在等待backoff.init秒后,Filebeat会尝试重新连接.如果尝试失败,则退避计时器以指数方式增加到backoff.max.连接成功后,退避计时器会重置.默认值为1秒
+            backoff.max: 60s                                      # 网络错误后尝试连接到 Elasticsearch 之前等待的最大秒数. 默认值为60秒
+            timeout: 90                                           # Elasticsearch请求的http请求超时(以秒为单位). 默认值为90
+          output.logstash:                                        # 输入logstash
+            hosts: ["ip1:5044", "ip2"]                            # 要连接的Logstash服务列表. 如果禁用负载均衡, 但配置了多台主机, 则随机选择一台主机(没有优先级). 如果一台主机无法访问, 则会随机选择另一台主机
+            compression_level: 3                                  # gzip压缩级别: 1-9, 0为禁用压缩, 默认为3
+            escape_html: false                                    # 配置字符串中HTML的转义. 设置为true以启用转义. 默认false
+            loadbalance: true                                     # 是否启用负载, 默认false. 可用于redis, logstash, ES. Kafka输出在内部处理负载
+
+          output.console:                   # 控制台输出, 指定json或format格式
+            codec.json:
+              pretty: true                  # 格式打印, 默认false
+              escape_html: false
+            codec.format:
+              string: '%{[@timestamp]} %{[message]}'                    # 指定format格式
+          output.file:                        # 将信息转储到一个文件中, 其中每个信息都采用JSON格式
+            path: "/tmp/filebeat"             # 保存生成文件的目录的路径
+            filename: filebeat                # 生成文件的名称
+            rotate_every_kb: 10000            # 每个文件的最大大小(以千字节为单位). 达到此大小时, 文件将轮替. 默认10240KB
+            number_of_files: 7                # 保存文件的个数. 值为2-1024. 默认为7
+            permissions: 0600                 # 生成文件的权限. 默认0600
+            codec:                            # 默认json编码
+            
+        ILM(index lifecycle management)                           # 在索引老化时对其进行管理
+          setup.ilm.enabled: auto                                 # 对filebeat上创建的索引是否启用ILM. 可用值: true|false|auto. 
+          setup.ilm.rollover_alias: "filebeat"                    # 索引周期写的别名, 默认filebeat-%{[agent.version]}
+          setup.ilm.pattern: "{now/d}-000001"                     # 设置翻转模式
+          setup.ilm.policy_name: "mypolicy"
+          setup.ilm.policy_file:
+          setup.ilm.check_exists: false
+          setup.ilm.overwrite: false
 		进程/端口
       filebeat
 		编程接口

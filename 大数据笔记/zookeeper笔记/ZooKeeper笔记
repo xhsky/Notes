@@ -1,0 +1,464 @@
+简介
+	时间, 作者, 开发语言, 定义
+    一种集中式服务, 用于维护配置信息,命名服务,提供分布式同步和组服务(文件系统+通知机制)
+	官网: https://zookeeper.apache.org/
+	版本
+	协议
+适用性(优缺)
+  设计目标
+    1.简单: 允许分布式进程通过类似于标准文件系统组织的共享分层命名空间相互协调
+    2.多副本: zk本身通过一组称为ensemble的主机进行复制
+    3.排序: 
+    ZooKeeper 并非设计为通用数据库或大型对象存储. 相反, 它管理协调数据. 该数据可以配置、状态信息、集合点等形式出现. 各种形式的协调数据的一个共同属性是它们相对较小:以千字节为单位. ZooKeeper 客户端和服务器实现有健全性检查以确保 znode 的数据少于 1M
+架构
+	模块
+	安装
+    1.安装jdk
+    2.安装zk
+      $ wget -c https://dlcdn.apache.org/zookeeper/zookeeper-3.8.0/apache-zookeeper-3.8.0-bin.tar.gz
+      $ tar -xf apache-zookeeper-3.8.0-bin.tar.gz -C /dream/
+      $ ln -sv apache-zookeeper-3.8.0-bin zk
+    3.配置
+      $ cd /dream/zk
+      $ vim conf/zoo.cfg
+    4.启动standalone模式
+      $ ./bin/zkServer.sh start
+	结构
+		目录结构
+			安装目录
+        bin
+        conf
+          configuration.xsl  
+          logback.xml
+          zoo_sample.cfg:                           # 示例配置文件
+          zoo.cfg:                                  # 默认配置文件, 需手动创建
+            - general
+              tickTime=2000                           # zk使用的基本时间单位(毫秒). 用来执行心跳, 最小会话超时是tickTime的两倍
+              globalOutstandingLimit=1000             # zk缓存的客户端请求数. 因为客户端可以比zk处理它们的速度更快地提交请求. 为了防止zk由于排队请求而耗尽内存, zk将限制客户端, 以便系统中的未完成请求不超过该值. 默认限制为1000. 
+              clientPortListenBacklog=                # zk套接字的积压长度, 控制排队等待zk服务器处理的请求数. 超过此长度的连接将收到网络超时(30s). 默认无限制-1
+
+              serverCnxnFactory
+
+              jute.maxbuffer					# 每个节点最大数据量，是默认是1M。这个限制必须在server和client端都进行设置才会生效
+              standaloneEnabled				# 
+
+              extendedTypesEnabled=false              # 定义为true以启用扩展功能, 例如创建TTL节点. 默认情况下禁用
+
+              requestThrottleLimit
+              requestThrottleStallTime
+              requestThrottleDropStale
+              requestStaleLatencyCheck
+              requestStaleConnectionCheck
+              advancedFlowControlEnabled
+              digest.enabled
+            - port
+              clientPort=2181                         # 客户端连接的端口
+						  clientPortAddress				                # 对于多网卡的机器,可以为每个IP指定不同的监听端口.默认情况是所有IP都监听
+              secureClientPort=                       # 客户端连接的ssl端口
+            - net
+              maxCnxns=0                              # 与zk服务器建立的并发连接总数. 默认为0
+              maxClientCnxns=60                       # 单个客户端与单台服务器之间的连接数的限制,是ip级别的,默认是60. 如果设置为0,则表明不作任何限制
+              cnxTimeout						# Leader选举过程中，打开一次连接的超时时间，默认是5s
+            - dir
+              dataDir=/dream/zk/data                  # 存储内存数据库的快照, 默认情况下, zk将写数据的日志文件也保存在这个目录里
+              dataLogDir=                             # 将事务日志写入dataLogDir而不是dataDir. 这允许使用专用日志设备, 并有助于避免日志记录和快照之间的竞争
+            - quota
+              enforceQuota=false                      # 是否启用配额
+            - session
+              minSessionTimeout				                # Session超时时间限制,由服务器规定范围. 若客户端设置的超时时间不在这个范围，那么会被强制设置为最大或最
+              maxSessionTimeout				                # 小时间. 默认的Session超时时间是在 2*tickTime ~ 20*tickTime
+            - observer          
+              peerType=observer                       # 标明该节点为observer节点, 只在observer上配置
+              observerMasterPort=2191                 # Follower监听observer连接的端口
+              syncEnabled=true		                    # observer默认向follower一样记录事务, 并将快照写入磁盘. 默认为true,设置false禁用此功能
+            - wal
+              preAllocSize					                  # 预先开辟磁盘空间, 以便于后续写入日志,默认64M. 单位为千字节. 每个事务日志文件大小就是64M, 若zk快照频率较大，则可适当减小此参数
+
+              snapCount						                    # 每进行[snapCount/2+1, snapCount]次(防止多个server同时快照, 取随机值)的事务日志输出后,就触发一次快照(zk会生成一个snapshot.*文件,同时创建一个新的事务日志文件log.*. 默认是100000
+              snapSizeLimitInKb=                      # 当事务日志中事务集的字节大小达到[snapSize/2+1,  snapSize]范围时, 则会触发一次快照. 默认大小4G
+
+              snapshot.compression.method=            # 是否在快照存储到磁盘之前进行压缩
+                                                      > "":  默认无压缩
+                                                      > "gz": 
+                                                      > "snappy"
+
+              txnLogSizeLimitInKb=                    # 事务日志文件大小限制, 默认-1. 超过此大小则进行文件滚动. 值建议 N * preAllocSize, 其中 N >= 2
+
+              maxConcurrentSnapSyncs=10               # leader/follower可以同时sync snap的最大数量. 默认为10
+              maxConcurrentDiffSyncs=100              # leader/follower可以同时diff sync的最大数据. 默认为100
+
+              autopurge.purgeInterval=0	              # zk提供了自动清理事务日志和快照文件的功能,该参数指定了清理频率.单位是小时. 默认是0, 表示不开启自动清理功能
+              autopurge.snapRetainCount=10	          # 在自动清除后分别保留的快照和日志文件个数.默认是3个, 最小值是3
+
+              flushDelay=0                            # 延迟commit log的时间, 单位毫秒. 默认为0
+              maxWriteQueuePollTime
+
+              maxBatchSize                            # 在触发提交日志刷新之前服务器中允许的事务数
+
+
+              forceSync						# 是否需要在事务日志提交的时候调用FileChannel.force来保证数据完全同步到磁盘
+              traceFile						# 用于记录所有请求的log，一般调试过程中可以使用，但是生产环境不建议使用，会严重影响性能
+            - cluster
+              maxTimeToWaitForEpoch
+              initLimit=5                             # Leader接受Follower初始化连接时的超时tick(Follower会在启动过程中从Leader同步最新数据)
+              syncLimit=10                            # Leader与Follower之间发送消息, 请求和应答的超时tick
+              connectToLearnerMasterLimit
+              leaderServes=yes					              # 默认情况下,Leader接受客户端连接,并提供正常的读写服务,可将此参数设置为no,会大大提高写操作的性能(三台以上时建议为no)
+              server.A=B:C:D                          # A表示myid, B是服务器ip, C为Leader中通讯端口, D为选举交换端口
+
+              group.x=myid1:myid2                     # 采用分层仲裁机构. x为组id, 
+              weight.myid=nnnnn			                  # 对分组的机器权重设置
+
+              cnxTimeout                              # 设置为leader选举通知打开连接的超时值. 默认为5s
+              quorumCnxnTimeoutMs                     # 设置为leader选举通知连接的超时值
+              reconfigEnabled=false                   # 是否启用动态重新配置功能(通过ZooKeeper客户端API或通过ZooKeeper命令行工具执行重新配置操作)
+
+            - auth
+              DigestAuthenticationProvider.superDigest=admin:esjeftzkHBKqdAq9AtgEXbO6X94=         # 配置super权限
+              
+            - acl
+              skipACL							                    # 对所有客户端请求都不作ACL检查
+
+            - 选举
+              fastleader.minNotificationInterval
+              fastleader.maxNotificationInterval
+
+            - 连接throttler
+              connectionMaxTokens
+              connectionTokenFillTime
+              connectionTokenFillCount
+              connectionFreezeTime
+              connectionDropIncrease
+              connectionDropDecrease
+              connectionDecreaseRatio
+
+            - AdminServer
+              admin.enableServer=true                 # 默认启用AdminServer
+              admin.serverAddress=0.0.0.0             # jetty监听的地址, 默认0.0.0.0
+              admin.serverPort=8080                   # jetty监听的端口, 默认8080
+              admin.idleTimeout=30000                 # 连接发送/接收的最大空闲时间
+              admin.commandURL=/commands              # 用于列出和发出相对于根URL的命令的URL, 默认/commands
+              admin.forceHttps=false                  # 强制AdminServer仅使用SSL, 默认false
+              admin.portUnification=false             # 启用管理端口以接受HTTP和HTTPS流量. 默认false
+        docs
+        lib
+        data:                                       # 存储内存数据库的快照目录
+          myid                                      # 由一行只包含该机器id的文本组成, id必须在整体内是唯一的,并且值应介于1到255之间. 当zk启动时, 根据此id从配置文件中读取, 找到它应该监听的端口
+          initialize                                # 空文件, 存在则表示预期缺少数据树, 创建数据树后自动清理
+          version-2                                 # 保存数据树的模糊快照
+        logs
+		进程/端口
+      QuorumPeerMain(java)
+        2181: 客户端连接的端口
+        2888: 用于对等连接, 集群内的节点通讯使用, 数据副本同步, 只有Leader监听此端口
+        3888: 选举Leader时的投票通信端口
+        2191: Follower监听的端口. 用于Observer连接, 将负担从Leader上转移
+        8080: AdminServer端口
+        随机端口: 用来支持jmx调用
+		编程接口
+		管理软件
+      监控:
+        - 指标系统
+        - JMX
+        - adminServer接口的四字母单词
+        - zkServer.sh status
+	命令
+		服务器
+      zkEnv.sh                                                                                          # zk server的环境设置 
+      zkServer.sh start|start-foreground|stop|version|restart|status|print-cmd                          # zk server的控制脚本 
+      zkServer-initialize.sh                                                                            # 创建数据目录 
+        -h
+        --myid=N                                                                                        # 创建目录同时设置myid文件
+        --force                                                                                         # 强制创建目录
+      zkCleanup.sh -n 3                                                                                 # 清理旧快照和事务日志
+      zkSnapshotComparer.sh                                                                             # 使用可配置的阈值和各种过滤器加载和比较两个快照, 并输出有关增量的信息(仅输出有关永久节点的信息, 忽略会话和临时节点)
+        -b <byte_threshold>                                                                             # 节点数据增量大小阈值(字节为单位)
+        -n <node_threshold>                                                                             # 节点增量大小阈值(节点为单位)
+        -d                                                                                              # debug输出
+        -i                                                                                              # 交互模式
+        -l <snap_file>                                                                                  # 左侧快照文件
+        -r <snap_file>                                                                                  # 右侧快照文件
+      zkTxnLogToolkit.sh  [-dhrv] txn_log_file_name                                                     # 能够恢复带有损坏的CRC的事务日志条目
+        -d, --dump                                                                                      # dump模式, dump所有的log信息(默认)
+        -h
+        -r                                                                                              # 恢复模式. 重新计算损坏条目的 CRC
+        -v                                                                                              # 在-r模式时详细输出, 而非只打印修复的信息
+        -y                                                                                              # 在修复CRC时的非交互模式 
+      zkSnapShotToolkit.sh [-d|-json] snapshot_file                                                     # 将快照文件转储到标准输出, 显示每个zk节点的详细信息
+        -d                                                                                              # dump模式, 默认
+        -json                                                                                           # 以json格式显示
+		客户端
+      $ zkCli.sh                  # 默认连接localhost:2181
+        -timeout 3000 
+        -server ip:port
+        -waitforconnection
+	日志
+    ZooKeeper使用SLF4J版本1.7作为其日志记录基础设施. 默认情况下, ZooKeeper附带LOGBack作为日志记录后端
+	优化
+	安全
+	集群
+    说明:
+      1.使用奇数台服务器, 一般三台可用
+      2.zk集群是高可靠的，且属于自修复. 即故障服务一旦重新启动,会自动重新加入集合,无需任何手动交互
+    节点类型:
+			Leader: 领导者, 接受client的请求并返回结果给client. 并且负责投票的发起和决议, 更新系统状态
+			Follower: 接受client的请求并返回结果给client(读请求直接响应, 写请求转发给Leader), 并参与投票
+			Observer: 通Follower功能相同, 但不参赛投票只听取投票结果. Observer目的是扩展系统，提高读的速度
+			Client: 客户端
+    部署: 每台都操作
+      1.上安装jdk
+      2.安装zk
+        $ wget -c https://dlcdn.apache.org/zookeeper/zookeeper-3.8.0/apache-zookeeper-3.8.0-bin.tar.gz
+        $ tar -xf apache-zookeeper-3.8.0-bin.tar.gz -C /dream/
+        $ ln -sv apache-zookeeper-3.8.0-bin zk
+      3.修改配置文件
+        $ vim conf/zoo.cfg
+          tickTime=2000
+          initLimit=10
+          syncLimit=5
+          dataDir=/dream/zk/data
+          clientPort=2181
+          maxClientCnxns=60
+
+          server.1=zk1:2888:3888
+          server.2=zk2:2888:3888
+          server.3=zk3:2888:3888
+        $ vim ./conf/java.env                                     # 配置jvm
+          export ZK_SERVER_HEAP="2048"
+        $ ./bin/zkServer-initialize.sh --myid=N                   # 建立相关目录(可手动) 不同主机使用不同的server.N中的N
+      4.启动并查看
+        $ ./bin/zkServer.sh start
+        $ ./bin/zkServer.sh status
+      5.配置账号(任意单台)
+        $ echo -n dream:DreamSoft_123 | openssl dgst -binary -sha1 | openssl base64
+          q3bpXpx947Hw33iiTuROk1Fy/h8=
+        $ ./bin/zkCli.sh 
+          > addauth digest admin:DreamSoft_321
+          > setAcl -R / digest:dream:q3bpXpx947Hw33iiTuROk1Fy/h8=:cdrwa
+      6.访问
+        $ ./bin/zkCli.sh
+          > addauth digest dream:DreamSoft_123
+          > ls /
+    Observers模式:
+      说明: 随着Follower节点数量的增加, ZooKeeper服务的写性能受到了影响(Leader节点必须等待集群中过半Server响应投票). 
+			特性:
+				1.Observe的断开与连接不会影响Zookeeper的可用性
+				2.读性能上升,写操作的网络流量小
+      部署:
+        1.集群方式安装并配置zk
+        2.在observer节点上修改配置文件
+				  $ vim ./conf/zoo.cfg
+            peerType=observer
+        3.在每个节点上添加
+						server.N:ip:port1:port2:observer            # 标明为observer
+        4.按集群方式启动zk
+      Observer Masters模式: 
+        1.默认情况下, observer通过仲裁端口和Leader连接. 使用该模式, 则使observer连接到follower而非Leader, 它将会使负担从Leader上转移
+        2.可通过在所有节点上配置observerMasterPort=2191实现
+    分层仲裁: 根据group和weight, 若能得到大多数group中的大多数节点的投票, 就能够形成一个法定人数
+具体服务相关
+	概念:
+    数据模型: 
+      说明: 
+        1.类似分布式文件系统的, 树形结构的分层命名空间, 
+        2.其中的每个节点都可以有与其关联的数据及其子节点. 节点的路径为斜杠分割的绝对路径, 无相对路径概念
+        3.节点不支持重命名
+        4.数据大小不超过1M
+        5.保留 /zookeeper 节点, 存储配额和config信息
+      ZNodes:
+        说明
+          1.zk树中每个节点都称为znode. 默认能存储1M的数据
+          2.ZNodes维护一个包含数据更改版本号, acl更改的stat结构
+          3.
+        特性:
+          - Watches
+            client可以在znode上设置watches, 对znode的更改会触发watch, 同时zk会向所有注册client发送通知, 然后清除watch. 
+          - 数据访问
+            存储在每个znode上的数据都是原子读取和写入的, 每个节点都可以有ACL控制
+        节点类型
+          - 持久节点(Persistent Nodes):     客户端和服务器断开连接后, 创建的节点不被删除
+          - 临时节点(Ephemeral Nodes):      只要创建znode的会话处于活动状态, 则znode会存在(可被显示删除). 当会话结束, znode将被删除. 临时znode不允许有子节点
+          - 持久序列节点:                   znode节点路径后会有一个单调递增的计数器, 格式为/<path>%010d, 由父节点维护, 其序号默认从0开始, 若已有节点, 则新节点为该节点当前的数量序号+1
+          - 临时序列节点(Sequence Nodes):   znode节点路径后会有一个单调递增的计数器, 格式为/<path>%010d
+          - 容器节点:                       用于leader, lock等特殊用途的znode. 当容器的最后一个子节点被删除时, 该容器会成为服务器在未来某个时间点删除的候选者
+          - TTL节点                         当创建PERSISTENT或PERSISTENT_SEQUENTIAL znode时, 可以该znode设置以秒为单位的TTL. 若znode为在ttl内修改且没有子节点, 则该znode将成为服务器在未来某个时间点删除的候选者
+      zk时间
+        Zxid: zk状态的每次更改都会收到一个唯一zxid(zk事务ID), 用于记录zk所有更改的顺序
+        version: znode每次更改都会导致该节点的version之一增加
+          version: znode数据变化次数
+          cversion: 子节点变化次数
+          aversion: ACL变化次数
+        Ticks: zk使用ticks来定义事件的计时. 
+        实时时间: 除了znode的创建和修改时间外, zk不使用实时时间
+      zk的统计结构: 每个znode的stat结构
+        czxid: 创建此znode的zxid mzxid: 修改此znode的zxid pzxid: 修改此znode子节点的更改的zxid ctime: 创建此znode的时间 mtime: 修改此znode的时间 dataVersion: 此znode数据的更改次数 cversion: 此znode子节点的更改次数 aclVersion: 此znode ACL的更改次数 ephemeralOwner: 临时节点的owner的会话ID. 若非临时节点, 则为0 dataLength: 此znode的数据字段长度 numChildren: 此znode的子节点数 zk会话: 一致性保证: 顺序一致性: 来自客户端的更新将按照它们发送的顺序应用 原子性: 更新要么成功, 要么失败 单一系统映像: 无论连接到哪个节点, 客户端都会看到相同的服务视图(每个server上保存一份相同的数据副本) 可靠性: 集群中只要有半数以上节点存活, zk就能正常服务 及时性: 在一定时间范围内, client能读到最新数据(数据量小, 同步时间短)
+      ACL
+        说明: 
+          1.zk使用ACL来实现对znode的访问. 它使用位权限来允许/禁止针对节点的各种操作. 且ACL仅适用于特定的znode
+          2.acl由schema:id:permisson组成, id的格式特定于schema
+          3.默认acl为world:anyone:cdrwa
+          4.忘记密码可使用super方式或skipACL=yes来重置
+        分类
+          schema:
+            world: 表示开放模式, 只有一个id为anyone, 为所有client开放权限
+            ip: ip模式, 限定特定客户端ip访问
+            auth: 用户名密码模式, 但会使用当前session中的所有用户
+            digest: 与auth类似, 区别于auth使用明文密码, digest使用sha-1+base64加密后的密码. 而登录使用明文密码登录 常用
+            x509
+          permission: cdrwa
+            create: 创建子节点
+            read: 获取节点数据和子节点列表
+            write: 写入数据
+            delete: 删除子节点
+            admin: 管理权限, 可以对授权对象进行ACL设置
+        操作:
+          world: 只有一种设置模式 setAcl /path world:anyone:cdrwa
+          ip: setAcl /path ip:192.168.0.33:cdrwa
+          auth: 
+            1.添加用户: addauth digest user:pass
+            2.设置: setAcl /path auth:user:cdrwa
+            3.访问: 新会话需要重新授权:  addauth digest user:pass
+          digest:
+            1.生成加密密码: echo -n user:pass | openssl dgst -binary -sha1 | openssl base64
+            2.设置ACL: setAcl /path digest:user:pass_sec:cdrwa
+            3.访问: 需要重新授权:  addauth digest user:pass
+          super:
+            1.在配置文件中配置super
+              $ vim conf/zoo.cfg
+                DigestAuthenticationProvider.superDigest=admin:esjeftzkHBKqdAq9AtgEXbO6X94=
+            2.访问授权:  addauth digest admin:DreamSoft_321
+		Session：
+			1.Client和Zookeeper之间采用长连接
+			2.Zookeeper会把这个Session持久化.所以在Session未超时之前,client与Zookeeper server的连接在各个Zookeeper sever之间透明地移动
+			3.Client定期发送ping包来检查和保存server的连接
+			4.一旦session结束或超时，所有临时节点会被删除
+    选举机制:
+      过程状态
+        LOOKING: 当前Server不知道leader是谁,正在搜寻
+        LEADING: 当前Server即为选举出来的leader
+        FOLLOWING: leader已经选举出来,当前Server与之同步
+    监听器(Watcher):
+      说明:
+        1.客户端可以在znode上设置监视.当znode更改时,将触发并删除watch
+        2.client还可以在znode上设置永久的递归watch, 这些watch在触发时不会被删除, 并且会递归地触发已注册znode以及任何子znode上的更改
+      原理:
+        1.客户端在main线程中创建zk客户端, 其创建两个线程: 负责网络连接通信connect, 一个负责监听listener
+        2.connect线程将注册的监听时间发送给zk
+        3.zk的注册监听器将注册的监听事件添加到自己的列表中
+        4.当zk监听到数据/路径/状态变化, 则将该消息发送至客户端的listener线程
+        5.listener线程内部调用process()方法
+      类型:
+        - 监听节点数据
+        - 监听子节点增减
+        - 监听节点状态
+    数据同步/读写模式/请求处理
+      1.zk中每个server都可以为client提供读/写服务
+      2.1.对于client的读请求, server直接从本地的内存数据库中取出数据返回给client
+      2.2.对于client的写请求, 非Leader server会将请求发送给Leader
+        - Leader收到来自Follower/observer的请求后, 首先计算此次操作之后的状态, 然后将该写请求转换为带有各种状态的事务
+        - Leader将此事务以广播方式发送给所有server
+        - 所有Follower收到广播后对此投票, 结果返回给Leader. observer则不参数投票
+        - Leader搜集投票结果, 只要超过半数同意, 则此请求通过
+        - 请求通过后, Leader向所有server发送一个提交通知
+        - 所有server收到提交通知后, 将此次事务写入事务日志, 并提交
+        - 提交后, 最初收到client写请求的server向client返回信息
+    快照(snapshot)
+      zk完成若干次事务日志后会触发一次快照, 将当前server上所有节点的状态以快照文件的形式dump到磁盘上, 即snapshot文件
+      WAL和Snapshot
+        zk也有WAL,对于每一个更新操作,zk都会先写WAL, 然后再对内存中的数据做更新，然后向Client通知更新结果.
+        另外,ZooKeeper还会定期将内存中的目录树进行Snapshot.这么做的主要目的，一当然
+        是数据的持久化，二是加快重启之后的恢复速度，如果全部通过Replay WAL的形式恢复的话，会比较慢
+    配额(quotas):
+      说明: 
+        1.zk有命名空间(节点个数限制)和字节配额, 若用户超过分配的软配额, 会在zk日志中打印warn信息
+        2.配额信息存储在zk的/zookeeper/quota目录下, 且该目录不能设置quota
+        3.一个路径中只能有一个配额设置
+        4.需要enforceQuota=true才能启用
+    AdminServer: 
+      说明: 
+        1.是一个嵌入式Jetty服务器, 它为四个字母的单词命令提供http接口.  默认情况下在8080端口上启动, 并通过http://ip:port/commands/<cmd_name>的url发出
+        2.命令响应以json格式返回
+      四字母单词接口:
+        crst: 重置所有客户端连接统计信息, 无返回字段
+        conf: 打印有关服务器基本的配置信息 
+        cons: 有关客户端与服务器连接的信息
+        hash: 历史摘要列表中的Txn摘要.每128笔交易记录一次
+        dirs: 日志目录和快照目录的大小(单位字节)
+        dump: 有关会话过期和临时性的信息
+        env: 所有定义的环境变量
+        gtmk: 当前跟踪掩码. set_trace_mask的只读版本
+        icfg: 打印用于启动对等体的配置文件的文本
+        isro: 如果此服务器处于只读模式, 则为true
+        lsnp: 
+        lead: 如果集成配置为仲裁模式, 则发出对等方的当前状态和当前leader位置
+        mntr: 发出各种有用的监控信息. 包括性能统计信息、有关内部队列的信息以及数据树的摘要
+        orst: 重置所有观察者连接统计信息
+        ruok: 无操作命令, 检查服务器是否正在运行
+        stmk: 设置跟踪掩码
+        srvr: 服务器信息
+        stat: 与srvr相同, 但也返回客户端连接信息
+        srst: 重置服务器统计信息
+        obsr: 有关observer与服务器连接的信息
+        sysp: 所有定义的系统属性
+        voting_view: 提供整体中当前投票的成员
+        wchc: 按会话聚合的watcher信息
+        wchp: 按路径聚合的watcher信息
+        wchs: watcher信息汇总
+        zabstate: peer正在运行的Zab协议的当前阶段以及它是否是投票成员
+    动态配置:
+      说明:
+        1.区分动态配置参数和静态配置参数, 动态配置参数(server, group, weight)可以在运行时更改, 静态配置参数在服务器启动时从配置文件中读取并且在执行期间不会更改. 
+        2.动态更改期间不会中断服务, 同时保持数据一致性. 由zk推送并覆盖所有服务器上的动态配置文件
+        3.新的client功能可以连接配置更改并更新存储在zk句柄中的连接字符串(服务器列表及端口), 需要监听配置信息
+        4.默认禁用, 必须通过reconfigEnabled=true显示开启. 开启后会自动分为静态和动态配置文件, 原配置文件备份为.bak
+  内部命令
+    zkCli.sh
+      - znode
+        ls path                                 # 列出路径的子节点
+          -s                                    # 显示状态
+          -R                                    # 递归显示子节点
+          -w                                    # 设置监听节点下子节点的变化
+        create  [-c] [-t ttl] path [data] [acl]        # 创建永久znode
+        deleteall path [-b batch size]          # 删除指定路径及其下的所有节点
+        stat [-w] path                          # 显示一个节点的元数据信息
+        getAllChildrenNumber path               # 获取所有子节点数量
+        getEphemerals path                      # 获取本次会话创建的所有临时节点
+        sync path                               # 在leader和follower之间同步一个节点的数据(异步)
+      - cmd
+        history                                 # 显示最近执行的11个命令的历史记录
+        close                                   # 关闭session
+        quit                                    # 退出
+        redo N                                  # 根据history中的索引重新执行cmd
+        version                                 # 显示zk cli的版本
+        connect host:port                       # 连接到一个zk服务
+        whoami                                  # 显示当前身份验证的信息
+      - config
+        config                                  # 显示集群成员的信息
+          -w                                    # 设置watch
+          -s                                    # 同时显示stat
+          -c                                    # 只输出与当前配置对应的版本和客户端连接字符串
+        reconfig 
+          [-s] 
+          [-v version] 
+          [[-file path] | [-members serverID=host:port1:port2;port3[, ...]*]]
+          [-add serverId=host:port1:port2;port3[, ...]]* 
+          [-remove serverId[, ...]*]
+      - acl
+        addauth scheme auth                           # 为ACL添加授权
+        getAcl [-s] path                              # 获取path的acl
+        setAcl [-s] [-v version] [-R] path acl        # 为path设置acl
+      - quota
+        setquota -n|-b|-N|-B val path                 # 在path中设置配额
+          -n <N>                                      # 限制子节点数量, 包括自身. 软限制
+          -b <N>                                      # 限制节点数据的字节大小. 软限制
+          -N <N>                                      # 限制子节点数量, 包括自身. 硬限制
+          -B <N>                                      # 限制节点数据的字节大小. 硬限制
+        listquota path                                # 列出path配额
+        delquota [-n|-b|-N|-B] path                   # 删除path下配额
+      - watch
+        addWatch [-m mode] path # optional mode is one of [PERSISTENT, PERSISTENT_RECURSIVE] - default is PERSISTENT_RECURSIVE
+        removewatches path [-c|-d|-a] [-l]
+        printwatches [on|off]                   # 显示/切换watches
+
+
+

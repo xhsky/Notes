@@ -1,52 +1,71 @@
 简介
-	时间，作者，开发语言，定义
-	官网：https://hadoop.apache.org/
+	时间,作者,开发语言,定义
+    可靠的, 可扩展的分布式计算开发开源软件
+		HDFS(Hadoop Distributed File System)是一种分布式文件系统, 它为Hadoop分布式计算框架提供高性能,高可靠,高可扩展的存储服务.
+	官网: https://hadoop.apache.org/
 	版本
 	协议
+    2011年, Hadoop 1.0发布, 架构简单, 基本就是按照论文中的框架实现. 
+    2013年, Hadoop 2.0发布, 增加了Yarn资源调度(将MapReduce中的资源调度功能剥离形成一个独立的框架), HDFS HA机制(standbynamenode进行热备份)和HDFS Federation(解决了HDFS水平可扩展能力)
+    2017年, Hadoop 3.0发布, 增强了命名节点性能扩展能力
 适用性(优缺)
+  HDFS:
+    HDFS的设计基础与目标
+      - 硬件错误是常态: 集群规模足够大的时候,节点故障的概率将会是足够大,即为常态. 因此需要冗余,且可运行在廉价PC机上. 并检测故障从中快速自动恢复
+      - 流式数据访问: 即数据批量读取而非随机读写,可在多个冗余副本上进行读取. Hadoop擅长做的是数据分析而不是事务处理(旨在提高数据的吞吐量,而非用户交互性的小数据)
+      - 适合存储大规模数据集: 存储在HDFS上的文件大多是GB到TP级别, 能在单个实例中支持数千万个文件
+      - 简单一致性模型: 为了降低系统复杂度,对文件采用一次性写多次读的逻辑设计,即文件一经写入,关闭,就再也不能修改(除了追加和截断)
+      - 移动计算比移动数据更便宜: 程序采用"数据就近"原则分配结点执行(HDFS为应用程序提供了接口, 以使自己更靠近数据所在的位置)
+      - 跨异构硬件和软件平台的可移植性: HDFS被设计成可以轻松地从一个平台移植到另一个平台
+		不足:
+			1.实时访问数据弱: 数据访问时间无法达到秒或毫秒级别(可考虑使用HBase).
+			2.大量小文件: 当hadoop启动时,NameNode会将所有的元数据读入内存,以此构建目录树.一般来说,一个HDFS上的文件,目录和数据块的存储信息大概在150B(若NameNode的内存为16GB,只能存放480万个文件)
+			3.多用户写入,任意修改文件: HDFS上的文件只能有一个写入者,并且写数据操作总在文件末.不支持多个写入者,也不支持在文件的任意位置进行修改.
+  MapReduce
+    
 架构
-	模块：
-		Hadoop Common：支持其他Hadoop模块的常用实用程序
-		HDFS：供对应用程序数据的高吞吐量访问的分布式文件系统
-		YARN：作业调度和集群资源管理的框架
-		MapReduce：种基于YARN的大数据集并行处理系统
-	生态环境：
-		Ambari?：用于配置，管理和监控Apache Hadoop集群的基于Web的工具，包括对Hadoop HDFS，Hadoop MapReduce，Hive，HCatalog，HBase，ZooKeeper，Oozie，Pig和Sqoop的支持。Ambari还提供了一个用于查看群集健康的仪表板，如热图，以及以视觉方式查看MapReduce，Pig和Hive应用程序的功能，以便以用户友好的方式诊断其性能特征。
-		Avro?：数据序列化系统。
-		Cassandra?：一个可扩展的多主数据库，没有单点故障。
-		Chukwa?：用于管理大型分布式系统的数据收集系统。
-		HBase?：一个可扩展的分布式数据库，支持大型表的结构化数据存储。
-		Hive?：提供数据摘要和即席查询的数据仓库基础设施。
-		Mahout?：可扩展的机器学习和数据挖掘库。
-		Pig?：用于并行计算的高级数据流语言和执行框架。
-		Spark?：用于Hadoop数据的快速和通用的计算引擎。Spark提供了一个简单和表达性的编程模型，支持各种应用程序，包括ETL，机器学习，流处理和图形计算。
-		Tez ?：一个基于Hadoop YARN的通用数据流编程框架，它提供了一个强大而灵活的引擎来执行任务的任意DAG，以便为批处理和交互式用例处理数据。Tez被Hive?，Pig?和Hadoop生态系统中的其他框架以及其他商业软件（如ETL工具）采用，以取代Hadoop?MapReduce作为底层执行引擎。
-		ZooKeeper?：用于分布式应用程序的高性能协调服务。
-		
-	安装：
-		说明：hadoop有三种安装方式
-		方式：
-			1.本地安装：
-				说明：仅用于调试，hadoop被配置为在单个java进程下运行
-			2.伪分布安装：
-				说明：在单节点上安装，每个hadoop的守护进程在单独的java进程中运行
-				安装：
-					0.# yum install zlib-devel openssl-devel
-					1.# 安装jdk
-					2.# wget http://mirrors.hust.edu.cn/apache/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
-					  # tar *
-					3.# 配置本机免密码登录
-					4.# 修改HDFS配置
-						# vim ./etc/hadoop/hadoop-env.sh
-							export JAVA_HOME=/usr/local/jdk
-						# vim ./etc/hadoop/core-site.xml
+	模块:
+		Hadoop Common:      支持其他Hadoop模块的通用程序模块
+		HDFS:               提供对应用程序数据的高吞吐量访问的分布式文件系统
+		YARN:               作业调度和集群资源管理的框架
+		MapReduce:          基于YARN的大数据集并行处理系统
+	生态环境:
+		Ambari:             用于配置,管理和监控Apache Hadoop集群的基于Web的工具,包括对Hadoop HDFS,Hadoop MapReduce,Hive,HCatalog,HBase,ZooKeeper,Oozie,Pig和Sqoop的支持。Ambari还提供了一个用于查看群集健康的仪表板,如热图,以及以视觉方式查看MapReduce,Pig和Hive应用程序的功能,以便以用户友好的方式诊断其性能特征。
+		Avro:               数据序列化系统
+		Cassandra:          一个可扩展的多主数据库,没有单点故障。
+		Chukwa:             用于管理大型分布式系统的数据收集系统。
+		HBase:              一个可扩展的分布式数据库,支持大型表的结构化数据存储。
+		Hive:               提供数据摘要和即席查询的数据仓库基础设施。
+		Mahout:             可扩展的机器学习和数据挖掘库。
+		Pig:                用于并行计算的高级数据流语言和执行框架。
+		Spark:              用于Hadoop数据的快速和通用的计算引擎。Spark提供了一个简单和表达性的编程模型,支持各种应用程序,包括ETL,机器学习,流处理和图形计算。
+		Tez:                一个基于Hadoop YARN的通用数据流编程框架,它提供了一个强大而灵活的引擎来执行任务的任意DAG,以便为批处理和交互式用例处理数据。Tez被Hive?,Pig?和Hadoop生态系统中的其他框架以及其他商业软件（如ETL工具）采用,以取代Hadoop?MapReduce作为底层执行引擎。
+    Submarine:          一个统一的 AI 平台, 允许工程师和数据科学家在分布式集群中运行机器学习和深度学习工作负载
+		ZooKeeper:          用于分布式应用程序的高性能协调服务。
+	安装:
+		说明:hadoop有三种安装方式
+		方式:
+			- 本地安装:
+				说明: 仅用于调试, hadoop被配置为在单个java进程下运行
+			- 伪分布安装:
+				说明: 在单节点上安装,每个hadoop的守护进程在单独的java进程中运行
+				安装:
+					1.安装jdk
+          2.配置本机免密码登录
+          3.安装hadoop
+            $ wget http://mirrors.hust.edu.cn/apache/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
+            $ tar *; ln
+          4.配置hdfs
+						$ vim ./etc/hadoop/hadoop-env.sh
+							export JAVA_HOME=/dream/jdk
+						$ vim ./etc/hadoop/core-site.xml
 							<configuration>
 								<property>
 									<name>fs.defaultFS</name>
 									<value>hdfs://localhost:9000</value>
 								</property>
 							</configuration>
-						# vim ./etc/hadoop/hdfs-site.xml
+						$ vim ./etc/hadoop/hdfs-site.xml
 							<configuration>
 								<property>
 									<name>dfs.replication</name>
@@ -79,517 +98,1449 @@
 								</property>
 
 							</configuration>
-					5.# 启动hdfs
-						# ./bin/hdfs namenode -format
-						# ./sbin/start-dfs.sh
-					6.# 修改YARN配置
-						# vim ./etc/hadoop/yarn-site.xml
+						$ ./bin/hdfs namenode -format
+						$ ./sbin/start-dfs.sh
+					5.配置yarn
+						$ vim ./etc/hadoop/yarn-site.xml
+              <configuration>
+                <property>
+                  <name>yarn.nodemanager.aux-services</name>
+                  <value>mapreduce_shuffle</value>
+                </property>
+                <property>
+                  <name>yarn.nodemanager.env-whitelist</name>
+                  <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_HOME,PATH,LANG,TZ,HADOOP_MAPRED_HOME</value>
+                </property>
+              </configuration>
+						$ vim ./etc/hadoop/mapred-site.xml
 							<configuration>
 								<property>
-									<name>yarn.nodemanager.aux-services</name>
-									<value>mapreduce_shuffle</value>
-								</property>
+                  <name>mapreduce.framework.name</name>
+                  <value>yarn</value>
+                </property>
+                <property>
+                  <name>mapreduce.application.classpath</name>
+                  <value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value>
+                </property>
 							</configuration>
-						# vim ./etc/hadoop/mapred-site.xml
-							<configuration>
-								<property>
-									<name>mapreduce.framework.name</name>
-									<value>yarn</value>
-								</property>
-							</configuration>
-					7.# 启动yarn
-						# ./sbin/start-yarn.sh
-					8.# 停止
-						# ./sbin/stop-dfs.sh
-						# ./sbin/stop-yarn.sh
-			3.分布安装：
-				# yum install zlib-devel openssl-devel
-				# 安装jdk
-				# wget http://mirrors.hust.edu.cn/apache/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
-				# tar *
-				
-				以下为主节点操作
-				# 配置本机对所有主机免密码登录
-				# 修改hdfs配置
-				# 修改yarn配置
-				# 添加slave节点
-					# vim etc/hadoop/slaves
-						db1.sky.org
-						db2.sky.org
-						db3.sky.org
-				# 将更改的配置文件同步至其它主机
-				# 启动hdfs
-						# ./bin/hdfs namenode -format
-						# ./sbin/start-dfs.sh
-				# 启动yarn
-						# ./sbin/start-yarn.sh
+						$ ./sbin/start-yarn.sh
+					6.停止
+						$ ./sbin/stop-dfs.sh
+						$ ./sbin/stop-yarn.sh
+			- 分布安装:
+        0.安装本地库依赖
+          $ yum install epel-release
+          $ yum install zlib libzstd bzip2-libs
+				1.安装jdk
+        2.安装hadoop
+          $ wget -c https://dlcdn.apache.org/hadoop/common/stable/hadoop-3.3.4.tar.gz
+          $ tar -xf hadoop-3.3.4.tar.gz
+          $ ln -sv hadoop-3.3.4 hadoop
+        3.配置环境变量
+          $ vim ~/.bash_profile
+            export HADOOP_HOME=/dream/hadoop
+        4.配置(仅在namenode上执行)
+          4.1 配置本机对所有主机免密码登录
+          4.2 修改hdfs配置
+          4.3 修改yarn配置
+          4.4 添加slave节点
+            $ vim etc/hadoop/workers
+              db1.sky.org
+              db2.sky.org
+              db3.sky.org
+				  4.5 将更改的配置文件同步至其它主机(所有主机上的配置文件应该相同)
+        5.启动(仅在namenode上执行)
+          $ ./bin/hdfs namenode -format
+          $ ./sbin/start-dfs.sh           # 单独启动 ./bin/hdfs --daemon start namenode|datanode
+          $ ./sbin/start-yarn.sh
+        6.停止 
+          $ ./sbin/stop-dfs.sh            # 单独停止 ./bin/hdfs --daemon stop namenode|datanode
 	结构
 		目录结构
-			源码目录
-			安装目录：
-				bin：二进制文件目录
-				sbin：工具脚本目录
-				etc：配置文件：core-default.xml与core-site.xml的功能是一样的，如果在core-site.xml里没有配置的属性，则会自动会获取core-default.xml里的相同属性的值
-				include：头文件
-				libexec：
-				lib：库文件   
-				share：共享目录
+			安装目录:
+				bin:          二进制文件目录
+				sbin:         工具脚本目录
+				etc:          配置文件: core-default.xml与core-site.xml的功能是一样的,如果在core-site.xml里没有配置的属性,则会自动会获取core-default.xml里的相同属性的值
+				include:      头文件
+				libexec:
+				lib:          库文件   
+				share:        共享目录
+      配置文件:
+        环境变量:                   # 控制bin/中的Hadoop脚本
+          hadoop-env.sh 
+          mapred-env.sh
+          yarn-env.sh
+        组件配置:
+          core-site.xml
+            fs.defaultFS: hdfs://hadoop1:9000                                     # 
+            io.file.buffer.size: 131072                                           # 在SequenceFiles中使用的R/W缓冲区大小
+
+            hadoop.security.authentication: simple                                # 用户身份验证, simple(默认)/kerberos
+
+            ha.zookeeper.quorum: zk1:2181,zk2:2181,zk3:2181                       # zk集群的地址
+            ha.zookeeper.auth: @/path/to/zk-auth.txt                              # 连接zk的以逗号分割的身份验证列表, 格式为digest:dream:DreamSoft_123,digest:hdfs-zkfc:HdfsZkfc_123, 可在其中写上创建znode权限的账号和连接/的账号
+            ha.zookeeper.acl: @/path/to/zk-acl.txt                                # 创建zk节点使用的acl, 默认world:anyone:rwcda, 格式为digest:hdfs-zkfc:FvqhACiArJeFwSw7HO6gVgGBRoA=:cdrwa 使其生效需要使用zkfc -formatZK命令
+
+            hadoop.http.staticuser.user: dir.who                                  # http访问的静态用户名
+            fs.permissions.umask-mode: 022                                        # 创建文件和目录时使用的umask
+
+            -- nfs
+              hadoop.proxyuser.<proxy_user>.groups: mount_user1, mount_user2      # 使用代理用户来代理所有访问nfs挂载的用户
+              hadoop.proxyuser.<proxy_user>.hosts: *                              # 设置为*, 允许代理来自任何主机的请求
+
+          hdfs-site.xml
+            - namenode
+              dfs.namenode.name.dir: file://${hadoop.tmp.dir}/dfs/name            # 指定namenode存储的目录(fsimage和editlog),若该值是以,分隔的目录,则在每个目录中都存储一份fsimage,以实现冗余
+              dfs.hosts:                                                          # 默认为空,指定一个包含一系列主机名的文件(绝对路径),该文件内的主机可以被允许连接namenode,如果值为空,则所有主机都允许
+              dfs.hosts.exclude:                                                  # 默认为空,指定一个包含一系列主机名的文件(绝对路径),该文件内的主机不被允许连接namenode,如果值为空,则所有主机都允许
+              dfs.blocksize: 134217728                                            # 文件的默认块大小(byte), 默认128M,可以使用单位(k,m,g,t,p,e 不区分大小写)
+              dfs.namenode.handler.count: 10                                      # namenode的线程数, 用来处理来自datanode的rpc, 默认10
+
+              dfs.nameservices:                                                   # 逗号分割的nameservices
+              dfs.ha.namenodes.<nameservice>:                                     # nameservices中每个namenode的唯一标识符, DataNodes将使用它来确定集群中的所有NameNode
+              dfs.namenode.rpc-address.<nameservice>.<namenode>:                  # 每个NameNode监听的完全限定的RPC地址
+              dfs.namenode.http-address.<nameservice>.<namenode>:                 # 每个NameNode监听的完全限定的HTTP地址
+              dfs.namenode.shared.edits.dir:                                      # 标识NameNode将写入/读取编辑的JN组的URI, 格式应为qjournal://host1:port1;host2:port2;host3:port3/journalId
+              dfs.ha.fencing.methods:                                             # 将用于在故障转移期间隔离active NameNode的脚本或Java类列表. 故障转移期间使用的fencing方法被配置为一个回车分隔的列表,将按顺序尝试,直到一个指示fencing成功.Hadoop附带了两种方法:shell和sshfence
+                                                                                  # 故障转移期间使用的fencing方法被配置为一个回车分隔的列表, 将按顺序尝试, 直到一个指示 fencing 成功
+                                                                                  # sshfence: SSH到Active NameNode并使用fuser终止监听服务TCP端口的进程. 需要配置秘钥选项. 可通过sshfence([[username][:port]])该方式指定用户和端口
+                                                                                  # shell: 运行任意shell命令来隔离Active NameNode, 如果shell命令返回退出代码0,则确定fencing成功. 若选择不使用实际的屏蔽方法,仍须为此设置配置一些内容, 例如shell(/bin/true)
+              dfs.ha.fencing.ssh.private-key-files: /home/user/.ssh/id_rsa        # 使用sshfence时ssh使用的秘钥
+              dfs.ha.fencing.ssh.connect-timeout: 30000                           # 为SSH配置一个超时时间(以毫秒为单位), 超过此时间后, 此防护方法将被视为失败
+
+              dfs.ha.nn.not-become-active-in-safemode: false                      # 是否允许namenode在safemode时变为active, 默认false
+
+              dfs.namenode.state.context.enabled:                                 # NameNode能够维护和更新服务器状态和ID(namenode创建的实例会跟踪当前服务器state ID, 并将其带回client). 默认为false. 需要为observer特性开启
+              dfs.namenode.accesstime.precision: 3600000                          # hdfs文件的访问时间精确的值. 默认为1小时. 0为禁用.若启用, 会将getBlockLocations调用转换为写调用, 因为它需要持有写锁以更新打开文件的时间. 因此, 请求将在所有Observer NameNode上失败并最终回退到活动状态. 结果, RPC性能将下降
+
+            - journal
+              dfs.journalnode.edits.dir: /tmp/hadoop/dfs/journalnode/             # journal存储editlog的目录
+              dfs.journalnode.edit-cache-size.bytes: 1048576                      # journalnode上的缓存大小, 单位字节. 1M的默认值大约可以存储5000个事务. 缓存用于通过基于RPC的拖尾服务编辑. 这仅在打开dfs.ha.tail-edits.in-progress时有效
+
+            - ha
+              dfs.ha.tail-edits.in-progress: false                                # 通过正在进行的编辑日志和其他机制(例如基于RPC的编辑日志提取、JournalNodes中的内存缓存等)实现快速编辑日志拖尾. 默认情况下它是禁用的, 但需要为Observer NameNode功能打开. 
+              dfs.ha.tail-edits.period: 0ms                                       # standby/observer从journalnode获取edit的周期. 默认1min. 
+              dfs.ha.tail-edits.period.backoff-max: 10s                           # 当Standby/Observer试图从JournalNodes尾部编辑并发现没有可用的编辑时的行为. 当没有可用edits时, 尝试等待的最长时间. 若无等待会不断的尝试读取edit, 会导致高CPU
+
+            - client
+              dfs.client.failover.proxy.provider.<nameservice>:                   # HDFS客户端用来联系Active NameNode的Java类, 以确定哪个NameNode是当前活动的
+              dfs.client.failover.observer.auto-msync-period.<nameservice>: 500ms # 指定该时间后, 若client state ID未从active更新, 则自动执行msync(). 若指定为0, 则每次读取操作之前都会执行msync(). 为负值则不执行
+
+            - permaission
+              dfs.permissions.enabled: true                                       # 默认为true, true:在hdfs上启用权限检查,false:将权限检查关闭. 从一个参数值切换到另一个参数值不会更改文件或目录的模式、所有者或组
+              dfs.permissions.superusergroup: supergroup                          # 默认值supergroup,超级用户组的名称
+              dfs.namenode.acls.enabled: true                                     # 默认true. 是否启用hdfs的acl,当禁用时,namenode将拒绝所有设置或获取acl相关的rpc
+              dfs.namenode.posix.acl.inheritance.enabled: true                    # 设置为 true 以启用 POSIX 样式的 ACL 继承. 当启用它并且创建请求来自兼容的客户端时, NameNode 会将父目录中的默认 ACL 应用于创建模式并忽略客户端 umask. 如果未找到默认 ACL, 它将应用客户端 umask
+
+            - cache
+              dfs.datanode.max.locked.memory: 0                                   # 用于在datanode内存中缓存块副本的内存量(以字节为单位, 但支持各种单位). 默认为0, 禁用内存缓存. 默认native lib对datanode不可用, 则此配置无效. 建议节点内存的5%~10%左右
+
+            - nfs
+              nfs.superuser: the_name_of_hdfs_superuser                           # NFS客户端上的超级用户可以访问HDFS上的任何文件. 默认无
+              nfs.dump.dir: /tmp/.hdfs-nfs                                        # 该目录用于在写入HDFS之前临时保存乱序写入. 对于每个文件, 乱序写入在内存中累积超过特定阈值(例如1MB)后将被转储. 需要确保目录有足够的空间
+              nfs.export.point: /                                                 # 以指定HDFS的NFS导出点. 仅支持一个导出点. 默认为/
+            - xattrs
+              dfs.namenode.xattrs.enabled: true                                   # 是否启用对扩展属性的支持, 默认为true
+              dfs.namenode.fs-limits.max-xattrs-per-inode: 32                     # 每个索引节点的最大扩展属性数. 默认32
+              dfs.namenode.fs-limits.max-xattr-size: 16384                        # 扩展属性的名称和值的最大组合大小(以字节为单位).  范围在0-32768, 默认16384
+
+            - shortcircuit
+              dfs.client.read.shortcircuit: false                                 # 是否打开短路本地读取. 默认false
+              dfs.domain.socket.path: /var/lib/hadoop-hdfs/dn_socket              # 这是一个UNIX域套接字的路径, 将用于DataNode和本地HDFS客户端之间的通信
+
+
+            - automatic failover
+              dfs.ha.automatic-failover.enabled: true                             # 集群是否设置自动故障转移
+
+            - secondaryNamenode:
+
+            - datanode:
+              dfs.replication: 3                                                  # 块复制数. 默认3. 也可在创建文件时手动指定
+              dfs.datanode.data.dir: file://${hadoop.tmp.dir}/dfs/data            # 设置datanode数据的存储目录,若该值是以,分隔的目录列表,则数据会在每个目录中存储一份.通常目录在不同的设备上.对于hdfs的存储策略,应使用不同的设备类型(SSD,DISK, ARCHIVE,RAM_DISK),默认存储类型为DISK.若本地文件系统允许,则会创建不存在的目录
+
+
+
+						hadoop.hdfs.configuration.version:默认为1,该配置文件的版本
+						dfs.namenode.rpc-address:默认为空,
+						dfs.namenode.rpc-bind-host:
+						dfs.namenode.servicerpc-address:
+						dfs.namenode.servicerpc-bind-host:
+						dfs.namenode.secondary.http-address:默认0.0.0.0:50090,Secondary Namenode http提供的地址和端口
+						dfs.namenode.secondary.https-address:默认0.0.0.0:50091,Secondary Namenode https提供的地址和端口
+						dfs.datanode.address:默认0.0.0.0:50010,datanode用于数据传输的地址和端口
+						dfs.datanode.http.address:默认0.0.0.0:50075,datanode http提供的地址和端口
+						dfs.datanode.ipc.address:默认0.0.0.0:50020,datanode ipc(进程间通信)提供的地址和端口
+						dfs.datanode.handler.count:默认10,datanode服务的线程数
+						dfs.namenode.http-address:默认0.0.0.0:50070,dfs Namenode web ui监听的地址和端口
+						dfs.namenode.http-bind-host:默认为空,http将要绑定的实际地址.若该选项被设置,则会覆盖dfs.namenode.http-address的主机名部分
+						dfs.namenode.heartbeat.recheck-interval:默认300000,设置datanode失效宕机的时间间隔,单位毫秒
+						dfs.http.policy:默认HTTP_ONLY,设置datanode支持的http协议(HTTP_ONLY/HTTPS_ONLY/HTTP_AND_HTTPS)
+						dfs.client.https.need-auth:默认false,是否需要ssl客户端证书身份认证
+						dfs.client.cached.conn.retry:默认为3,hdfs客户端从缓存中提取socket的次数,一旦超出,则会尝试创创建一个新的socket
+						dfs.https.server.keystore.resource:默认ssl-server.xml,提取ssl服务器keystore信息的资源文件
+						dfs.client.https.keystore.resource:默认ssl-client.xml,提取ssl客户端keystore信息的资源文件
+						dfs.datanode.https.address:默认0.0.0.0:50475,datanode https提供的端口和地址
+						dfs.namenode.https-address:默认0.0.0.0:50470,namenode https提供的端口和地址
+						dfs.namenode.https-bind-host:
+						dfs.datanode.dns.interface:默认default,
+						dfs.datanode.dns.nameserver:默认default,
+						dfs.namenode.backup.address:默认0.0.0.0:50100,backup node服务的端口和地址,若端口为0,则该服务器将会从一个空闲的端口启动
+						dfs.namenode.backup.http-address:默认0.0.0.0:50105,backup node http服务的端口和地址,若端口为0,则该服务器将会从一个空闲的端口启动
+						dfs.namenode.replication.considerLoad:默认true,设定chooseTarget是否考虑target的负载
+						dfs.default.chunk.view.size:默认32768,在浏览器上查看文件的字节数
+						dfs.datanode.du.reserved:默认0,每个volume的保留空间(bytes),为非dfs使用
+						dfs.namenode.name.dir.restore:默认false,设置为true,则namenode尝试恢复以前失败的dfs.namenode.name.dir的目录
+						dfs.namenode.fs-limits.max-component-length:默认255,定义路径的每个组件的UTF-8编码的最大值(byte),值为0则禁用该项检查
+						dfs.namenode.fs-limits.max-directory-items:默认1048576
+						dfs.namenode.fs-limits.min-block-size:默认1048576
+						dfs.namenode.fs-limits.max-blocks-per-file:默认1048576
+						dfs.namenode.edits.dir:默认${dfs.namenode.name.dir},设定namenode存储事务的目录,若该值是以,分隔的目录,则在每个目录中均存储一份以实现冗余
+						
+						dfs.namenode.edits.journal-plugin.qjournal:默认org.apache.hadoop.hdfs.qjournal.client.QuorumJournalManager.
+                        
+						
+                        dfs.namenode.lazypersist.file.scrub.interval.sec:默认300,NameNode定期扫描带命名空间中有丢失块的LazyPersist文件,并解除它们与命名空间的链接.该值为连续扫描之间的间隔.将其设置为负值以禁用此行为.
+						
+                        dfs.block.access.token.enable:默认false,true:设置access token为访问datanode的工具.false,在访问datanode节点时不检查access token
+						dfs.block.access.key.update.interval:默认600,namenode更新access key的间隔(min)
+						dfs.block.access.token.lifetime:默认600,access token的声明周期(min)
+                       
+                        
+						dfs.datanode.data.dir.perm:默认700,即dfs.datanode.data.dir设置的目录的权限
+                        
+						dfs.replication.max:默认512,默认复制块的最大数
+						dfs.namenode.replication.min:默认1,默认复制块的最小数
+						
+            dfs.client.block.write.retries:默认3,在向应用发出失败信号之前,尝试向datanode写入数据的次数
+						dfs.client.block.write.replace-datanode-on-failure.enable:默认true,
+						dfs.client.block.write.replace-datanode-on-failure.policy:
+						dfs.client.block.write.replace-datanode-on-failure.best-effort:
+                        
+						dfs.blockreport.intervalMsec:默认21600000,设定block报告间隔(毫秒)
+						dfs.blockreport.initialDelay:默认0,第一个block报告的延迟(秒)
+                        
+						dfs.blockreport.split.threshold:默认1000000,
+                        
+						dfs.datanode.directoryscan.interval:默认21600,datanode扫描数据目录并协调内存和磁盘中block的差异的间隔(秒)
+						dfs.datanode.directoryscan.threads:默认1,线程池中用于并行编译volumn报告的线程数
+						
+                        dfs.heartbeat.interval:默认3,datanode的心跳间隔(秒)
+                        
+                        
+						dfs.namenode.safemode.threshold-pct:默认0.999f,
+						dfs.namenode.safemode.min.datanodes:默认0,指定namenode从安全模式退出时必须被视为atcive datanode的数量.小于或等于0
+                                                            表示在启动期间决定是否保持安全模式不考虑active datanode的数量.大于数据节点的值
+                                                            则使安全模式永久存在
+						dfs.namenode.safemode.extension:默认30000,
+                        
+						dfs.namenode.resource.check.interval:默认5000,
+						dfs.namenode.resource.du.reserved:默认104857600,namenode存储目录保留的空间(byte)
+						dfs.namenode.resource.checked.volumes:默认为空,列出namenode资源检查器需要检查的本地目录(除了local edits目录)
+						dfs.namenode.resource.checked.volumes.minimum:默认为1,需要冗余的namenode volumn的最小值
+						
+                        dfs.datanode.balance.bandwidthPerSec:默认1048576,为平衡目的指定每个datanode的最大带宽(byte/s) 1M
+						
+                        
+						dfs.namenode.max.objects:默认为0,dfs支持的最大文件数,目录数,块数.值为0,则表示无限制
+						dfs.namenode.datanode.registration.ip-hostname-check:默认为true,true:namenode需要将连接的datanode的地址解析为主机名.所有不可解析的
+                                                                            地址的连接都被拒绝.
+						dfs.namenode.decommission.interval:默认30,namenode检查是否退役的周期(秒)
+						dfs.namenode.decommission.blocks.per.interval:默认500000,在每个interval中定义的周期中要处理的大致数据块数
+						dfs.namenode.decommission.max.concurrent.tracked.nodes:默认100,
+                        
+						dfs.namenode.replication.interval:默认为3,namenode为datanode计算复制工作的周期(秒)
+						dfs.namenode.accesstime.precision:默认3600000,hdfs文件的访问时间精确到此值(秒),设置为0将禁用hdfs的访问时间 1h
+						dfs.datanode.plugins:默认为空,
+						dfs.namenode.plugins:默认为空,
+						
+                        dfs.namenode.block-placement-policy.default.prefer-local-node:默认为true,控制默认块放置策略(如何放置块的第一个副本).true:优先放置于客户端运行的节点上.
+                                                                                    false:优先放置于客户机相同机架的节点上.
+						dfs.stream-buffer-size:默认4096,流文件的缓冲区大小,该值应该是page size的倍数,决定了在读写操作期间缓冲的数据量
+						dfs.bytes-per-checksum:默认512,每个校验和的字节数,不能大于dfs.stream-buffer-size
+						dfs.client-write-packet-size:默认值65536,客户端写入的数据包大小
+						dfs.client.write.exclude.nodes.cache.expiry.interval.millis:默认600000,
+                        
+						dfs.namenode.checkpoint.dir:默认file://${hadoop.tmp.dir}/dfs/namesecondary,设定secondary namenode在本地文件系统上
+                                                    进行存储并合并的临时image.若该值是以,分隔的目录,则会在每个目录中存储以实现冗余
+						dfs.namenode.checkpoint.edits.dir:默认${dfs.namenode.checkpoint.dir},设定secondary namenode在本地文件系统上进行存
+                                                        储并合并的临时edits.若该值是以,分隔的目录,则会在每个目录中存储以实现冗余
+						dfs.namenode.checkpoint.period:默认3600,两个Checkpoint之间的时间(秒)
+						dfs.namenode.checkpoint.txns:默认1000000,
+						dfs.namenode.checkpoint.check.period:默认60,SecondaryNameNode和CheckpointNode轮询namenode的周期,为了查询未Checkpoint的事务(秒)
+						dfs.namenode.checkpoint.max-retries:默认3,secondary namenode进行失败的Checkpoint的次数.即当加载fsimage或合并edits时发生失败,尝试的次数
+						dfs.namenode.num.checkpoints.retained:默认2,namenode和secondary namenode在各自目录保留的Checkpoint文件的数量(fsimage_*)
+						dfs.namenode.num.extra.edits.retained:默认1000000,
+						dfs.namenode.max.extra.edits.segments.retained默认1000000,
+						
+                        dfs.namenode.delegation.key.update-interval:默认86400000,namenode中委派token的master key的更新时间(毫秒) 24h
+						dfs.namenode.delegation.token.max-lifetime:默认604800000,委派token最长的生命周期(毫秒) 7d
+						dfs.namenode.delegation.token.renew-interval:默认86400000,委派token的续订间隔(毫秒) 24h
+						
+                        dfs.datanode.failed.volumes.tolerated:默认为0,在datanode停止提供服务之前允许失败的volumns数量.默认情况下,任何卷故障都会导致datanode关闭
+						
+                        dfs.image.compress:默认false,是否将fsimage进行压缩
+						dfs.image.compression.codec:默认org.apache.hadoop.io.compress.DefaultCodec,当fsimage被压缩时,选择压缩的方式,该值必须是
+                                                    io.compression.codecs中定义的
+						
+                        dfs.image.transfer.timeout:默认60000,image传输的超时时间(毫秒),应与dfs.image.transfer.bandwidthPerSec配合配置,以便传输完成 1min
+						dfs.image.transfer.bandwidthPerSec:默认0,用于image传输的最大带宽(byte/s),设置0表示禁用调节
+						dfs.image.transfer.chunksize:默认65536,上传checkpoint的分流块的字节大小,块分流可以避免大的image
+                                                    文件的内容缓冲 64k
+                        
+						dfs.namenode.support.allow.format:默认true,是否允许namenode被格式化,对于生产集群,建议设为false
+						dfs.datanode.max.transfer.threads:默认4096,datanode用于数据传输的最大线程数
+						dfs.datanode.scan.period.hours:默认504,该值若为正,则块扫描器在值内扫描一次.若为负,则块扫描器被禁用.若为0,则使用默认值504h或3w
+						dfs.block.scanner.volume.bytes.per.second:默认值1048576,若为0,则datanode块扫描器被禁用,若为正,则datanode的块扫描器将每秒从每个卷扫描的字节数
+						
+                        dfs.datanode.readahead.bytes:默认4194304,
+						dfs.datanode.drop.cache.behind.reads:
+						dfs.datanode.drop.cache.behind.writes:
+						dfs.datanode.sync.behind.writes:
+                        
+						dfs.client.failover.max.attempts:默认15,客户端经过 故障切换失败后,被认为失败
+						dfs.client.failover.sleep.base.millis:默认500,
+						dfs.client.failover.sleep.max.millis:
+						dfs.client.failover.connection.retries:
+						dfs.client.failover.connection.retries.on.timeouts:
+						dfs.client.datanode-restart.timeout:
+                        
+						dfs.nameservices:默认为空,以,分隔的nameservice列表
+						dfs.nameservice.id:默认为空,nameservice的id,
+						dfs.internal.nameservices:默认为空,
+						dfs.ha.namenodes.EXAMPLENAMESERVICE:
+						dfs.ha.namenode.id:
+						dfs.ha.log-roll.period:
+						dfs.ha.tail-edits.period:
+						dfs.client.use.datanode.hostname:
+						dfs.datanode.use.datanode.hostname:
+						dfs.client.local.interfaces:
+						dfs.datanode.shared.file.descriptor.paths:
+						dfs.short.circuit.shared.memory.watcher.interrupt.check.ms:
+						dfs.namenode.kerberos.principal:
+						dfs.namenode.keytab.file:
+						dfs.datanode.kerberos.principal:
+						dfs.datanode.keytab.file:
+						dfs.journalnode.kerberos.principal:
+						dfs.journalnode.keytab.file:
+						dfs.namenode.kerberos.internal.spnego.principal:
+						dfs.journalnode.kerberos.internal.spnego.principal:
+						dfs.secondary.namenode.kerberos.internal.spnego.principal:
+						dfs.web.authentication.kerberos.principal:
+						dfs.web.authentication.kerberos.keytab:
+						dfs.namenode.kerberos.principal.pattern:
+						dfs.namenode.avoid.read.stale.datanode:
+						dfs.namenode.avoid.write.stale.datanode:
+						dfs.namenode.stale.datanode.interval:
+						dfs.namenode.write.stale.datanode.ratio:
+						dfs.namenode.invalidate.work.pct.per.iteration:
+						dfs.namenode.replication.work.multiplier.per.iteration:
+						nfs.server.port:
+						nfs.mountd.port:
+						nfs.dump.dir:
+						nfs.rtmax:
+						nfs.wtmax:
+						nfs.keytab.file:
+						nfs.kerberos.principal:
+						nfs.allow.insecure.ports:
+						dfs.webhdfs.enabled:
+						hadoop.fuse.connection.timeout:
+						hadoop.fuse.timer.period:
+						dfs.metrics.percentiles.intervals:
+						hadoop.user.group.metrics.percentiles.intervals:
+						dfs.encrypt.data.transfer:
+						dfs.encrypt.data.transfer.algorithm:
+						dfs.encrypt.data.transfer.cipher.suites:
+						dfs.encrypt.data.transfer.cipher.key.bitlength:
+						dfs.trustedchannel.resolver.class:
+						dfs.data.transfer.protection:
+						dfs.data.transfer.saslproperties.resolver.class:
+						dfs.datanode.hdfs-blocks-metadata.enabled:
+						dfs.client.file-block-storage-locations.num-threads:
+						dfs.client.file-block-storage-locations.timeout.millis:
+						dfs.journalnode.rpc-address:
+						dfs.journalnode.http-address:
+						dfs.journalnode.https-address:
+						dfs.namenode.audit.loggers:
+						dfs.datanode.available-space-volume-choosing-policy.balanced-space-threshold:
+						dfs.datanode.available-space-volume-choosing-policy.balanced-space-preference-fraction:
+						dfs.namenode.edits.noeditlogchannelflush:
+						dfs.client.cache.drop.behind.writes:
+						dfs.client.cache.drop.behind.reads:
+						dfs.client.cache.readahead:
+						dfs.namenode.enable.retrycache:
+						dfs.namenode.retrycache.expirytime.millis:
+						dfs.namenode.retrycache.heap.percent:
+						dfs.client.mmap.enabled:
+						dfs.client.mmap.cache.size:
+						dfs.client.mmap.cache.timeout.ms:
+						dfs.client.mmap.retry.timeout.ms:
+						dfs.client.short.circuit.replica.stale.threshold.ms:
+						dfs.namenode.path.based.cache.block.map.allocation.percent:
+						dfs.datanode.max.locked.memory:
+						dfs.namenode.list.cache.directives.num.responses:
+						dfs.namenode.list.cache.pools.num.responses:
+						dfs.namenode.path.based.cache.refresh.interval.ms:
+						dfs.namenode.path.based.cache.retry.interval.ms:
+						dfs.datanode.fsdatasetcache.max.threads.per.volume:
+						dfs.cachereport.intervalMsec:
+						dfs.namenode.edit.log.autoroll.multiplier.threshold:
+						dfs.namenode.edit.log.autoroll.check.interval.ms:
+						dfs.webhdfs.user.provider.user.pattern:
+						dfs.client.context:
+						dfs.client.read.shortcircuit:
+						dfs.domain.socket.path:
+						dfs.client.read.shortcircuit.skip.checksum:
+						dfs.client.read.shortcircuit.streams.cache.size:
+						dfs.client.read.shortcircuit.streams.cache.expiry.ms:
+						dfs.datanode.shared.file.descriptor.paths:
+						dfs.client.use.legacy.blockreader.local:
+						dfs.block.local-path-access.user:
+						dfs.client.domain.socket.data.traffic:
+						dfs.namenode.reject-unresolved-dn-topology-mapping:
+						dfs.client.slow.io.warning.threshold.ms:
+						dfs.datanode.slow.io.warning.threshold.ms:
+						dfs.namenode.xattrs.enabled:
+						dfs.namenode.fs-limits.max-xattrs-per-inode:
+						dfs.namenode.fs-limits.max-xattr-size:
+						dfs.namenode.startup.delay.block.deletion.sec:
+						dfs.namenode.list.encryption.zones.num.responses:
+						dfs.namenode.inotify.max.events.per.rpc:
+						dfs.user.home.dir.prefix:
+						dfs.datanode.cache.revocation.timeout.ms:
+						dfs.datanode.cache.revocation.polling.ms:
+						dfs.datanode.block.id.layout.upgrade.threads:
+						dfs.encryption.key.provider.uri:
+						dfs.storage.policy.enabled:
+						dfs.namenode.legacy-oiv-image.dir:
+						dfs.namenode.top.enabled:
+						dfs.namenode.top.window.num.buckets:
+						dfs.namenode.top.num.users:
+						dfs.namenode.top.windows.minutes:
+						dfs.namenode.blocks.per.postponedblocks.rescan:
+						dfs.datanode.block-pinning.enabled::
+						dfs.datanode.bp-ready.timeout:
+            HA集群额外配置:
+                dfs.namenode.shared.edits.dir:默认为空, HA集群中多个namenode的共享存储目录,此目录由active节点写入, 由standby节点读取以保持namespace同步.此目录不需要在dfs.namenode.edits.dir中列出 在非HA集群中应设为空
 				
-		进程结构：
-			HDFS：
-				NameNode
-				SecondaNameNode
-				DataNode
-			YARN：
-				ResourceManager
-				NodeManager
+          core-site.xml:
+               hadoop.proxyuser.$superuser.hosts 
+               hadoop.proxyuser.$superuser.groups
+               hadoop.proxyuser.$superuser.users
+                  
+                      指定$superuser可以从hosts指定的主机上模拟groups和users指定的用户组和用户,*代表任意,值为多个,可用,分隔
+          
+              hadoop.common.configuration.version:默认
+              hadoop.tmp.dir:默认
+              io.native.lib.available:默认
+              hadoop.http.filter.initializers:默认
+              hadoop.security.authorization:默认
+              hadoop.security.instrumentation.requires.admin:默认
+              hadoop.security.group.mapping:默认
+              hadoop.security.group.mapping:默认
+              hadoop.security.group.mapping.providers:默认
+              hadoop.security.group.mapping.providers.combined:默认
+              hadoop.security.group.mapping.provider.shell4services:默认
+              hadoop.security.group.mapping.provider.ad4usersX:默认
+              hadoop.security.group.mapping.provider.ad4usersY:默认
+              hadoop.security.group.mapping.provider.ad4usersX.ldap.url:默认
+              hadoop.security.group.mapping.provider.ad4usersY.ldap.url:默认
+              hadoop.security.groups.cache.secs:默认
+              hadoop.security.groups.negative-cache.secs:默认
+              hadoop.security.groups.cache.warn.after.ms:默认
+              hadoop.security.group.mapping.ldap.url:默认
+              hadoop.security.group.mapping.ldap.ssl:默认
+              hadoop.security.group.mapping.ldap.ssl.keystore:默认
+              hadoop.security.group.mapping.ldap.ssl.keystore.password.file:默认
+              hadoop.security.group.mapping.ldap.bind.user:默认
+              hadoop.security.group.mapping.ldap.bind.password.file:默认
+              hadoop.security.group.mapping.ldap.base:默认
+              hadoop.security.group.mapping.ldap.search.filter.user:默认
+              hadoop.security.group.mapping.ldap.search.filter.group:默认
+              hadoop.security.group.mapping.ldap.search.attr.member:默认
+              hadoop.security.group.mapping.ldap.search.attr.group.name:默认
+              hadoop.security.group.mapping.ldap.directory.search.timeout:默认
+              hadoop.security.service.user.name.key:默认
+              hadoop.security.uid.cache.secs:默认
+              hadoop.rpc.protection:默认
+              hadoop.security.saslproperties.resolver.class:默认
+              hadoop.work.around.non.threadsafe.getpwuid:默认
+              hadoop.kerberos.kinit.command:默认
+              hadoop.security.auth_to_local:默认
+              io.file.buffer.size:默认
+              io.bytes.per.checksum:默认
+              io.skip.checksum.errors:默认
+              io.compression.codecs:默认
+              io.compression.codec.bzip2.library:默认
+              io.serializations:默认
+              io.seqfile.local.dir:默认
+              io.map.index.skip:默认
+              io.map.index.interval:默认
+              fs.defaultFS:默认
+              fs.default.name:默认
+              fs.trash.interval:默认
+              fs.trash.checkpoint.interval:默认
+              fs.AbstractFileSystem.file.impl:默认
+              fs.AbstractFileSystem.har.impl:默认
+              fs.AbstractFileSystem.hdfs.impl:默认
+              fs.AbstractFileSystem.viewfs.impl:默认
+              fs.AbstractFileSystem.ftp.impl:默认
+              fs.ftp.host:默认
+              fs.ftp.host.port:默认
+              fs.df.interval:默认
+              fs.du.interval:默认
+              fs.s3.block.size:默认
+              fs.s3.buffer.dir:默认
+              fs.s3.maxRetries:默认
+              fs.s3.sleepTimeSeconds:默认
+              fs.swift.impl:默认
+              fs.automatic.close:默认
+              fs.s3n.block.size:默认
+              fs.s3n.multipart.uploads.enabled:默认
+              fs.s3n.multipart.uploads.block.size:默认
+              fs.s3n.multipart.copy.block.size:默认
+              fs.s3n.server-side-encryption-algorithm:默认
+              fs.s3a.awsAccessKeyId:默认
+              fs.s3a.awsSecretAccessKey:默认
+              fs.s3a.connection.maximum:默认
+              fs.s3a.connection.ssl.enabled:默认
+              fs.s3a.endpoint:默认
+              fs.s3a.proxy.host:默认
+              fs.s3a.proxy.port:默认
+              fs.s3a.proxy.username:默认
+              fs.s3a.proxy.password:默认
+              fs.s3a.proxy.domain:默认
+              fs.s3a.proxy.workstation:默认
+              fs.s3a.attempts.maximum:默认
+              fs.s3a.connection.establish.timeout:默认
+              fs.s3a.connection.timeout:默认
+              fs.s3a.paging.maximum:默认
+              fs.s3a.threads.max:默认
+              fs.s3a.threads.core:默认
+              fs.s3a.threads.keepalivetime:默认
+              fs.s3a.max.total.tasks:默认
+              fs.s3a.multipart.size:默认
+              fs.s3a.multipart.threshold:默认
+              fs.s3a.acl.default:默认
+              fs.s3a.multipart.purge:默认
+              fs.s3a.multipart.purge.age:默认
+              fs.s3a.buffer.dir:默认
+              fs.s3a.fast.upload:默认
+              fs.s3a.fast.buffer.size:默认
+              fs.s3a.impl:默认
+              io.seqfile.compress.blocksize:默认
+              io.seqfile.lazydecompress:默认
+              io.seqfile.sorter.recordlimit:默认
+              io.mapfile.bloom.size:默认
+              io.mapfile.bloom.error.rate:默认
+              hadoop.util.hash.type:默认
+              ipc.client.idlethreshold:默认
+              ipc.client.kill.max:默认
+              ipc.client.connection.maxidletime:默认
+              ipc.client.connect.max.retries:默认
+              ipc.client.connect.retry.interval:默认
+              ipc.client.connect.timeout:默认
+              ipc.client.connect.max.retries.on.timeouts:默认
+              ipc.client.ping:默认
+              ipc.ping.interval:默认
+              ipc.client.rpc-timeout.ms:默认
+              ipc.server.listen.queue.size:默认
+              ipc.maximum.data.length:默认
+              hadoop.security.impersonation.provider.class:默认
+              hadoop.rpc.socket.factory.class.default:默认
+              hadoop.rpc.socket.factory.class.ClientProtocol:默认
+              hadoop.socks.server:默认
+              net.topology.node.switch.mapping.impl:默认
+              net.topology.impl:默认
+              net.topology.script.file.name:默认
+              net.topology.script.number.args:默认
+              net.topology.table.file.name:默认
+              file.stream-buffer-size:默认
+              file.bytes-per-checksum:默认
+              file.client-write-packet-size:默认
+              file.blocksize:默认
+              file.replication:默认
+              s3.stream-buffer-size:默认
+              s3.bytes-per-checksum:默认
+              s3.client-write-packet-size:默认
+              s3.blocksize:默认
+              s3.replication:默认
+              s3native.stream-buffer-size:默认
+              s3native.bytes-per-checksum:默认
+              s3native.client-write-packet-size:默认
+              s3native.blocksize:默认
+              s3native.replication:默认
+              ftp.stream-buffer-size:默认
+              ftp.bytes-per-checksum:默认
+              ftp.client-write-packet-size:默认
+              ftp.blocksize:默认
+              ftp.replication:默认
+              tfile.io.chunk.size:默认
+              tfile.fs.output.buffer.size:默认
+              tfile.fs.input.buffer.size:默认
+              hadoop.http.authentication.type:默认
+              hadoop.http.authentication.token.validity:默认
+              hadoop.http.authentication.signature.secret.file:默认
+              hadoop.http.authentication.cookie.domain:默认
+              hadoop.http.authentication.simple.anonymous.allowed:默认
+              hadoop.http.authentication.kerberos.principal:默认
+              hadoop.http.authentication.kerberos.keytab:默认
+              hadoop.http.cross-origin.enabled:默认
+              hadoop.http.cross-origin.allowed-origins:默认
+              hadoop.http.cross-origin.allowed-methods:默认
+              hadoop.http.cross-origin.allowed-headers:默认
+              hadoop.http.cross-origin.max-age:默认
+              dfs.ha.fencing.methods:默认
+              dfs.ha.fencing.ssh.private-key-files:默认
+              ha.zookeeper.quorum:默认
+              ha.zookeeper.session-timeout.ms:默认
+              ha.zookeeper.parent-znode:默认
+              ha.zookeeper.acl:默认
+              ha.zookeeper.auth:默认
+              hadoop.ssl.keystores.factory.class:默认
+              hadoop.ssl.require.client.cert:默认
+              hadoop.ssl.hostname.verifier:默认
+              hadoop.ssl.server.conf:默认
+              hadoop.ssl.client.conf:默认
+              hadoop.ssl.enabled:默认
+              hadoop.ssl.enabled.protocols:默认
+              hadoop.jetty.logs.serve.aliases:默认
+              ha.health-monitor.connect-retry-interval.ms:默认
+              ha.health-monitor.check-interval.ms:默认
+              ha.health-monitor.sleep-after-disconnect.ms:默认
+              ha.health-monitor.rpc-timeout.ms:默认
+              ha.failover-controller.new-active.rpc-timeout.ms:默认
+              ha.failover-controller.graceful-fence.rpc-timeout.ms:默认
+              ha.failover-controller.graceful-fence.connection.retries:默认
+              ha.failover-controller.cli-check.rpc-timeout.ms:默认
+              ipc.client.fallback-to-simple-auth-allowed:默认
+              fs.client.resolve.remote.symlinks:默认
+              nfs.exports.allowed.hosts:默认
+              hadoop.user.group.static.mapping.overrides:默认
+              rpc.metrics.quantile.enable:默认
+              rpc.metrics.percentiles.intervals:默认
+              hadoop.security.crypto.codec.classes.EXAMPLECIPHERSUITE:默认
+              hadoop.security.crypto.codec.classes.aes.ctr.nopadding:默认
+              hadoop.security.crypto.cipher.suite:默认
+              hadoop.security.crypto.jce.provider:默认
+              hadoop.security.crypto.buffer.size:默认
+              hadoop.security.java.secure.random.algorithm:默认
+              hadoop.security.secure.random.impl:默认
+              hadoop.security.random.device.file.path:默认
+              fs.har.impl.disable.cache:默认
+              hadoop.security.kms.client.authentication.retry-count:默认
+              hadoop.security.kms.client.encrypted.key.cache.size:默认
+              hadoop.security.kms.client.encrypted.key.cache.low-watermark:默认
+              hadoop.security.kms.client.encrypted.key.cache.num.refill.threads:默认
+              hadoop.security.kms.client.encrypted.key.cache.expiry:默认
+              hadoop.htrace.spanreceiver.classes:默认
+              ipc.server.max.connections:默认
+              hadoop.registry.rm.enabled:默认
+              hadoop.registry.zk.root:默认
+              hadoop.registry.zk.session.timeout.ms:默认
+              hadoop.registry.zk.connection.timeout.ms:默认
+              hadoop.registry.zk.retry.times:默认
+              hadoop.registry.zk.retry.interval.ms:默认
+              hadoop.registry.zk.retry.ceiling.ms:默认
+              hadoop.registry.zk.quorum:默认
+              hadoop.registry.secure:默认
+              hadoop.registry.system.acls:默认
+              hadoop.registry.kerberos.realm:默认
+              hadoop.registry.jaas.context:默认
+          yarn-site.xml
+          mapred-site.xml 
+          workers                   # 所有worker的节点名称. 脚本将使用改文进来执行命令(需要ssh互信)
+        日志配置:
+          log4j.properties          # 日志配置
+		进程结构:
+			HDFS:
+				NameNode:               java/
+                                     9870: NameNode HTTP UI(原50070), 用于点对点的namenode检查点查找, 远程web客户端连接namenode的UI
+                                     9871: NameNode HTTPS UI, 用于点对点的namenode检查点查找, 远程web客户端连接namenode的UI
+                                     8020: rpc端口, 用户hdfs client与namenode通信, datanode与namenode通信
+                                     9000: fs.defaultFs
+				DataNode:               java/9864: datanode http端口, 安全模式下, web连接datanode UI
+				                             9865: datanode https端口, 安全模式下, web连接datanode UI
+                                     9866: datanode数据传输端口(client <--> datanode, datanode <--> datanode)
+                                     9867: rpc端口, client连接datanode时执行rpc操作
+                                     , random
+        JournalNode:            java/8480: journalnode http端口. 安全模式下, web连接journalnode UI 
+                                     8481: journalnode https端口. 安全模式下, web连接journalnode UI 
+                                     8485: rpc端口, client通信, 访问多种信息
+				SecondaryNameNode:      java/9868
+        DFSZKFailoverController java/8019
+
+        Portmap:                java/111(tcp), 111(udp)
+        Nfs3:                   java/50079, 2049, 4242(tcp), 4242(udp)
+			YARN:
+				ResourceManager         java/8030, 8031, 8032, 8033, 8088
+				NodeManager             java/8040, 8042, port1, port2
 				WebAppProxy
-			MapReduce：
-				MapReduce Job History Server 
+			MapReduce:
+        JobHistoryServer        java/10033, 10020, 19888
 			端口
 		编程接口
 		管理软件
-			Web界面：
-				NameNode：			   http://nn_host:50070/
-				DataNode：			   http://dn_host:50075/
-				ResourceManager：		http://rm_host:8088/
-				MapReduce JobHistory：   http://jhs_host:19888/
-	命令
-		./bin/hadoop 
-			用户命令：
-				
-			管理命令：
-			
-			
-			
-			hadoop fs <args>：
-				说明：该shell包含了与hadoop支持的文件系统交互的shell，例如hdfs，本地fs，HFTP FS，S3 FS等
-				注：
-					Hadoop fs：使用面最广，可以与hadoop支持的任何文件系统交互
-					hadoop dfs与hdfs dfs：只能操作HDFS文件系统相关(包括与本地FS间的操作)，前者已经弃用，一般使用后者
-					hadoop fs与hdfs dfs 相同
-				命令：该命令中的路径均可以采用URI的形式(schema://ip:port/path)，例如HDFS协议可以使用hdfs://，本地文件
-						系统使用file:///，若未指定，则采用默认配置文件中的协议
-					# hadoop fs -appendToFile <local_src> ... <dis_file>			# 将单个或多个文件的内容追加到目的文件中
-					# hadoop fs -getmerger /path/file1 /pathfile2 local_file		# 将多个文件合并到本地文件
-					# hadoop fs -cat /path/file									 # 查看文件内容
-					# hadoop fs -checksum /path/file								# 返回文件的校验和信息
-					# hadoop fs -chgrp
-					# hadoop fs -chown
-					# hadoop fs -chmod
-					# hadoop fs -find
-					# hadoop fs -ls 
-					# hadoop fs -mkdir
-					# hadoop fs -mv
-					# hadoop fs -rm
-					# hadoop fs -getfacl /path/dir
-					# hadoop fs -getfattr /path/dir
-					# hadoop fs -setfacl
-					# hadoop fs -setfattr
-					# hadoop fs -stat
-					# hadoop fs -tail -f
-					# hadoop fs -df -h /path/dir									# 显示可用空间
-					# hadoop fs -du -sh /path/dir								   # 显示目录大小
-					# hadoop fs -cp /path/file /path/dir							# 拷贝文件，-p:保留文件属性，-f:强制覆盖
-					# hadoop fs -createSnapshot
-					# hadoop fs -deleteSnapshot
-					# hadoop fs -renameSnapshot
-					# hadoop fs -expunge											# 清空垃圾
-					# hadoop fs -get /path/dir local_dir							# 将文件复制到本地文件系统
-					# hadoop fs -put local_dir /path								# 将本地文件上传至其它文件系统，-f:强制覆盖
-					# hadoop fs -test [-defsz] /path/dir							# 测试
-					# hadoop fs -touchz /path/file								  # 创建一个长度为0的文件
-					# hadoop fs -usage command									  # 返回单个命令帮助
+			Web界面:
+				NameNode:                  http://nn_host:9870/
+				DataNode:                  http://dn_host:9864/
+				SecondaryNameNode:			   http://sn_host:9868/
+				ResourceManager:		       http://rm_host:8088/
+        NodeManager:               http://nm_host:8042/
 
-	   ./bin/hdfs：
-			说明：hadoop  shell支持的命令   
-			示例：
-				# hdfs [--config confdir] [--loglevel loglevel] COMMAND
-					COMMAND：
-						用户命令：
-							classpath：打印classpath
-							dfs [command [command_opt] ]：运行hadoop支持的文件系统的命令
-							fetchdt [--webservice <namenode_http_addr>] <path>：从NameNode获取委派令牌
-							fsck：运行DFS文件系统检查工具
-							getconf -[namenodes|secondaryNameNodes|backupNodes|includeFile|excludeFile|nnRpcAddresses|confKey [key] ]：从配置中获取配置
-							groups [user_name1 user_name2 ...]：获取用户所属的系统组
-							jmxget：从NameNode或DataNode获取JMX导出的值
-							jmxget [-localVM ConnectorURL | -port port | -server mbeanserver | -service service]：从NameNode或DataNode获取JMX导出的值
-							lsSnapshottableDir：列出所有属于当前用户的快照目录
-							
-						管理命令：
-						调试命令：
-					
-						
-						dfsadmin：运行admin的客户端
-							-report：输出HDFS的基本统计信息
-							-safemode：手动进入或离开安全模式
-							-finalizeUpgade：删除上次升级过程中做的备份
-							-refreshNodes：
-							-printTopology：显示机架信息和节点树
-						haadmin：运行ha admin的客户端
-						
-						
-						
-						mover：跨存储类型移动块副本
-						
-						balancer：运行集群负载工具
-						
-				 
-						
-						namenode：运行namenode
-							-format：格式化hdfs文件系统
-							-checkping：启动Checkpoint进程
-							-backup：启动backup进程
-						secondarynamenode：运行secondarynamenode
-						datanode：运行datanode
-						journalnode：运行journalnode
-						portmap：运行一个portmap服务
-						nfs3：运行一个NFS服务
-						zkfc：运行zkfc
-						
-						oiv：将离线的fsimage查看器应用于fsimage
-						oiv_legacy：将离线的fsimage查看器应用于旧版fsimage
-						oev：操作edit文件
-						
-						
-						groups：获取用户所属的组
-						cacheadmin：配置HDFS缓存
-						crypto：配置HDFS加密区域
-						storagepolicies：列出/获取/设置块存储策略
-						version：输出版本号
-						
-						snapshotDiff：比较两个快照，或使用快照比较当前目录的内容
-						
-						
-		服务器
-		客户端
+				MapReduce JobHistory:      http://jhs_host:19888/
+      NameNode is Active监控:   curl http://nn:9870/isActive    200成功, 405失败
+	命令
+    ./bin/container-executor
+    ./bin/hadoop  
+			hadoop fs <args>:
+				说明:该shell包含了与hadoop支持的文件系统交互的shell,例如hdfs,本地fs,HFTP FS,S3 FS等
+				注:
+					Hadoop fs:使用面最广,可以与hadoop支持的任何文件系统交互
+					hadoop dfs与hdfs dfs:只能操作HDFS文件系统相关(包括与本地FS间的操作),前者已经弃用,一般使用后者
+					hadoop fs与hdfs dfs 相同
+				命令:该命令中的路径均可以采用URI的形式(schema://ip:port/path),例如HDFS协议可以使用hdfs://,本地文件系统使用file:///,若未指定,则采用默认配置文件中的协议
+					$ hadoop fs -appendToFile <local_src> ... <dis_file>			# 将单个或多个文件的内容追加到目的文件中
+					$ hadoop fs -getmerger /path/file1 /pathfile2 local_file		# 将多个文件合并到本地文件
+					$ hadoop fs -cat /path/file									 # 查看文件内容
+					$ hadoop fs -checksum /path/file								# 返回文件的校验和信息
+					$ hadoop fs -chgrp
+					$ hadoop fs -chown
+					$ hadoop fs -chmod
+					$ hadoop fs -find
+					$ hadoop fs -ls 
+					$ hadoop fs -mkdir
+					$ hadoop fs -mv
+					$ hadoop fs -rm
+					$ hadoop fs -getfacl /path/dir
+					$ hadoop fs -getfattr /path/dir
+					$ hadoop fs -setfacl
+					$ hadoop fs -setfattr
+					$ hadoop fs -stat
+					$ hadoop fs -tail -f
+					$ hadoop fs -df -h /path/dir									# 显示可用空间
+					$ hadoop fs -du -sh /path/dir								   # 显示目录大小
+					$ hadoop fs -cp /path/file /path/dir							# 拷贝文件,-p:保留文件属性,-f:强制覆盖
+					$ hadoop fs -createSnapshot
+					$ hadoop fs -deleteSnapshot
+					$ hadoop fs -renameSnapshot
+					$ hadoop fs -expunge											# 清空垃圾
+					$ hadoop fs -get /path/dir local_dir							# 将文件复制到本地文件系统
+					$ hadoop fs -put local_dir /path								# 将本地文件上传至其它文件系统,-f:强制覆盖
+					$ hadoop fs -test [-defsz] /path/dir							# 测试
+					$ hadoop fs -touchz /path/file								  # 创建一个长度为0的文件
+					$ hadoop fs -usage command									  # 返回单个命令帮助
+    ./bin/mapred  
+    ./bin/oom-listener  
+    ./bin/test-container-executor  
+    ./bin/yarn
+    ./bin/hdfs:
+      说明:hadoop shell支持的命令   
+      示例:
+        $ hdfs [options] subcommand [subcommand options]
+          options:
+            --buildpaths
+            --config dir                                # hadoop配置目录
+            --daemon (start|status|stop)                # 在一个daemon上操作
+            --debug                                     # 开启debug mode
+            --hostnames list[, of, host, names]
+            --loglevel level                            # 为该命令设置log4j级别
+            --workers                                   # 开启worker mode
+          subcommand
+            admin:
+              cacheadmin                                # 配置hdfs cache
+                -addPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
+                  name: pool名称
+                  -owner <owner>:                       # pool的user, 默认为当前user
+                  -group <group>:                       # pool的group, 默认为当前group
+                  -mode 0755                            # pool权限. 默认0755
+                  -limit <bytes>:                       # pool的大小, 单位byte. 默认无限制
+                  -defaultReplication N                 # cache directive的复制数. 默认为1
+                  -maxTtl time                          # pool中的cache directive的允许的最大ttl. 单位可以为s/m/h/d. 默认无限制
+                -listPools [-stats] [<name>]            # 显示pool的信息
+                  -stats                                # 显示额外的pool的统计信息
+                  name                                  # 只显示该name的信息
+                -removePool <name>                      # 删除pool, 同时删除内部的缓存路径
+                -modifyPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
+
+                -addDirective -path <path> -pool <pool-name> [-force] [-replication <replication>] [-ttl <time-to-live>]
+                  -path <path>                          # 缓存路径, 该path可为路径或文件
+                  -pool <pool_name>                     # 添加指令的pool. 必须有对该pool的写权限
+                  -force                                # 跳过pool资源限制
+                  -replication <N>                      # 缓存复制因子. 默认为1
+                  -ttl <time>                           # 该指令的ttl. 可用单位s/m/h/d. 默认never
+                -listDirectives [-stats] [-path <path>] [-pool <pool>] [-id <id>]             # 列出cache directive
+                  -stats                                # 显示指令统计信息
+                  -path <path>                          # 只列出该路径的指令
+                  -pool <pool_name>                     # 只列出pool下的指令
+                  -id <id>                              # 列出id对应的指令
+                -removeDirective <id>                   # 根据id删除指令
+                -removeDirectives -path <path>          # 根据path删除指令
+                -modifyDirective -id <id> [-path <path>] [-force] [-replication <replication>] [-pool <pool-name>] [-ttl <time-to-live>]
+              crypto                                    # 配置hdfs encryption zones
+              debug                                     # 
+              dfsadmin                                  # 运行一个dfs admin client
+                -- 快照
+                  -allowSnapshot <snapshotDir>                              # 允许目录快照
+                  -disallowSnapshot <snapshotDir>                           # 禁止目录快照
+                -- 配额
+                  -setQuota <quota> <dirname>...<dirname>                   # 设置名称配额
+                  -clrQuota <dirname>...<dirname>                           # 消除名称配额
+                  -setSpaceQuota <quota> [-storageType <storagetype>] <dirname>...<dirname>       # 设置空间配额
+                  -clrSpaceQuota [-storageType <storagetype>] <dirname>...<dirname>               # 取消空间配额
+                -- 滚动升级
+                  -rollingUpgrade [<query|prepare|finalize>]
+                  -upgrade <query | finalize>                               # 查询升级状态, 为每个NN返回NN升级过程是否完成
+                  -getDatanodeInfo <datanode_host:ipc_port>                 # 获取datanode信息, 用于检测datanode是否存活. port:9867
+                  -shutdownDatanode <datanode_host:ipc_port> [upgrade]      # 
+
+                [-report [-live] [-dead] [-decommissioning] [-enteringmaintenance] [-inmaintenance]]
+                [-safemode <enter | leave | get | wait | forceExit>]
+                [-saveNamespace [-beforeShutdown]]
+                [-rollEdits]
+                [-restoreFailedStorage true|false|check]
+                [-refreshNodes]
+                [-finalizeUpgrade]
+                [-refreshServiceAcl]
+                [-refreshUserToGroupsMappings]
+                [-refreshSuperUserGroupsConfiguration]
+                [-refreshCallQueue]
+                [-refresh <host:ipc_port> <key> [arg1..argn]
+                [-reconfig <namenode|datanode> <host:ipc_port> <start|status|properties>]
+                [-printTopology]
+                [-refreshNamenodes datanode_host:ipc_port]
+                [-getVolumeReport datanode_host:ipc_port]
+                [-deleteBlockPool datanode_host:ipc_port blockpoolId [force]]
+                [-setBalancerBandwidth <bandwidth in bytes per second>]
+                [-getBalancerBandwidth <datanode_host:ipc_port>]
+                [-fetchImage <local directory>]
+                [-evictWriters <datanode_host:ipc_port>]
+                [-metasave filename]
+                [-triggerBlockReport [-incremental] <datanode_host:ipc_port> [-namenode <namenode_host:ipc_port>]]
+                [-listOpenFiles [-blockingDecommission] [-path <path>]]
+                [-help [cmd]]
+                -report:输出HDFS的基本统计信息
+                -safemode:手动进入或离开安全模式
+                -finalizeUpgade:删除上次升级过程中做的备份
+                -refreshNodes:
+                -printTopology:显示机架信息和节点树
+              dfsrouteradmin                            # 管理基于router的federation
+              ec                                        # 运行HDFS ErasureCoding CLI
+              fsck                                      # 运行DFS文件系统检查工具
+              haadmin                                   # 运行dfs ha admin client
+                -ns <nameserviceId>                                                   # 指定nameserviceId
+                -checkHealth <serviceId>                                              # 检测指定nn的健康状况. 连接到该nn以检查其运行情况, 它能够对自身执行一些诊断, 包括检查内部服务是否按预期运行. 若正常则命令返回0, 否则非0. 当前功能为实现, 总是返回0值, 除非nn完全关闭
+                -failover [--forcefence] [--forceactive] <serviceId> <serviceId>      # 启动两个namenode之间的从第一个转到第二个的故障转移. 若第一个是standby, 则会简单的将第二个转为active模式. 若第一个为active状态, 则按照dfs.ha.fencing.methods方式转为standby成功后, 再将第二个转为active
+                -getAllServiceState                                                   # 获取所有节点状态
+                -getServiceState serviceId                                            # 获取节点状态 Active/Standby
+                -transitionToActive [--forceactive] [serviceId]                       # 将nn状态切换为active, 当active健康时不建议用
+                -transitiontoStandby <serviceId>                                      # 将nn状态切换为standby. 若要进行手动切换, 可现将active转为standby后再将某个nn转为active
+                -transitionToObserver <serviceId>                                     # 将standby状态的节点转为observer
+              jmxget                                    # 从namenode/datanode获取jmx导出值
+              oev                                       # 将offline edits viewer应用到一个edits
+              oiv                                       # 将offline fsimage viewer应用到一个fsimage
+              oiv_legacy                                # 将offline fsimage viewer应用到一个旧版的fsimage
+              storagepolicies                           # list/get/set/satisfyStoragePolicy 块存储策略
+            client:
+              classpath:                                # 打印classpath
+              dfs [command [command_opt]                # 运行hadoop支持的文件系统的命令
+                  [-appendToFile <localsrc> ... <dst>]
+                  [-cat [-ignoreCrc] <src> ...]
+                  [-checksum [-v] <src> ...]
+                  [-chgrp [-R] GROUP PATH...]
+                  [-chmod [-R] <MODE[,MODE]... | OCTALMODE> PATH...]
+                  [-chown [-R] [OWNER][:[GROUP]] PATH...]
+                  [-concat <target path> <src path> <src path> ...]
+                  [-copyFromLocal [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
+                  [-copyToLocal [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
+                  [-count [-q] [-h] [-v] [-t [<storage type>]] [-u] [-x] [-e] [-s] <path> ...]
+                  [-cp [-f] [-p | -p[topax]] [-d] [-t <thread count>] [-q <thread pool queue size>] <src> ... <dst>]
+                  -- 快照
+                    -createSnapshot <snapshotDir> [<snapshotName>]                                # 创建快照
+                    -deleteSnapshot <snapshotDir> <snapshotName>                                  # 删除快照
+                    -renameSnapshot <snapshotDir> <oldName> <newName>                             # 重命名快照
+                  -- 扩展属性
+                    -getfattr [-R] {-n name | -d} [-e en] <path>                                  # 显示文件或目录的扩展属性
+                      -R                                                                          # 递归列出
+                      -n <name>                                                                   # 指定名称
+                      -d                                                                          # 获取所有
+                      -e <en>                                                                     # value编码设定
+                      path                                                                        # 指定path
+                    -setfattr {-n name [-v value] | -x name} <path>                               # 设置文件或目录的扩展属性
+                      -n <name>                                                                   # 指定名称
+                      -v <value>                                                                  # 指定值
+                      -x <name>                                                                   # 删除该name
+                      path                                                                        # 指定path
+                  -ls [-C] [-d] [-h] [-q] [-R] [-t] [-S] [-r] [-u] [-e] [<path> ...]              # ls
+                    -C                                                                            # 只显示文件或目录
+                    -d                                                                            # 显示目录本身属性
+                    -h                                                                            # 以易读方式显示
+                    -q                                                                            # 以?代替不可打印的字符
+                    -R                                                                            # 递归显示
+                    -t                                                                            # 以mtime排序显示
+                    -S                                                                            # 以size排序显示
+                    -r                                                                            # 反序显示
+                    -u                                                                            # 以atime替代mtime显示并排序
+                    -e                                                                            # 显示文件或目录的纠删码策略
+                  [-df [-h] [<path> ...]]
+                  [-du [-s] [-h] [-v] [-x] <path> ...]
+                  [-expunge [-immediate] [-fs <path>]]
+                  [-find <path> ... <expression> ...]
+                  [-get [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
+                  [-getfacl [-R] <path>]
+                  [-getmerge [-nl] [-skip-empty-file] <src> <localdst>]
+                  [-head <file>]
+                  [-help [cmd ...]]
+                  [-mkdir [-p] <path> ...]
+                  [-moveFromLocal [-f] [-p] [-l] [-d] <localsrc> ... <dst>]
+                  [-moveToLocal <src> <localdst>]
+                  [-mv <src> ... <dst>]
+                  [-put [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
+                  [-rm [-f] [-r|-R] [-skipTrash] [-safely] <src> ...]
+                  [-rmdir [--ignore-fail-on-non-empty] <dir> ...]
+                  [-setfacl [-R] [{-b|-k} {-m|-x <acl_spec>} <path>]|[--set <acl_spec> <path>]]
+                  [-setrep [-R] [-w] <rep> <path> ...]
+                  [-stat [format] <path> ...]
+                  [-tail [-f] [-s <sleep interval>] <file>]
+                  [-test -[defswrz] <path>]
+                  [-text [-ignoreCrc] <src> ...]
+                  [-touch [-a] [-m] [-t TIMESTAMP (yyyyMMdd:HHmmss) ] [-c] <path> ...]
+                  [-touchz <path> ...]
+                  [-truncate [-w] <length> <path> ...]
+                  [-usage [cmd ...]]
+
+              envvars                                   # 显示已计算的hadoop环境变量
+              fetchdt [--webservice <namenode_http_addr>] <path>:      # 从NameNode获取委派令牌
+              getconf -[namenodes|secondaryNameNodes|backupNodes|includeFile|excludeFile|nnRpcAddresses|confKey [key] ]:从配置中获取配置
+              groups [user_name1 user_name2 ...]:       # 获取用户所属的系统组
+              lsSnapshottableDir                        # 列出所有属于当前用户的快照目录
+              snapshotDiff                              # 比较一个目录的两个快照或将当前目录与一个快照比较
+              version                                   # 显示版本
+            daemon:
+              balancer                                  # 运行一个集群均衡工具
+              dfsrouter                                 # 运行一个dfs router
+              diskbalancer                              # 在给定节点上的磁盘之间均衡数据
+              httpfs                                    # 运行httpfs server(hdfs http gateway)
+              journalnode                               # 运行一个dfs journalnode
+              mover                                     # 运行一个跨存储移动块副本的工具
+              namenode                                  # 运行一个dfs namenode
+                -backup                                                                         # 启动backup进程
+                -checkpoint                                                                     # 启动checkpoing进程
+                -format [-clusterid cid] [-force] [-nonInteractive]                             # 格式化hdfs文件系统
+                -upgrade [-clusterid cid] [-renameReserved<k-v pairs>]
+                -upgradeOnly [-clusterid cid] [-renameReserved<k-v pairs>]
+                -rollback
+                -rollingUpgrade <rollback|started>
+                -importcheckpoint
+                -initalizeSharedEdits
+                -bootstrapStandby [-force] [-nonInteractive] [-skipSharedEditsCheck]            # 同步元数据到未格式化的nn节点
+                -recover [-force]
+                -metadataVersion
+              secondarynamenode                         # 运行一个dfs secondary namenode
+              datanode                                  # 运行一个dfs datanode
+              portmap                                   # 运行一个portmap服务
+              nfs3                                      # 运行一个nfs version 3 geteway
+              sps                                       # 运行外部存储策略
+              zkfc [option]                             # 运行zk failover controller deamon
+                -formatZK                               # 在zk中创建一个znode, 自动故障转移系统在其中存储其数据
+                -force                                  # 若znode存在, 则强制格式化znode
+                -nonInteractive                         # 若znode存在, 则格式化znode终止
+        服务器
+        客户端
 	日志
-	优化：
-		HDFS Quotas：
-			说明：HDFS可以设置单个目录的名称数量和单个目录的空间量设置配额，名称配额和空间配额独立运作，都是针对目录
-				Name Quotas：
-					说明：针对根目录中树的文件和目录名称的数量的硬限制，目录本身会计入自己的配额
-				Space Quotas：
-					说明：针对根目录树中的文件使用的字节数的硬限制。目录不计入空间配额
-			命令：
-				设置：
-					# hdfs dfsadmin -setQuota N /path/dir /path/dir			 	# 为目录设置名称配置
-					# hdfs dfsadmin -setSpaceQuota N /path/dir /path/dir		# 为目录设置空间配额，可以使用k,m,g等
-				清除：
-					# hdfs dfsadmin -clrQuota N /path/dir /path/dir			 	# 为目录清除名称配置
-					# hdfs dfsadmin -clrSpaceQuota /path/dir /path/dir		  	# 为目录清除空间配额
-				查看：
-					# hadoop fs -count -q -h /path/dir
-						-q：显示目录名称配额，剩余名称配额，空间配额，可用空间配额。若无设置，则报告的值为none inf
-						-h：以可读的方式显示大小
-		HDFS Snapshots：
-			说明：快照是文件系统的只读时间点副本。快照的数据存放在快照目录下的.snapshot目录中，默认以s'yyyyMMdd-HHmmss.SSS命名
-			特点：
-				1.瞬间创建快照(成本是O(1)，不包含索引节点查找时间)
-				2.内存使用情况是O(M)，M为修改过的文件/目录数量
-				3.不复制datanode中的块：快照记录块列表和文件大小，没有数据复制
-				
-				4.快照目录可以容纳65536个快照，可快照目录的数量没有限制
-				5.若目录中有快照，则无法删除或重命名该目录
+	优化:
+		HDFS Quotas:
+			说明: HDFS可以设置单个目录的名称数量和单个目录的空间量设置配额,名称配额和空间配额独立运作,都是针对目录
+      分类:
+				Name Quotas:
+					说明:针对根目录中树的文件和目录名称的数量的硬限制,目录本身会计入自己的配额
+				Space Quotas:
+					说明:针对根目录树中的文件使用的字节数的硬限制. 目录不计入空间配额, 块的每个副本都计入配额
+			命令:
+				设置:
+					$ hdfs dfsadmin -setQuota N /path/dir1 /path/dir2			 	  # 为目录设置名称配额, N为正整数
+					$ hdfs dfsadmin -setSpaceQuota N /path/dir /path/dir		  # 为目录设置空间配额, N可以使用k,m,g等
+				清除:
+					$ hdfs dfsadmin -clrQuota /path/dir1 /path/dir2			 	    # 为目录清除名称配额
+					$ hdfs dfsadmin -clrSpaceQuota /path/dir /path/dir		 	  # 为目录清除空间配额
+				查看:
+					$ hadoop fs -count -q -h -v -t /path/dir
+						-q: 显示目录名称配额,剩余名称配额,空间配额,可用空间配额。若无设置,则报告的值为none/inf
+						-h: 以可读的方式显示大小
+            -v: 显示标题行
+            -t: 显示每个存储类型的配额集和每个目录剩余的可用配额
+		HDFS Snapshots:
+			说明: 
+        1.快照是文件系统的只读时间点副本. 快照的数据存放在快照目录下的.snapshot目录中,默认以s'yyyyMMdd-HHmmss.SSS命名
+        2.主要用于数据备份, 防止用户错误和灾难恢复
+			特点:
+				1.瞬间创建快照(成本是O(1),不包含inode查找时间)
+				2.仅当相对于快照进行修改时才会使用额外内存: 内存使用情况是O(M),M为修改过的文件/目录数量
+				3.不复制datanode中的块: 快照记录块列表和文件大小,没有数据复制
+				4.每个快照目录可以容纳65536个快照,可快照目录的数量没有限制
+				5.若目录中有快照,则无法删除或重命名该目录
 				6.快照目录不允许嵌套
-				
-			命令：
-				启用快照目录：
-					# hdfs dfsadmin -allowSnapshot /path/dir
-				禁用快照目录：
-					# hdfs dfsadmin -disallowSnapshot /path/dir
+			命令:
+				启用快照目录:
+					$ hdfs dfsadmin -allowSnapshot /path/dir
+				禁用快照目录:
+					$ hdfs dfsadmin -disallowSnapshot /path/dir
 					
-				创建快照：
-					# hdfs dfs -createSnapshot /path/dir [<snapshotName>]
-				删除快照：
-					# hdfs dfs -deleteSnapshot /path/dir snapshotName
-				重命名：
-					# hdfs dfs -renameSnapshot /path/dir oldname newname
-				查看快照目录：
-					# hdfs lsSnapshottableDir
-				比较两个快照差异：
-					# dfs snapshotDiff /path/dir snapshot1_name snapshot2_name
+				创建快照:
+					$ hdfs dfs -createSnapshot /path/dir [<snapshotName>]         # 将使用格式为"'s'yyyyMMdd-HHmmss.SSS"的时间戳生成默认名称
+				删除快照:
+					$ hdfs dfs -deleteSnapshot /path/dir snapshotName
+				快照重命名:
+					$ hdfs dfs -renameSnapshot /path/dir oldname newname
+				查看快照目录:
+					$ hdfs lsSnapshottableDir
+        从快照恢复文件
+          $ hdfs dfs -cp -ptopax /foo/.snapshot/s0/bar /tmp                           # 保留时间戳、所有权、权限、ACL和XAttr
+				比较两个快照差异:
+					$ hdfs snapshotDiff /path/dir snapshot1_name snapshot2_name
 						
-					注：
+					注:
 						1.比较结果以第一个为主
-						2.比较信息：
+						2.比较信息:
 							+		文件/目录已创建
 							- -		文件/目录已删除
 							M		文件/目录已修改
 							R		文件/目录已重命名
-		内存存储支持：
-			说明：DataNode将内存中的数据异步写入磁盘，从性敏感的I/O路径中禁用磁盘I/O和校验计算，称为Lazy Persist Write
-				HDFS为Lazy Persist Writes尽可能地提供持久性保证。多种情况下可能发生数据丢失，应用程序可以选择该种写入
-				方式来折中存储，以减少延迟
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-	安全：
-		权限：
-			文件权限：HDFS与Linux文件系统类似
-				1.拥有rwx的权限
-				2.因为没有可执行文件的概念，所以没有suid或sgid。在目录上只有sitick bit的权限，可以防止超级用户权限过大。
+		内存存储支持:
+			说明:DataNode将内存中的数据异步写入磁盘,从性敏感的I/O路径中禁用磁盘I/O和校验计算,称为Lazy Persist Write
+				HDFS为Lazy Persist Writes尽可能地提供持久性保证。多种情况下可能发生数据丢失,应用程序可以选择该种写入
+				方式来折中存储,以减少延迟
+	安全:
+		权限:
+			文件权限: 文件权限被设计为类NUIX的权限. 目前,安全性仅限于简单文件权限,启动NameNode的用户被视为HDFS的超级用户. HDFS将支持网络认证协议(Kerberos)和数据加密传输
+				1.拥有ower, group, rwx的权限
+				2.因为没有可执行文件的概念,所以没有suid或sgid. 在目录上只有sitick bit的权限,可以防止超级用户权限过大
 				3.支持ACL
-			用户认证：
-				Hadoop支持两种不同的操作模式来确定用户的身份，由hadoop.security.authentication属性指定
-					simple：
-						客户端进程的身份由主机操作系统确定。在类Unix系统上，用户名相当于`whoami`
-					kerberos：
-						在Kerberos操作中，客户端进程的标识由其Kerberos凭据确定
-				注：
-					不管操作模式如何，用户身份机制对于HDFS本身是外在的。HDFS并不支持创建用户身份，建立组或处理用户凭据
-			组映射：	
-				用户身份确认后，组列表有组映射服务确定，其配置由hadoop.security.group.mapping(NameNode)实现。
-				1.默认配置：org.apache.hadoop.security.JniBasedUnixGroupsMappingWithFallback
-					改配置来确认Java Native Interface(JNI)是否可用，若可用，使用hadoop中的API来解析用户列表；若不可用，使用2
-				2.shell实现：org.apache.hadoop.security.ShellBasedUnixGroupsMapping	
+			用户认证:
+				说明: 
+          1.Hadoop支持两种不同的操作模式来确定用户的身份, 由hadoop.security.authentication属性指定
+          2.不管操作模式如何,用户身份机制对于HDFS本身是外在的. HDFS并不支持创建用户身份,建立组或处理用户凭据
+        认证模式:
+					simple:
+						客户端进程的身份由主机操作系统确定. 在类Unix系统上,用户名相当于`whoami`
+					kerberos:
+						在Kerberos操作中,客户端进程的标识由其Kerberos凭据确定
+			group映射: 用户身份确认后,组列表由组映射服务确定, 其配置由hadoop.security.group.mapping(NameNode)实现
+				1.默认配置:org.apache.hadoop.security.JniBasedUnixGroupsMappingWithFallback
+					改配置来确认Java Native Interface(JNI)是否可用,若可用,使用hadoop中的API来解析用户列表；若不可用,使用2
+				2.shell实现:org.apache.hadoop.security.ShellBasedUnixGroupsMapping	
 					用于解析用户的组列表
-				
-				注：
-					1.对于HDFS，用户到组的映射在NameNode上执行。因此，NameNode的主机系统配置确定用户的组映射
+				注:
+					1.对于HDFS,用户到组的映射在NameNode上执行。因此,NameNode的主机系统配置确定用户的组映射
 					2.HDFS将文件或目录的用户和组存储为字符串; 没有像Unix中常规的那样从用户和组标识号的转换
-			超级用户与用户组：
-				1.hadoop并没有超级用户的相关配置，启动NameNode的Linux用户即为hadoop的超级用户
-				2.超级用户组由配置文件指定：dfs.permissions.superusergroup:supergroup
-		相关配置属性：
-			dfs.permissions.enabled = true				  # 是否启用文件系统权限
-			dfs.web.ugi = webuser,webgroup				  # 由web服务器使用的用户。若设置为超级用户则web服务器可以查看一下
-			dfs.permissions.superusergroup = supergroup	 # 设置超级用户组
-			fs.permissions.umask-mode = 0022				# 创建文件和目录时使用的umask
-			dfs.cluster.administrators = ACL-for-admins	 # 集群的管理员指定为ACL。这控制谁可以访问HDFS中的默认servlet等
-			dfs.namenode.acls.enabled = false			   # 是否启用hdfs acl支持
-			
-	集群：
-		HA：
-			说明：在Hadoop2.0.0之前，NameNode是HDFS集群中的单点故障(SPOF)。每个集群都只有一个NameNode，如果该机器
-				或进程不可用，则作为整体的集群将不可用，直到NameNode被重新启动或在单独的机器上启动。HDFS高可用性功
-				能通过在具有热备份的Active/Passive配置中提供在同一群集中运行两个冗余NameNode的选项来解决上述问题
-			方案：
-				QJM：Quorum Journal Manager
-					说明：
-					原理：在活动和备用NameNode之间共享编辑日志
-				
-				
+			超级用户与用户组:
+				1.hadoop并没有超级用户的相关配置,启动NameNode的Linux用户即为hadoop的超级用户
+				2.超级用户组由配置文件指定:dfs.permissions.superusergroup:supergroup
+	集群:
+		HDFS HA: 
+      说明:
+        1.在Hadoop2.0.0之前,NameNode是HDFS集群中的单点故障(SPOF). 每个集群都只有一个NameNode,如果该机器或进程不可用,则作为整体的集群将不可用,直到NameNode被重新启动或在单独的机器上启动
+        2.HDFS高可用性功能通过在具有热备份的Active/Passive配置中提供在同一群集中运行多个冗余NameNode的选项来解决上述问题
+      方案:
+				QJM: Quorum Journal Manager
+					原理: 
+            1.配置多个namenode, 但只有一个namenode处于active状态(负责集群中的所有客户端操作), 其它处于standby状态(充当worker, 维护足够的状态以在必要时提供快速故障转移)
+            2.所有的namenode都与Journal nodes的独立进程保持通信. active节点执行任何命名空间的更改时, 都会记录到JN(大多数), 而standby节点能从JN中读取编辑并应用到自己的命名空间. 当发生故障时, standby节点保证已从JN中读取所有更改并提升为Active状态
+            3.Datanodes需配置所有namenode的位置, 并像所有Namenode发送块信息和心跳
+            4.Standby NameNodes也执行命名空间状态的检查点, 因此在HA集群中不需要运行Secondary NameNode,CheckpointNode或BackupNode
+            5.JN节点至少三台, 且较轻量级可以同NN节点部署在一起
+          操作: 3 namenode, 3 journalnode, 3 datanode
+            1.安装hadoop并配置
+            2.启动journal node
+              $ ./bin/hdfs --daemon start journalnode
+            3.在nn1上格式化namenode, 并启动
+              $ ./bin/hdfs namenode -format
+              $ ./bin/hdfs --daemon start namenode
+            4.在其它nn上同步nn1的元数据信息并启动namenode
+              $ ./bin/hdfs namenode -bootstrapStandby
+              $ ./bin/hdfs --daemon start namenode
+            5.将nn1切换为Active
+              $ ./bin/hdfs haadmin -transitionToActive nn1
+            6.查看namenode节点状态
+              $ ./bin/hdfs haadmin -getAllServiceState
+            7.启动datanode
+              $ ./bin/hdfs --daemon start datanode
+          自动故障转移: 
+            说明:
+              1.QJM只支持手动故障转移, 自动故障转移需要ZooKeeper quorum和ZKFailoverController进程(ZKFC)
+              2.zkfc和namenode启动无顺序关系
+              3.不支持指定namenode作为active, 但第一个启动的namenode为active
+              4.即使配置了自动故障转移, 也可以使用hdfs haadmin命令手动故障转移
+            组件:
+              zookeeper服务: 
+                - 故障检测: 集群中的每个NameNode机器都在zk中维护一个持久会话. 如果机器崩溃, zk会话将过期, 通知其他NameNode触发故障转移
+                - active namenode选举: zk提供一种简单的机制来专门选举一个节点作为活动节点. 如果当前活动的NameNode崩溃, 另一个节点可能会在zk中获取一个特殊的排他锁, 指示它应该成为下一个活动的节点
+              ZKFC: 一个新组件, 是zk客户端, 它还监视和管理NameNode的状态. 每个运行NameNode的机器也运行一个ZKFC
+                - 健康监控: ZKFC使用健康检查命令定期ping其本地NameNode. 只要NameNode及时响应健康状态, ZKFC就认为该节点是健康的. 如果节点崩溃,冻结或以其他方式进入不健康状态, 健康监视器会将其标记为不健康
+                - zk会话管理: 当本地NameNode健康时, ZKFC在zk中保持一个打开的会话. 如果本地NameNode处于活动状态, 它还会持有一个特殊的znode"锁". 这个锁使用zk对"临时"节点的支持. 如果会话过期, 锁znode将被自动删除
+                - 基于zk的选举: 如果本地NameNode是健康的, 并且ZKFC发现当前没有其他节点持有锁znode, 它将自己尝试获取锁. 如果成功, 则它"赢得了选举", 并负责运行故障转移以使其本地NameNode处于活动状态. 故障转移的过程类似于上面描述的手动故障转移:首先, 如果有必要,之前的active被隔离,然后本地NameNode转换为活动状态
+            操作: 3 namenode, 3 ZKFS, 3 journalnode, 3 datanode, 3 zk
+              1.安装3节点zk
+              2.hadoop添加配置
+                $ vim etc/hadoop/core-site.xml
+                  <property>
+                    <name>ha.zookeeper.quorum</name>
+                    <value>zk1:2181,zk2:2181,zk3:2181</value>
+                  </property>
+                $ vim etc/hadoop/hdfs-site.xml
+                  <property>
+                    <name>dfs.ha.automatic-failover.enabled</name>
+                    <value>true</value>
+                  </property>
+              3.在zk中初始化HA状态(在一个namenode中执行)
+                $ ./bin/hdfs zkfc -formatZK
+              4.启动jouralnode
+              5.启动namenode
+              6.启动zkfc
+                $ ./bin/hdfs  --daemon start zkfc
+              7.检查是否已有active namenode
+                ./bin/hdfs haadmin -getAllServiceState
+              8.启动datanode
+        传统共享存储: nfs
+					原理: 在活动和备用NameNode之间共享编辑日志
+            1.配置多个namenode, 但只有一个namenode处于active状态(负责集群中的所有客户端操作), 其它处于standby状态(充当worker, 维护足够的状态以在必要时提供快速故障转移)
+            2.为了让standby保持其状态与active同步, 要namenode可以访问共享存储设备上的目录
+            3.当active执行任何命名空间修改时, 它会持久地将修改记录到存储在共享目录中的编辑日志文件中. Standby不断监视此目录以进行编辑, 将它们应用到自己的命名空间. 如果发生故障转移, Standby将确保在将自身提升为Active状态之前已从共享存储中读取所有编辑
+            4.Datanodes需配置所有namenode的位置, 并像所有Namenode发送块信息和心跳
+          操作: 3 nemenode, 3 ZKFC, nfs存储, 3 datanode, 3 zk
+            - 除此配置外, 其它配置均和操作均相同
+              $ vim conf/hadoop/hdfs-site.xml
+                <property>
+                  <name>dfs.namenode.shared.edits.dir</name>
+                  <value>file:///mnt/filer1/dfs/ha-name-dir-shared</value>
+                </property>
+    HA+observer:
+      说明:   
+        1.QJM方式的Active NameNode可能是一个单一的瓶颈, 并且会因客户端请求而过载, 尤其是在繁忙的集群中
+        2.Observer NameNode保持最新的命名空间和块位置信息. 并提供一致性读取的能力. 由于读取请求在典型环境中占多数, 这有助于负载平衡NameNode流量并提高整体吞吐量
+        3.Observer NameNode参与故障转移的功能尚未实现, ZKFC可以在Observer上开启, 但是当NameNode处于Observer状态时它不会做任何事情. ZKFC会在NameNode转为standby状态后参与Active的选举
+      原理:
+        1.为保持单一client写后读一致的特性, 在rpc header中引入state ID(在namenode中使用事务ID实现), 当client通过active namenode执行写入时, 它会使用来自namenode最新事务ID更新其state ID
+        2.执行后续读取时, client将此state ID传递给observer, 然后observer会检查自己的事务ID(确保为读请求提供服务前, 自己的事务ID已赶上请求的state ID)
+        3.引入新的cilent代理提供程序, ObserverReadProxyProvider继承原来的ConfiguredFailoverProxyProvider, 以实现从observer读取(当提交客户端读请求时, 会首先从可用的observer中读取, 只有全部失败的情况下, 才会使用active)
+        4.同样, 使用引入了ObserverReadProxyProviderWithIPFailover以替换IP故障转移设置中的IPFailoverProxyProvider
+      客户端一致性:
+        1.client每次从active请求时会更新其state id, 任何指向observer的请求都将等待直到observer看到此事务ID(确保客户端读取到自己的所有写入)
+      部署: 3 namenode(active, standby, observer), 3 ZKFC, 3 journalnode, 3 datanode, 3 zk
+        1.修改hdfs-site.xml
+        2.安装QJM方式启动
+        3.将一个standby转为observer
+          $ ./bin/hdfs haadmin -transitionToObserver -forcemanual nn3
+        4.查看
+          $ ./bin/hdfs haadmin -getAllServiceState        # active/standby/observer
+    HDFS Federation
+      说明:
+      部署: 
+        1.部署haCluster1(active, standby, observer), haCluster2(active, standby, observer)
+        2.分别在两个namenode集群上一台格式化并启动
+          $ ./bin/hdfs namenode -format -clusterId haCluster        # clusterId必须相同
+          $ ./bin/hdfs --daemon start namenode
+        3.在其它namenode同步元数据并启动
+          $ ./bin/hdfs namenode -bootstrapStandby
+          $ ./bin/hdfs --daemon start namenode
+        4.分别在两个namespace上执行zk初始化, 并在所有namenode上启动zkfc
+          $ ./bin/hdfs zkfc -formatZK
+          $ ./bin/hdfs --daemon start zkfc
+        5.启动所有datanode
+          $ ./bin/hdfs --daemon start datanode
+        6.查看
+          $ ./bin/hdfs haadmin -ns haCluster1 -getAllServiceState
+          $ ./bin/hdfs haadmin -ns haCluster2 -getAllServiceState
+    HDFS NFSv3 Gateway:
+      说明: 
+        1.通过挂载的方式,可以类似访问本地磁盘的方式一样的访问Hadoop文件
+        2.通过挂载点将数据直接流式传输到HDFS. 支持文件附加, 但不支持随机写入
+        3.NFS Gateway可以与DataNode, NameNode或任何HDFS客户端位于同一主机上
+        4.nfs需要三个进程来提供服务: rpcbind, mountd, nfsd. nfs gateway同时具有nfsd和mountd
+      部署:
+        1.正常安装hdfs集群
+        2.配置
+          $ vim etc/hadoop/core-site.xml
+            hadoop.proxyuser.sky.groups: mount_user1, mount_user2      
+            hadoop.proxyuser.sky.hosts: *                              
+          $ vim etc/hadoop/hdfs-site.xml
+            nfs.superuser: sky 
+            nfs.dump.dir: /tmp/.hdfs-nfs  
+            nfs.export.point: /nfs          
+        3.停止系统自带的nfs和rpcbind
+        4.启动
+          $ ./bin/hdfs --daemon start portmap
+          $ ./bin/hdfs --daemon start nfs3
+        5.客户端验证
+          $ rpcinfo -p hadoop1
+          $ howmount -e hadoop1
+            Export list for hadoop1:
+            /nfs *
+          $ mkdir /mount_nfs
+          $ mount -t nfs -o vers=3,proto=tcp,nolock,noacl,sync hadoop:/nfs  /mnt_nfs
 				
 具体服务相关
 	概念:
-		hadoop native lib：
-			说明：Hadoop是使用Java语言开发的，但是有一些需求和操作并不适合使用java，所以就引入了本地库(Native Libraries)的概念，通过本地库，
-					Hadoop可以更加高效地执行某一些操作。目前在Hadoop中，本地库应用在文件的压缩上面：zlib-devel或gzip
-			
-			# hadoop checknative -a
+    Hadoop:
+      hadoop native lib(本地库):
+        说明: 由于性能原因和Java实现不可用, Hadoop具有某些组件的本地实现. 这些组件在一个原生hadoop库的动态链接原生库中可用(libhadoop.so)
+        检测: $ hadoop checknative -a
 				
-		C API libhdfs：
-			说明：libhdfs是一个基于JNI的C API lib，主要用于hdfs。libhdfs是Hadoop发行版的一部分，并预编译在./lib/native/libhdfs.so
-			特点：
-				libdhfs是线程安全。
-		用户代理：
-		机架感知：
-			hadoop组件是机架感知的。因此，NameNode尝试将块副本放在多个机架上以提高容错能力
-		Secondary NameNode：
-				NameNode将对文件系统的修改追加到edit的日志中进行存储，当NameNode启动时，会从fsimage中读取HDFS的状态，
-			然后应用edit日志。最后将新的HDFS状态写入fsimage，并用空的edit文件开始正常操作。
-				由于NameNode仅在启动期间合并fsimage和edits文件，因此在繁忙的集群上edits日志会变得非常大，并且在下一次
-			重启Namenode需要更长的时间
-				Secondary NameNode用于定期合并fsimage和edits文件，并将日志文件大小保持在限制内。且通常与Namenode不在同
-			一台机器，因为其内存需求与Namenode处于相同的顺序
-			
-		Checkpoint Node：
-			NameNode使用两个文件来保留其命名空间：
-				1.fsimage：命名空间最新检查点
-				2.edits：记录自Checkpoint之后对命名空间的修改
-			Checkpoint Node会定期创建命名空间的Checkpoint(从active namenode上下载fsimage和edit，在本地合并，并将新的
-				fsimage上传至active namenode)
-			Checkpoint Node通常与NameNode在不同的将机器上运行，因为其内存需求与NameNode处于相同的顺序。Checkpoint Node
-				将最新的fsimage存储在于NameNode目录结构相同的目录中，如果需要的话，允许NameNode读取该映像
-			
-		Backup Node：
-			Backup Node提供与Checkpoint Node相同的功能。维护与active namenode状态同步的命名空间副本。
-			接受NameNode的文件系统edits的日志流保存到磁盘上并将其应用于自身内存中的命名空间副本，从而创建命名空间的备份
-			
-			与Checkpoint Node相比，Backup Node更高效，它只需要将命名空间保存到本地fsimage并重置编辑
-			
-		Balancer：
-			HDFS可能不会始终在DataNode上均匀放置，故hdfs 把balancer用于分析block并重新平衡数据
-			
-		
-		Safemode：
-			在NameNode启动期间，会从fsimage和edits加载文件系统状态。然后等待DataNode的块报告，以使NameNode不会过早
-			地开始复制块(尽管在集群中已经存在足够的副本)。在此期间，NameNode会停留在safemode状态，该状态的本质是HDFS
-			集群为只读模式。在DataNode报告大多数文件系统块可用后NameNode会自动离开safemode
-		fsck：
-			用于检查各种文件的问题并报告，并不会修复检测到的问题。通过NameNode会自动纠正大多数可恢复的故障
-			
-		Fecthdt：
-			用于获取委派令牌并将其存储在本地文件系统上。
-			
-		Recovery Mode：
-			当唯一可用的存储位置损坏，可以使用 # hdfs namenode -recover 进行数据恢复。交互式提示步骤恢复数据，可使用
-			-force选项强制始终选择第一个选项(通常是最合理的选择)
-		
-		DataNode热插拔驱动器：
-			DataNode支持热插拔驱动器。用户可以添加或替换HDFS数据卷而不关闭DataNode。
-				1.更新DataNode的dfs.datanode.data.dir配置
-				2.运行 # dfsadmin -reconfig datanode HOST:PORT以启动重新配置进程。可以使用 # ddfsadmin -reconfig datanode HOST:PORT
-				  查看运行状态
-				3.完成后可以删除原目录磁盘
-		
-		Upgrade和Rollback：
-		文件权限和安全：
-			文件权限被设计为类NUIX的权限。目前，安全性仅限于简单文件权限，启动NameNode的用户被视为HDFS的超级用户。
-			HDFS将支持网络认证协议(Kerberos)和数据加密传输
-		可扩展性：
-			Hadoop可在具有数千个节点的集群上运行，每个HDFS集群都有一个NameNode。目前，NameNode上可用的总内存是主要
-			的可扩展性限制。
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
+      C API libhdfs:
+        说明: libhdfs是一个基于JNI的C API lib,主要用于hdfs.它为HDFS API的子集提供C API, 以操作HDFS文件和文件系统. libhdfs是Hadoop发行版的一部分,并预编译在./lib/native/libhdfs.so
+        特点: libdhfs是线程安全
 
-		   
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-		
-		HDFS：两个层
-			命名空间：
+      用户代理: 超级用户如何代表其他用户提交作业或访问hdfs
+      机架感知: hadoop组件是机架感知的. 因此,NameNode尝试将块副本放在多个机架上以提高容错能力. Hadoop主守护进程通过调用配置文件指定的外部脚本或java类来获取集群工作者的机架ID
+      hadoop的安全模式: 当Hadoop配置为在安全模式下运行时,每个Hadoop服务和用户都必须通过Kerberos进行身份验证,防止集群裸奔被恶意攻击
+    HDFS:
+      说明: HDFS为主从架构, 由单个NameNode(管理文件系统命名空间和控制客户端对文件访问)和多个DataNode(管理存储)
+      HDFS的特性:
+        冗余副本策略
+          - 将每个文件存储为一系列块并复制块以实现容错
+          - 可以在hdfs-site.xml中设置复制因子指定副本数据量
+          - 所有数据块都有副本
+          - DataNode启动时,遍历本地文件系统,产生一份HDFS数据块和本地文件的对应关系列表(blockreport)汇报给NameNode
+          - 当文件的复制因子减少时, NameNode会选择可以删除的多余副本. 下一个HearBeat会将此信息传输至DataNode, 然后DataNode移除相应的块
+        机架策略/副本放置
+          - 集群一般放在不同机架上,机架间带宽要比机架内带宽小
+          - HDFS的"机架感知": 防止机架失去联系
+          - 一般在本机架放一个副本,在其它机架存放别的副本
+        心跳机制
+          - NameNode周期性从DataNode接收Heartbeat(心跳信号)和Blockreport(块报告, 包含DataNode上所有块的列表)
+          - NameNode根据块报告验证元数据
+          - 没有按时发送心跳的DataNode会被标记为宕机,不会再给它任何的I/O请求
+          - 如果DataNode的失效造成副本数量下降,并且低于预先设置的阈值,NameNode会检测出这些数据块,并在合适的时机进行重新复制
+          - 引发重新复制的因素还包括数据副本本身损坏,磁盘错误,复制因子被增大等
+        安全模式
+          - NameNode启动会先经过一个"安全模式"阶段
+          - 安全模式阶段不会产生数据块复制
+          - 在此阶段NameNode收集各个DataNode的报告,当数据块达到最小副本数以上时,会被认为是"安全"
+          - 在一定比例(可设置)的数据块被确定为"安全"后,再过若干时间(30s),安全模式结束
+          - 当检测到副本数不足的数据块时,该块会被复制直到达到最小副本数
+        校验和/数据完整性(保存在data/current/dncp_block_verification.log.curr)
+          - 在文件创立时,每个数据块都会产生校验和
+          - 校验和会作为单独一个隐藏文件保存在命名空间下
+          - 客户端获取数据时可以检查校验和是否相同,从而发现数据块是否损坏
+          - 如果正在读取的数据块损坏,则可继续读取其它副本
+        回收站
+          - 若启用垃圾回收机制, 则删除文件时,其实是将文件放入回收站(/user/`user`/.Trash)
+          - 回收站的文件可以快速恢复
+          - 可以设置一个时间阈值,当回收站里的文件的存放时间超过这个阈值,就会被彻底删除,并且释放占用的数据块
+        元数据保护
+          - 映像文件和事务日志是NameNode的核心数据,由SecondaryNameNode定期备份
+          - 副本会降低NameNode的处理速度,但增加安全性
+          - NameNode依然是单点,若发生故障须手工切换
+        集群负载
+          - 节点的增加或失效,会导致数据分布不均匀
+          - 当某个节点的空闲空间大于一个临界值时, HDFS会自动从其它DataNode迁移数据过来
+        快照机制
+          - 支持存储某个时间点的映像,需要时可以使数据重返这个时间点的状态
+      HDFS的数据读写:
+        1.块分布: 考虑可靠性,写入速度,读取速度
+          1.集群之外的客户端会随机选择一个节点放第一个副本/若write在datanode上, 则在本地机器上放置一个副本
+          2.第二个副本放在与第一个不同且随机另外选择的机架的节点上
+          3.第三个副本放在与第二个相同的机架上
+          4.如果复制因子大于3, 则随机选择第4个和后续副本的位置, 同时保证每个机架的副本数低于上线: (replicas - 1) / racks + 2
+          5.因为NameNode不允许DataNodes拥有同一个block的多个replica, 所以创建的最大replica数就是当时DataNodes的总数. 
+        2.数据读取:
+          1.客户端访问NameNode
+          2.验证客户端身份:
+            ·通过信任的客户端,由其指定用户名	或
+            ·通过如Kerberos等强制验证机制完成
+          3.检测文件的所有者及其访问权限
+          4.NameNode告知客户端这个文件的第一个数据块的标号及保存有该数据块的DataNode列表
+          5.客户端访问最合适的DataNode(其读操作往往被转换成离读节点最近的一个节点读取,若HDFS跨越多个数据中心,那么本数据中心的复制优先级高于其它远程数据中心. 若HDFS客户端在集群中的DataNode时,将直接从本地DataNode中读取数据),读取数据块,直至完成
+        3.数据写入:
+          1.HDFS客户端通过HDFS相关API发送请求,打开一个要写入的文件.
+          2.验证客户端身份
+          3.检测文件所有者及其访问权限
+          4.请求被送达至NameNode,并建立该文件的元数据
+          5.当客户端将数据写入时,数据会自动被拆分成数据包并保存在队列中
+          6.客户端有一个独立的线程,从队列中读取数据包,并向NameNode请求一组DataNode列表,以便写入一个数据块的多个副本
+          7.客户端直接连接到列表中的第一个DataNode,而该DataNode有连接到第二个DataNode,第二个又连接到第三个,以此建立数据块的复制管道.
+          8.HDFS客户端维护者一个DataNode成功写入数据的确认信息的列表,当第一个数据块完成写入后,HDFS客户端重新向NameNode申请下一组DataNode.最终客户端完全写入
+        4.数据完整性:
+          1.DataNode在收到客户端数据或复制其他DataNode的数据时:
+            NameNode计算数据的校验和,DataNode负责验证收到数据的校验和,若校验和正确,则保存数据
+          2.HDFS客户端从DataNode读取数据时:
+            将文件的校验和与DataNode中存储的校验和比较.每个DataNode均保存有一个用于验证的校验和日志,知道每个数据块的最有一次的验证时间
+          3.DataNode会在后台定期验证数据块的校验和
+            运行一个DataBlockScanner程序.若有错误,则向NameNode报告已损坏的数据块并由NameNode标记此数据块为已损坏.接着安排这个数据块的一个副本复制到另一个DataNode,确保数据块的副本数
+      HDFS有两种数据:
+        1.文件数据: 用户保存在hdfs上的数据,保存在各个DataNode上
+        2.元数据:
+          说明:维护该文件系统所需的信息
+          分类:
+            内存元数据: NameNode在内存中维护整个文件系统的元数据镜像,用于HDFS的管理
+            元数据文件: 用于持久化存储
+              
+            文件和目录自身的属性信息: 文件名,目录名,文件大小,创建时间,修改时间
+            文件存储相关信息: 文件分布情况,副本个数,每个副本所在的DataNode
+            HDFS中所有的DataNode信息: 用于datanode管理
+            
+            主要来源于NameNode磁盘上的元数据文件(包括元数据镜像fsimage和元数据日志操作日志edits)及datanode的上报信息
+      Checkpoint:
+        Namenode在内存中保存了整个命名空间和blockmap的镜像, 当namenode启动或某个检查点被触发时, 会从磁盘读取fsimage和editlog, 并将editlog中的所有事务应用到fsimage的内存中, 然后将的fsimage刷新到磁盘上一个新的fsimage文件中并用空的editlog开始操作
+      HDFS Safemode:
+        在NameNode启动期间,会从fsimage和edits加载文件系统状态. 然后等待DataNode的块报告,以使NameNode不会过早地开始复制块(尽管在集群中已经存在足够的副本).在此期间,NameNode会停留在safemode状态,该状态的本质是HDFS集群为只读模式.在DataNode报告大多数文件系统块可用后NameNode会自动离开safemode
+      fsck: 用于检查各种文件的问题并报告,并不会修复检测到的问题. 通过NameNode会自动纠正大多数可恢复的故障
+      Fecthdt: 用于获取委派令牌并将其存储在本地文件系统上。
+      Balancer: HDFS可能不会始终在DataNode上均匀放置, 用于分析block并重新平衡数据
+      Recovery Mode:
+        当唯一可用的存储位置损坏,可以使用 # hdfs namenode -recover 进行数据恢复。交互式提示步骤恢复数据,可使用-force选项强制始终选择第一个选项(通常是最合理的选择)
+      DataNode热插拔驱动器:
+        DataNode支持热插拔驱动器。用户可以添加或替换HDFS数据卷而不关闭DataNode。
+          1.更新DataNode的dfs.datanode.data.dir配置
+          2.运行 # dfsadmin -reconfig datanode HOST:PORT以启动重新配置进程。可以使用 # dfsadmin -reconfig datanode HOST:PORT查看运行状态
+          3.完成后可以删除原目录磁盘
+      组件
+        NameNode:
+          作用: 执行文件系统命名空间操作, 例如打开, 关闭, 重命名文件和目录. 确定块到DataNode的映射
+          NameNode使用两个文件来保留其命名空间:
+            1.fsimage: 命名空间镜像文件(最新检查点)
+            2.editlog: 事务日志, 记录(checkpoint之后)元数据系统发生的每个更改
+          状态: 状态转换可以发生在active和standby, standby和observer之间, active和observer之间不能直接切换
+            active:
+            standby:
+            observer:  处理client的读请求
+        DataNode:
+          1.负责处理来自文件系统客户段的读取和写入请求
+          2.根据NameNode的指令执行块创建, 删除和复制
+        Secondary NameNode:
+          由于NameNode仅在启动期间合并fsimage和editlog,因此在繁忙的集群上editlog会变得非常大,并且在下一次重启Namenode需要更长的时间. Secondary NameNode用于定期合并fsimage和editlog,并将日志文件大小保持在限制内.且通常与Namenode不在同一台机器,因为其内存需求与Namenode处于相同
+        Checkpoint Node:
+          1.Checkpoint Node会定期创建命名空间的Checkpoint(从active namenode上下载fsimage和edit,在本地合并,并将新的fsimage上传至active namenode), 用于替代之前的Secondary NameNode
+          2.Checkpoint Node通常与NameNode在不同的将机器上运行,因为其内存需求与NameNode处于相同. Checkpoint Node将最新的fsimage存储在于NameNode目录结构相同的目录中,如果需要的话,允许NameNode读取该映像
+        Backup Node:
+          1.提供与checkpoint节点相同的检查点功能, 并在内存中维护文件系统命名空间的最新副本, 该副本始终与active namenode状态同步(从namenode接收editlog保存到磁盘, 并应用到内存中的fsimage)
+          2.不需要从active namenode下载fsimage和editlog来创建checkpoint, 只需将命名空间保存到本地fsimage文件并重置编辑
+          3.当前只支持一个namenode
+        Journal Node:
+          
+      架构:
+                                        
+                                        NameNode    (Metadata(Name, replicas, ...))
+                                        ↗
+                                      ↗  (Metadata ops)
+                          read      ↗
+                  Client  ---->  DataNodes                    DataNodes
+                              ↘
+                                ↘  (Read)
+                                  ↘
+                                DataNodes
+
+    REST API: 使得集群外的客户端不用安装Hadoop和java环境就可以对HDFS进行访问, 且客户端不受语言限制
+      分类:
+        WebHDFS:
+          1.提供了访问HDFS的restful接口, 内置组件, 默认开启
+          3.webHDFS是HortonWorks开发的, 后捐给了apache
+          4.当客户端请求某文件是, webHDFS会将其重定向到该资源所在的datanode
+        HttpFS:
+          1.httpFS是一个提供Restful接口的网关的服务器, 该网关支持所有的HDFS系统操作
+          2.对于文件CURD的操作, 全部提交给HttpFS服务进行中转, 然后由HttpFS去跟HDFS集群交互
+          3.HttpFS本身是java Web应用程序, 使用内置Jetty服务器对外提供服务, 是一个独立于HDFS的服务, 本身上是一个代理服务
+          4.默认端口为14000
+
+    HDFS扩展属性(xattrs)
+      说明:
+        1.扩展属性允许对文件添加与之相关的额外的元数据信息. 和系统级的元数据不同, 扩展属性是被应用添加存储的, 是文件的额外描述
+        2.扩展属性是key-value结构, key为string, value为binary. 且key需要用到namespace来做前缀
+        3.扩展属性是存储在namenode中, 并且随着文件的删除而被移除
+        4.默认启用
+      命名空间:
+        user: 客户端使用的命名空间, 
+        trusted: 由hdfs超级用户使用
+        system: 保留供内部的hdfs使用
+        security: 保留供内部的hdfs使用 
+        raw: 为有时需要公开的内部系统属性保留的. /.reserved/raw
+      配置:
+        dfs.namenode.xattrs.enabled
+        dfs.namenode.fs-limits.max-xattrs-per-inode
+        dfs.namenode.fs-limits.max-xattr-size
+          
+    MapReduce:
+
+		HDFS:两个层
+			命名空间:
 				1.由目录、文件和块组成
 				2.支持所有与命名空间相关的文件系统操作
-			块存储服务：
-				块管理：在NameNode中进行
+			块存储服务:
+				块管理:在NameNode中进行
 					1.处理datanode注册和心跳机制
 					2.处理块报告并维护块的位置
 					3.支持块的相关操作
 					4.管理副本操作
-				存储：
+				存储:
 					由Datanodes在本地文件系统上存储块并允许读/写访问
 		
-		HDFS Federation：
-			说明：为水平扩展namespace，联合使用多个独立的Namenodes/namespaces，彼此间相互独立，互为补充。Datanodes
-				被所有Namenode用作块的公共存储，每个Datanode向集群中的所有Namenode注册。Datanodes发送定期心跳和块报
-				告。它们还处理来自Namenode的命令。
-			特点：
-				1.命名空间水平扩展。使用大量小文件的大型部署或允许更多的命名空间添加到集群
-				2.性能。文件系统吞吐量不受单个NameNode限制
-				3.隔离。通过使用多个NameNode，不同类别的应用程序和用户可以被隔离到不同的命名空间
-			配置：
-				
-		ViewFs：
-			说明：View File System(ViewFs)提供了一种管理多个命名空间的方法，
-		HFTP：
-			说明：
-		HDFS Short-Circuit Local Reads：
-			说明：在HDFS中，通常是通过DataNode来读取数据的。但是，当客户端向DataNode请求读取文件时，DataNode就
-				会从磁盘读取该文件并通过TCP socket将数据发送到客户端。所谓"短路"是指绕过DataNode来读取文件，也
-				就是说，允许客户端直接读取文件。很明显，这种情况只在客户端与数据放在同一地点时才有可能发生。短
-				路读对于许多应用程序会带来重大的性能提升
-			配置：
-				dfs.client.read.shortcircuit:false								
-					# 该参数打开short-circuit local reads功能
-				dfs.domain.socket.path	 	可选 eg: /var/run/hdfs/dn_socket
-					# 该参数是一个指向UNIX域套接字的路径，用于DataNode和本地HDFS客户端通信。如果在该路径中出现了字符串"_PORT"，会被替换成DataNode的TCP端口。
-				dfs.client.read.shortcircuit.skip.checksum:false				
-					# 如果设置了该参数，short-circuit local reads功能将跳过checksums校验。通常不推荐这么做，但是该参数对于特殊场合可能有用。如果你在HDFS之外自己做checksum校验，那么就该考虑设置该参数。
-				dfs.client.read.shortcircuit.streams.cache.size:256				
-					# DFSClient维护着一个用于保存最近已打开的文件描述符的缓存。该参数控制着此缓存的容量。增大该缓存的容量就可以使用更多文件描述符，但是，在涉及大量seek操作的负载上可能带来更好的性能。
-				dfs.client.read.shortcircuit.streams.cache.expiry.ms:300000		
-					# 该参数控制着文件描述符因为长期不活跃而被关闭之前需要在客户端缓存上下文中驻留的最小时间。
-			注：
-				1.短路本地读取需要使用到libhadoop.so
-				2.socket路径除了HDFS用户和root用户，其他用户不可能创建。正因如此，所以，通常才使用在/var/run或者/var/lib下的路径
-				3.客户端和datanode会通过/dev/shm共享内存段交换信息
-				4.传统的hdfs短路本地读取因安全问题，一般不用
-					dfs.client.read.shortcircuit
-					dfs.client.use.legacy.blockreader.local
-					dfs.datanode.data.dir.perm
-					dfs.block.local-path-access.user
-		离线编辑查看器：
-			说明：是一个解析编辑日志文件的工具，主要用于不同文件格式间的转换
-			示例：
-				# hdfs oev -i file1 -o file2  -p format
-					-i：指定要处理的编辑日志的格式。xml表示xml格式，否则为binary格式
-					-o：根据指定的处理器生成的文件
-					-p：指定生成文件的格式
-							binary、xml(默认)、stats
-				
-				若hadoop集群的edits文件损坏，找出部分正确的edits文件。转换为xml后手动编辑修改，然后将其转换为binary
-				若xml文件中没有结束记录，可在最后一个正确的记录后添加一个结束记录，则可忽略该记录之后的任何内存
-					结束记录：
-						<RECORD>
-							<OPCODE> -1 </ OPCODE>
-							<DATA>
-							</ DATA>
-						</ RECORD>
-		离线图像查看器：
-			说明：用于将hdfs fsimage文件的内容转为可读的格式，并且提供只读的webhdfs API，允许离线分析和检查hadoop集群的命名空间
-		集中式缓存管理：
-			
-					
+		HDFS Federation:
+			说明:为水平扩展namespace,联合使用多个独立的Namenodes/namespaces,彼此间相互独立,互为补充.Datanodes被所有Namenode用作块的公共存储,每个Datanode向集群中的所有Namenode注册。Datanodes发送定期心跳和块报告.它们还处理来自Namenode的命令
+			特点:
+				1.命名空间水平扩展.使用大量小文件的大型部署或允许更多的命名空间添加到集群
+				2.性能, 文件系统吞吐量不受单个NameNode限制
+				3.隔离, 通过使用多个NameNode,不同类别的应用程序和用户可以被隔离到不同的命名空间
+			配置:
+		ViewFs:
+			说明:View File System(ViewFs)提供了一种管理多个hadoop命名空间的方法,
+		HDFS Short-Circuit Local Reads:
+			说明:
+        1.在HDFS中,通常是通过DataNode来读取数据的.但是,当客户端向DataNode请求读取文件时,DataNode就会从磁盘读取该文件并通过TCP socket将数据发送到客户端.所谓"短路"是指绕过DataNode来读取文件,也就是说,允许客户端直接读取文件.很明显,这种情况只在客户端与数据放在同一地点时才有可能发生.短路读对于许多应用程序会带来重大的性能提升
+        2.datanode将短路读取副本的文件描述符传递给客户端, 客户端通过文件描述符读取相应的数据, 通过/dev/shm上的共享内存段交换信息
+				3.短路本地读取需要使用到libhadoop.so, 使用unix套接字 
+        4.DataNode和客户端都需要配置短路本地读
+				5.传统的hdfs短路本地读取因安全问题,一般不用
+			配置:
+				dfs.client.read.shortcircuit: false								                  # 该参数打开short-circuit local reads功能
+				dfs.domain.socket.path: /tmp/dn_socket                              # 该参数是一个指向UNIX域套接字的路径,用于DataNode和本地HDFS客户端通信。如果在该路径中出现了字符串"_PORT",会被替换成DataNode的TCP端口。
+				dfs.client.read.shortcircuit.skip.checksum: false				            # 如果设置了该参数,short-circuit local reads功能将跳过checksums校验。通常不推荐这么做,但是该参数对于特殊场合可能有用。如果你在HDFS之外自己做checksum校验,那么就该考虑设置该参数。
+				dfs.client.read.shortcircuit.streams.cache.size: 256			          # DFSClient维护着一个用于保存最近已打开的文件描述符的缓存。该参数控制着此缓存的容量。增大该缓存的容量就可以使用更多文件描述符,但是,在涉及大量seek操作的负载上可能带来更好的性能。
+				dfs.client.read.shortcircuit.streams.cache.expiry.ms: 300000	      # 该参数控制着文件描述符因为长期不活跃而被关闭之前需要在客户端缓存上下文中驻留的最小时间。
+    离线edit查看器:
+        说明: 是一个解析editlog文件的工具,主要用于不同文件格式间的转换
+        示例:
+          $ hdfs oev -i file1 -o file2 -p format
+            -i <file>:      指定要处理的编辑日志的格式
+            -o <file>:      根据输出文件名
+            -p <process>:   指定生成文件的格式 binary|xml(默认)|stats
+            -v:             同时打印到控制台
+            -r:             读取binary edit log时, 使用恢复模式(有机会跳过log的损坏部分)
+          
+          若hadoop集群的edits文件损坏,找出部分正确的edits文件. 转换为xml后手动编辑修改,然后将其转换为binary. 若xml文件中没有结束记录,可在最后一个正确的记录后添加一个结束记录,则可忽略该记录之后的任何内容
+          结束记录:
+            <RECORD>
+              <OPCODE>-1</OPCODE>
+              <DATA>
+              </DATA>
+            </RECORD>
+		离线fsimage查看器:
+			说明: 用于将hdfs fsimage文件的内容转为可读的格式,并且提供只读的webhdfs API,允许离线分析和检查hadoop集群的命名空间
+
+		集中式缓存管理: 提高重复访问文件的利用率
+      说明
+        1.hdfs集中式缓存管理是一种显示缓存机制, 指定hdfs缓存的路径. namenode会与磁盘上所需块的datanode通信, 指示其将快缓存在堆外缓存中
+        2.datanode的缓存由namenode管理, 定期接收datanode的缓存报告. 缓存指令持久存储在fsimage和editlog中, cache不会受宕机重启之类的影响
+        3.cache只支持文件或目录(非递归缓存)
+        4.为了将块文件锁定到内存中, datanode依赖libhadoop.so(必须检查JNI是否启用)
+        5.须配置dfs.datanode.max.locked.memory, 须比ulimit -l值小
+      实现方式: 持久内存缓存有两种实现方式
+        - 默认基于纯Java实现
+        - 本机实现, 利用PMDK库来提高缓存写入和读取的性能(需要使用PMDK支持的构建hadoop)
+      概念:
+        cache directive: 定义一个需要被缓存的路径, 同时可指定其它参数
+        cache pool: 用来管理cache directive组的资源管理和执行权限的管理实体. 
+      过程:
+        1.user请求namenode缓存路径, namenode将路径转为blocks添加到cache队列中
+        2.缓存命令搭载在heartbeat上传给datanode, dfsclient为内存安排位置
+        3.datanode向namenode发送的heartbeat包含cache block报告
+      操作:
+        $ hdfs cacheadmin -addPool pool_1 -maxTtl 3h
+        $ hdfs cacheadmin -listPools -stats
+        $ hdfs cacheadmin -addDirective -path /test/a1 -pool pool_1 -ttl 10m
+        $ hdfs cacheadmin -listDirectives
+      
+
 		原理
 		
 	内部命令
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-                        

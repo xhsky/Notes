@@ -1,0 +1,158 @@
+简介
+	时间, 作者, 开发语言, 定义
+    Kerberos是一种网络身份验证协议, 通过秘钥加密为客户端/服务器程序提供身份验证
+    用来在非安全网络中,  对个人通信以安全的手段进行身份认证
+	官网: https://web.mit.edu/kerberos/
+	版本
+    Kerberos最初是在20世纪80年代为麻省理工学院的雅典娜项目开发的, 并已发展成为现代计算机网络中认证和授权最广泛的系统
+	协议
+适用性(优缺)
+  1.krb使用强密码方式, 使client和server可通过不安全的网络连接向对方证明身份, 同时还可以加密所有通信
+架构
+	模块
+  编译
+    $ wget -c https://kerberos.org/dist/krb5/1.20/krb5-1.20.1.tar.gz
+    $ tar -xf krb5-1.20.1.tar.gz
+    $ cd krb5-1.20.1/src
+    $ ./configure --prefix=/dream/krb5
+    $ make -j 4
+    $ make install 
+    $ mkdir /dream/krb5/log /dream/krb5/etc
+	安装
+    服务器: 
+      1.解压
+        $ mkdir /dream
+        $ tar -xf krb5.tar.gz -C /dream/; cd /dream/krb5
+      2.修改配置文件
+        $ vim etc/krb5.conf
+        $ vim var/krb5kdc/kdc.conf
+      3.创建kdc数据库
+        $ ./sbin/kdb5_util create -s
+      4.添加ACL文件
+        $ vim var/krb5kdc/kadm5.acl
+          */admin@ATHENA.MIT.EDU     *
+      5.为krb添加admin
+        $ ./bin/kadmin.local -q "addprinc admin/admin"
+      6.启动
+        $ ./sbin/krb5kdc
+        $ ./sbin/kadmind
+	结构
+		目录结构
+			安装目录
+        bin:
+        include:
+        lib:
+        sbin:
+        share:
+        var:
+          krb5kdc:
+            kdc.conf                                  # 是krb5.conf文件的补充, 用于仅在KDC上使用的
+              [kdcdefaults]                           # kdc的默认值
+                kdc_listen = 88                       # KDC进程UDP端口
+                kdc_tcp_listen = 88                   # KDC进程TCP端口
+              [realms]                                # 指定realm的数据库设置和配置
+                REALM_NAME = {
+                  #acl_file=                          # 访问控制列表文件的位置, kadmind 使用它来确定允许哪些主体在 Kerberos 数据库上获得哪些权限
+									database_module											# 指示[dbmodules]下的配置部分的名称,用于可加载数据库库使用的特定于数据库的参数.默认值是realm名称,如果此配置部分不存在,则默认值将用于所有数据库参数		
+                  default_principal_expiration        # 指定在此领域中创建的主体的默认到期日期. 默认值为 0, 表示没有到期日期
+                  default_principal_flags             # 此领域中创建的主体的默认属性. 此字符串的格式是一个逗号分隔的标志列表, 每个应启用的标志前带有"+", 每个应禁用的标志前带有"-"
+                  dict_file                           # 包含不允许作为密码的字符串的字典文件的位置
+                  iprop_enable                        # 指定是否启用增量数据库传播. 默认值为false
+                  iprop_ulogsize
+
+									kadmind_port = 749                  # kadmind的默认端口
+                  kpasswd_port = 464                  # kadmind侦听此realm的密码更改请求的端口
+                  master_key_name                     # 指定与主密钥关联的主体的名称. 默认值为K/M
+									max_life = 12h 0m 0s                # 指定票据在此领域中可能有效的最大时间段. 默认24h
+									max_renewable_life = 7d 0h 0m 0s    # 指定有效票据可以在此领域中更新的最大时间段. 默认值为0
+									master_key_type = aes256-cts-hmac-sha1-96                                               # 指定主密钥的密钥类型. 默认值为 aes256-cts-hmac-sha1-96
+									supported_enctypes = aes256-cts-hmac-sha1-96:normal aes128-cts-hmac-sha1-96:normal      # 指定此领域主体的默认键/盐组合. 通过 kadmin 创建的任何委托人都将拥有这些类型的密钥.
+									database_module = openldap_ldapconf
+                  }
+              [dbdefaults]                            # 默认的database设置
+              [dbmodules]                             # 每个database设置
+              [logging]                               # krb日志控制
+                admin_server=FILE:/path/kadmin.log    # kadmind的日志
+                kdc=FILE:/path/krb5kdc.log            # kdc的日志
+                default=FILE:/path/krblib.log         # 在没有指定进程日志的情况下, 其它进程服务的日志
+            kadm5.acl                                 # 只在KDC上使用, 控制修改KDC数据库的权限, 由kdc.conf中的acl_file参数覆盖
+
+            principal                                 # krb数据库文件
+            principal.ok                              # krb数据库文件
+            principal.kadm5                           # krb管理数据库文件
+            principal.lock                            # krb管理数据库锁定文件
+            .k5.<realm_name>                          # stash file
+          run
+            krb5kdc
+        etc/krb5.conf                                 # krb的主要配置文件, 文件包含krb配置信息,包括krb realm的KDC和kadmind的位置,当前realm和krb应用程序的默认值, 以及主机名到krb领域的映射
+          [libdefaults]                               # krb5库使用设置
+            default_realm                             # 客户端的默认Kerberos领域. 将其值设置为您的Kerberos领域.如果未设置此值,则在调用kinit等程序时必须为每个Kerberos主体指定一个领域
+            ticket_lifetime                           # 设置初始票证请求的默认生命周期. 默认值为24h
+            renew_lifetime                            设置初始票证请求的默认可更新生命周期, 默认0
+          [realms]                                    # 指定realm的联系信息和设置
+            <REALM_NAME> = {                          # 
+              admin_server=                           # kadmind服务, 通常也是主KDC
+              kdc=                                    # 运行 KDC 的主机的名称或地址. 可以包括一个可选的端口号, 用冒号与主机名分隔
+              kdc=                                    # 运行 KDC 的主机的名称或地址. 可以包括一个可选的端口号, 用冒号与主机名分隔
+              kdc=                                    # 运行 KDC 的主机的名称或地址. 可以包括一个可选的端口号, 用冒号与主机名分隔
+              primary_kdc=                            # 
+              }                               
+          [domain_realm]                              # 将服务器主机名映射到Kerberos领域
+          [capaths]                                   # 非分层跨领域的身份验证路径
+          [appdefaults]                               # 某些krb5应用程序的设置
+          [plugins]                                   # 控制插件模块注册
+		进程/端口
+      krb5kdc: 
+        88/tcp, 88/udp
+      kadmind:
+        749/tcp, 464/tcp, 464/udp
+		编程接口
+		管理软件
+	命令
+		服务器
+      gss-server  kadmin.local  kprop   kproplog  krb5-send-pr  sserver
+      kadmind     kdb5_util     kpropd  krb5kdc   sim_server    uuserver
+		客户端
+      compile_et  k5srvutil    klist      kswitch  kvno     sim_client
+      gss-client  kadmin     
+      ksu
+      krb5-config             # 
+      kpasswd                 # 客户端更改princpal密码
+      kinit                   # 获取并缓存principal的初始票证票证
+        -l duration           # 请求有个生命周期的ticket
+        -s duration           # 请求一个postdated ticket
+        -r duration           # 请求一个renewable ticket, 总生命周期为该值
+        -f                    # 请求一个可转发的ticket
+        -F                    # 请求一个不可转发的ticket
+        -p                    # 请求一个可代理的ticket
+        -P                    # 请求一个不可代理的ticket
+        -a                    # 请求仅限于主机本地地址的票证
+        -A                    # 请求不受地址限制的ticket
+        -C                    # 
+        -E                    # 将principal名称作为enterprise名称
+      klist                   # 查看缓存中principal和ticket, 或者keytab
+      kdestroy                # 销毁票证
+        -A                    # 若集合中的缓存可用, 则销毁集合中的所有缓存
+        -q                    # 静默模式. 抑制未销毁缓存时的哔哔声
+        -c <cache_name>       # 指定销毁cache
+        -p <princ_name>
+
+      ksu          ktutil   sclient  uuclient
+	日志
+	优化
+	安全
+	集群
+    说明: 
+      1.使用多个副本KDC和一个主KDC的模式
+      2.每个KDC都包含krb数据库的副本, 主KDC包含realm的可写副本, 会定时将其复制到副本KDC
+      3.所有的数据库更改都在主KDC上进行, 当主KDC不可用时, 副本KDC提供krb票证授予服务, 但不提供数据库管理
+      4.krb系统依赖正确时间, 确保所有KDC有相同的时间
+		
+具体服务相关
+	概念:
+    KDC(Key Distribute Center): 秘钥分发中心, 复制存储用户信息, 管理发放票据
+    Realm: Kerberos管理的一个领域或范围 , 称之为一个Realm
+    Rrincipal: Kerberos管理的一个用户或服务, 格式通常为 primary/instance@realm
+    Keytab: Kerberos的用户认证, 可通过密码或秘钥文件证明身份, keytab指秘钥文件
+		原理
+	内部命令
