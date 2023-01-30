@@ -2,8 +2,19 @@
 	时间,作者,开发语言,定义
     可靠的, 可扩展的分布式计算开发开源软件
 		HDFS(Hadoop Distributed File System)是一种分布式文件系统, 它为Hadoop分布式计算框架提供高性能,高可靠,高可扩展的存储服务.
+    MapReduce是一种软件框架, 用于轻松编写应用程序, 以可靠、容错的方式在商用硬件的大型集群(数千个节点)上并行处理大量数据(数TB数据集)
+    Yarn(Yet Another Resource Negotiator)是hadoop集群资源管理器系统, Yarn从hadoop 2引入, 是为了改善MapReduce的实现, 同样执行其他分布式计算模式
 	官网: https://hadoop.apache.org/
 	版本
+    发行版本:
+      1.Apache版本: 最原始也最基础的版本
+      2.CDH版本: Cloudera内部集成了很多大数据的框架
+      3.HDP版本: Hortonworks同样集成了很多大数据的框架, 现已被Cloudera收购, 推出新的版本CDP
+    发布版本:
+      1.X: Common(辅助工具), HDFS(存储), MapReduce(计算+资源调度)
+      2.X: Common(辅助工具), HDFS(存储), Yarn(资源调度), MapReduce(计算)      # 计算和调度分离
+      3.X: Common(辅助工具), HDFS(存储), Yarn(资源调度), MapReduce(计算)      # 组成无变化, 但增加了许多特性
+
 	协议
     2011年, Hadoop 1.0发布, 架构简单, 基本就是按照论文中的框架实现. 
     2013年, Hadoop 2.0发布, 增加了Yarn资源调度(将MapReduce中的资源调度功能剥离形成一个独立的框架), HDFS HA机制(standbynamenode进行热备份)和HDFS Federation(解决了HDFS水平可扩展能力)
@@ -124,7 +135,7 @@
                 </property>
 							</configuration>
 						$ ./sbin/start-yarn.sh
-					6.停止
+					6.启动
 						$ ./sbin/stop-dfs.sh
 						$ ./sbin/stop-yarn.sh
 			- 分布安装:
@@ -187,6 +198,9 @@
             -- nfs
               hadoop.proxyuser.<proxy_user>.groups: mount_user1, mount_user2      # 使用代理用户来代理所有访问nfs挂载的用户
               hadoop.proxyuser.<proxy_user>.hosts: *                              # 设置为*, 允许代理来自任何主机的请求
+            
+            -- kms
+              hadoop.security.key.provider.path: kms://http@localhost:9600/kms    # namenode作为kms的客户端读取和写入加密区时的路径
 
           hdfs-site.xml
             - namenode
@@ -248,7 +262,6 @@
               dfs.client.read.shortcircuit: false                                 # 是否打开短路本地读取. 默认false
               dfs.domain.socket.path: /var/lib/hadoop-hdfs/dn_socket              # 这是一个UNIX域套接字的路径, 将用于DataNode和本地HDFS客户端之间的通信
 
-
             - automatic failover
               dfs.ha.automatic-failover.enabled: true                             # 集群是否设置自动故障转移
 
@@ -256,7 +269,25 @@
 
             - datanode:
               dfs.replication: 3                                                  # 块复制数. 默认3. 也可在创建文件时手动指定
-              dfs.datanode.data.dir: file://${hadoop.tmp.dir}/dfs/data            # 设置datanode数据的存储目录,若该值是以,分隔的目录列表,则数据会在每个目录中存储一份.通常目录在不同的设备上.对于hdfs的存储策略,应使用不同的设备类型(SSD,DISK, ARCHIVE,RAM_DISK),默认存储类型为DISK.若本地文件系统允许,则会创建不存在的目录
+              dfs.datanode.data.dir: file://${hadoop.tmp.dir}/dfs/data            # 设置datanode数据的存储目录,若该值是以,分隔的目录列表,则数据会在每个目录按策略存储. 
+                                                                                  # 通常目录在不同的设备上.对于hdfs的存储策略,应使用不同的设备类型(SSD, DISK, ARCHIVE, RAM_DISK),默认存储类型为DISK. 写法为[DISK]file:///grid/dn/disk0
+              dfs.datanode.fsdataset.volume.choosing.policy:                      # 根据该策略, 将数据落在可用磁盘上. 默认轮询(org.apache.hadoop.hdfs.server.datanode.fsdataset.RoundRobinVolumeChoosingPolicy). 可使用org.apache.hadoop.hdfs.server.datanode.fsdataset.AvailableSpaceVolumeChoosingPolicy, 根据磁盘空间剩余量来选择磁盘存储数据块, 实现均匀分布
+
+
+              dfs.client.use.datanode.hostname: false                             # 客户端在连接到datanode时是否应使用datanode主机名. 默认false
+              dfs.datanode.use.datanode.hostname: false                           # 当连接到其他datanode进行数据传输时, 当前datanode是否应该使用所要连接的datanode主机名. 默认false
+
+              dfs.storage.policy.enabled: true                                    # 允许用户更改文件和目录的存储策略
+              dfs.storage.policy.satisfier.mode: none                             # 是否允许启用namenode的外部SPS服务. 可选external(启用), none(禁用, 默认). 
+              dfs.storage.policy.satisfier.recheck.timeout.millis: 60000          # 重新检查来自Datanodes的已处理块存储移动命令结果的超时. 单位毫秒, 默认60000
+              dfs.storage.policy.satisfier.self.retry.timeout.millis: 300000      # 如果在此配置的超时中Datanode没有报告块移动结果, 则将重试块移动. 单位毫秒, 默认300000
+
+              dfs.disk.balancer.enabled: true                                     # 磁盘均衡功能是否开启. 默认为true
+              dfs.disk.balancer.max.disk.throughputInMBperSec: 10                 # diskbalancer 在从源磁盘读取期间使用的最大磁盘带宽. 单位是 MB/秒
+              dfs.disk.balancer.max.disk.errors: 5                                # 在从源磁盘到目标磁盘的块移动过程中, 可能会遇到各种错误. 指定两个磁盘之间的移动失败之前可以容忍多少错误
+              dfs.disk.balancer.block.tolerance.percent: 10                       # 容差百分比, 指定迁移卷数据量和理论迁移的差值, 若在所有卷总量的百分比, 即均衡可停止
+              dfs.disk.balancer.plan.threshold.percent: 10                        # 计划中卷数据密度的百分比阈值. 如果某个节点的卷Data Density的绝对值超出阈值, 则意味着该磁盘对应的卷应该在计划中进行平衡. 默认值为10. 
+              dfs.disk.balancer.plan.valid.interval: 1d                           # 磁盘平衡器计划有效的最长时间. 默认1天
 
 
 
@@ -747,8 +778,22 @@
               hadoop.registry.kerberos.realm:默认
               hadoop.registry.jaas.context:默认
           yarn-site.xml
+            yarn.resourcemanager.recovery.enabled: false                                              # 使RM在启动后恢复状态. 默认false.  如果为true, 则必须指定yarn.resourcemanager.store.class
+            yarn.resourcemanager.store.class                                                          # 用来做持久存储的类型
+                                                                                                      > org.apache.hadoop.yarn.server.resourcemanager.recovery.FileSystemRMStateStore: 基于Hadoop文件系统的存储实现. 默认
+                                                                                                      > org.apache.hadoop.yarn.server.resourcemanager.recovery.ZKRMStateStore: 基于zk的存储实现
+                                                                                                      > org.apache.hadoop.yarn.server.resourcemanager.recovery.LeveldbRMStateStore: 基于levelDB的存储实现
+            yarn.resourcemanager.zk-state-store.root-node.acl:                                        # 
+
           mapred-site.xml 
           workers                   # 所有worker的节点名称. 脚本将使用改文进来执行命令(需要ssh互信)
+
+          kms-site.xml:             # kms配置
+            hadoop.kms.key.provider.uri: jceks://file@/${user.home}/kms.keystore                      # 配置kms keyProvider存储的路径
+            hadoop.security.keystore.java-keystore-provider.password-file: kms.keystore.password      # 如果使用 JavaKeyStoreProvider, 则为密钥库密码的文件名
+
+            -- auth
+              hadoop.kms.authentication.type: simple                                                  # KMS的身份验证类型. 可以是"simple"(默认)或"kerberos"
         日志配置:
           log4j.properties          # 日志配置
 		进程结构:
@@ -769,12 +814,19 @@
 				SecondaryNameNode:      java/9868
         DFSZKFailoverController java/8019
 
+        KMSWebServer            java/9600
+
+        ExternalStoragePolicySatisfier: java/none
+
         Portmap:                java/111(tcp), 111(udp)
         Nfs3:                   java/50079, 2049, 4242(tcp), 4242(udp)
 			YARN:
-				ResourceManager         java/8030, 8031, 8032, 8033, 8088
-				NodeManager             java/8040, 8042, port1, port2
+				ResourceManager         java/8030, 8031, 8032, 8033, 
+                                     8088: RM Web UI
+				NodeManager             java/8040, port1, port2
+                                    /8042: NM Web UI
 				WebAppProxy
+        MRAppMaster
 			MapReduce:
         JobHistoryServer        java/10033, 10020, 19888
 			端口
@@ -791,261 +843,372 @@
       NameNode is Active监控:   curl http://nn:9870/isActive    200成功, 405失败
 	命令
     ./bin/container-executor
-    ./bin/hadoop  
-			hadoop fs <args>:
-				说明:该shell包含了与hadoop支持的文件系统交互的shell,例如hdfs,本地fs,HFTP FS,S3 FS等
-				注:
-					Hadoop fs:使用面最广,可以与hadoop支持的任何文件系统交互
-					hadoop dfs与hdfs dfs:只能操作HDFS文件系统相关(包括与本地FS间的操作),前者已经弃用,一般使用后者
-					hadoop fs与hdfs dfs 相同
-				命令:该命令中的路径均可以采用URI的形式(schema://ip:port/path),例如HDFS协议可以使用hdfs://,本地文件系统使用file:///,若未指定,则采用默认配置文件中的协议
-					$ hadoop fs -appendToFile <local_src> ... <dis_file>			# 将单个或多个文件的内容追加到目的文件中
-					$ hadoop fs -getmerger /path/file1 /pathfile2 local_file		# 将多个文件合并到本地文件
-					$ hadoop fs -cat /path/file									 # 查看文件内容
-					$ hadoop fs -checksum /path/file								# 返回文件的校验和信息
-					$ hadoop fs -chgrp
-					$ hadoop fs -chown
-					$ hadoop fs -chmod
-					$ hadoop fs -find
-					$ hadoop fs -ls 
-					$ hadoop fs -mkdir
-					$ hadoop fs -mv
-					$ hadoop fs -rm
-					$ hadoop fs -getfacl /path/dir
-					$ hadoop fs -getfattr /path/dir
-					$ hadoop fs -setfacl
-					$ hadoop fs -setfattr
-					$ hadoop fs -stat
-					$ hadoop fs -tail -f
-					$ hadoop fs -df -h /path/dir									# 显示可用空间
-					$ hadoop fs -du -sh /path/dir								   # 显示目录大小
-					$ hadoop fs -cp /path/file /path/dir							# 拷贝文件,-p:保留文件属性,-f:强制覆盖
-					$ hadoop fs -createSnapshot
-					$ hadoop fs -deleteSnapshot
-					$ hadoop fs -renameSnapshot
-					$ hadoop fs -expunge											# 清空垃圾
-					$ hadoop fs -get /path/dir local_dir							# 将文件复制到本地文件系统
-					$ hadoop fs -put local_dir /path								# 将本地文件上传至其它文件系统,-f:强制覆盖
-					$ hadoop fs -test [-defsz] /path/dir							# 测试
-					$ hadoop fs -touchz /path/file								  # 创建一个长度为0的文件
-					$ hadoop fs -usage command									  # 返回单个命令帮助
-    ./bin/mapred  
+    ./bin/hadoop [options] subcommand [subcommand options]
+      options:
+        --config dir                                # hadoop配置目录
+        --debug                                     # 开启debug mode
+        --hostnames list[, of, host, names]
+        hosts filename
+        loglevel level                            # 为该命令设置log4j级别
+        workers                                   # 开启worker mode
+      subcommand
+        admin:
+          daemonlog                               # 为每个daemon获取/设置日志级别
+        client:
+          archive
+          checknative                             # 检测native hadoop和压缩库的可用性
+          classpath
+          conftest
+          credential
+          distch
+          distcp
+          dtutil
+          envvars
+          fs                                      # 该shell包含了与hadoop支持的文件系统交互的shell,例如hdfs,本地fs,HFTP FS,S3 FS等, 而dfs只能操作hdfs相关
+            [-appendToFile <localsrc> ... <dst>]
+            [-cat [-ignoreCrc] <src> ...]
+            [-checksum [-v] <src> ...]
+            [-chgrp [-R] GROUP PATH...]
+            [-chmod [-R] <MODE[,MODE]... | OCTALMODE> PATH...]
+            [-chown [-R] [OWNER][:[GROUP]] PATH...]
+            [-concat <target path> <src path> <src path> ...]
+            [-copyFromLocal [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
+            [-copyToLocal [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
+            [-count [-q] [-h] [-v] [-t [<storage type>]] [-u] [-x] [-e] [-s] <path> ...]
+            [-cp [-f] [-p | -p[topax]] [-d] [-t <thread count>] [-q <thread pool queue size>] <src> ... <dst>]
+            -- 快照
+              -createSnapshot <snapshotDir> [<snapshotName>]                                # 创建快照
+              -deleteSnapshot <snapshotDir> <snapshotName>                                  # 删除快照
+              -renameSnapshot <snapshotDir> <oldName> <newName>                             # 重命名快照
+            -- 扩展属性
+              -getfattr [-R] {-n name | -d} [-e en] <path>                                  # 显示文件或目录的扩展属性
+                -R                                                                          # 递归列出
+                -n <name>                                                                   # 指定名称
+                -d                                                                          # 获取所有
+                -e <en>                                                                     # value编码设定
+                path                                                                        # 指定path
+              -setfattr {-n name [-v value] | -x name} <path>                               # 设置文件或目录的扩展属性
+                -n <name>                                                                   # 指定名称
+                -v <value>                                                                  # 指定值
+                -x <name>                                                                   # 删除该name
+                path                                                                        # 指定path
+            -ls [-C] [-d] [-h] [-q] [-R] [-t] [-S] [-r] [-u] [-e] [<path> ...]              # ls
+              -C                                                                            # 只显示文件或目录
+              -d                                                                            # 显示目录本身属性
+              -h                                                                            # 以易读方式显示
+              -q                                                                            # 以?代替不可打印的字符
+              -R                                                                            # 递归显示
+              -t                                                                            # 以mtime排序显示
+              -S                                                                            # 以size排序显示
+              -r                                                                            # 反序显示
+              -u                                                                            # 以atime替代mtime显示并排序
+              -e                                                                            # 显示文件或目录的纠删码策略
+            [-df [-h] [<path> ...]]
+            [-du [-s] [-h] [-v] [-x] <path> ...]
+            [-expunge [-immediate] [-fs <path>]]
+            [-find <path> ... <expression> ...]
+            [-get [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
+            [-getfacl [-R] <path>]
+            [-getmerge [-nl] [-skip-empty-file] <src> <localdst>]
+            [-head <file>]
+            [-help [cmd ...]]
+            [-mkdir [-p] <path> ...]
+            [-moveFromLocal [-f] [-p] [-l] [-d] <localsrc> ... <dst>]
+            [-moveToLocal <src> <localdst>]
+            [-mv <src> ... <dst>]
+            [-put [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
+            [-rm [-f] [-r|-R] [-skipTrash] [-safely] <src> ...]
+            [-rmdir [--ignore-fail-on-non-empty] <dir> ...]
+            [-setfacl [-R] [{-b|-k} {-m|-x <acl_spec>} <path>]|[--set <acl_spec> <path>]]
+            [-setrep [-R] [-w] <rep> <path> ...]
+            [-stat [format] <path> ...]
+            [-tail [-f] [-s <sleep interval>] <file>]
+            [-test -[defswrz] <path>]
+            [-text [-ignoreCrc] <src> ...]
+            [-touch [-a] [-m] [-t TIMESTAMP (yyyyMMdd:HHmmss) ] [-c] <path> ...]
+            -touchz <path> ...                            # 创建一个长度为0的文件
+            [-truncate [-w] <length> <path> ...]
+            -usage [cmd ...]                              # 显示给定命令的用法
+          gridmix
+          jar <jar>
+          jnipath
+          kdiag
+          kerbname
+          key                                     # 
+            create <keyname>                      # 指定key名称
+              -cipher <cipher>                    # 指定密码. 默认密码为AES/CTR/NoPadding
+              -size <size>                        # 秘钥大小, 默认128
+              -description <desc>
+              -attr <attr=value>
+              -provider <provider>
+              -strict
+            roll <keyname>
+              
+            delete <keyname>                      # 删除keyname的所有版本
+              -provider <provider>
+              -strict
+              -f                                  # 直接删除, 不用确认
+            list                                  # 列出在core-site.xml中配置或-provides参数指定的provider的key
+              -provider <provider>              
+              -strict 
+              -metadata                           # 额外显示元数据信息
+            invalidateCache <keyname>
+          rumenfolder
+          rumentrace
+          trace
+          versoin
+        daemon:
+          kms                                     # 运行kms
+          registrydns                             # 运行registry dns server
+    ./bin/mapred [options] subcommand [subcommand options]
+      options:
+        --config dir
+        --debug
+        --help
+      subcommand:
+        admin:
+          frameworkuploader                               
+          hsadmin                                                 # job history server管理接口
+        client
+          classpath                                               # 打印运行MapReduce subcommand需要的class path
+          envvars                                                 # 显示hadoop环境变量
+          job                                                     # 操作MapReduce jobs
+          minicluster                                             # cli miniCluster
+          pipes                                                   # 运行一个pipes job
+          queue                                                   # 获取有关jobqueue的信息
+          sampler
+          version                                                 # 打印版本信息
+        daemon:
+          historyserver                                           # 以standlane方式运行job history server
     ./bin/oom-listener  
     ./bin/test-container-executor  
-    ./bin/yarn
-    ./bin/hdfs:
-      说明:hadoop shell支持的命令   
-      示例:
-        $ hdfs [options] subcommand [subcommand options]
-          options:
-            --buildpaths
-            --config dir                                # hadoop配置目录
-            --daemon (start|status|stop)                # 在一个daemon上操作
-            --debug                                     # 开启debug mode
-            --hostnames list[, of, host, names]
-            --loglevel level                            # 为该命令设置log4j级别
-            --workers                                   # 开启worker mode
-          subcommand
-            admin:
-              cacheadmin                                # 配置hdfs cache
-                -addPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
-                  name: pool名称
-                  -owner <owner>:                       # pool的user, 默认为当前user
-                  -group <group>:                       # pool的group, 默认为当前group
-                  -mode 0755                            # pool权限. 默认0755
-                  -limit <bytes>:                       # pool的大小, 单位byte. 默认无限制
-                  -defaultReplication N                 # cache directive的复制数. 默认为1
-                  -maxTtl time                          # pool中的cache directive的允许的最大ttl. 单位可以为s/m/h/d. 默认无限制
-                -listPools [-stats] [<name>]            # 显示pool的信息
-                  -stats                                # 显示额外的pool的统计信息
-                  name                                  # 只显示该name的信息
-                -removePool <name>                      # 删除pool, 同时删除内部的缓存路径
-                -modifyPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
+    ./bin/yarn [options] subcommand [subcommand option]
+      options
+        --buildpath
+        --config dir
+        --daemon (start|status|stop)
+        --debug
+        --help
+        --hostnames list[,of,host,names]
+        --hosts filename
+        --loglevel level
+        --workers
+      subcommand:
+        adimn
+          daemonlog command                                                     # 设置/获取daemon log的level
+            -getlevel host:port <classname> [-protocal (http|https)]
+            -setlevel host:port <classname> <level> [-protocal (http|https)]
+          node command                                                          # 打印node报告
+            -list [-all/-showdetails/-states <state>]           # 列出所有node/每个节点显示更详细的信息/可根据以逗号分割的state过滤, 可用state为new, running, unhealthy, decommissioned, lost, rebooted, decommissioning, shutdown
+            -status <nodeId>                                    # 打印指定node的状态报告, nodeId可根据-list -all获取
+          rmadmin
+          scmadmin
+        client
+          app
+          applicationattempt
+          classpath
+          cluster
+          container
+          envvars
+          fs2cs
+          jar <jar>
+          logs
+          nodeattributes
+          queue
+          schedulerconf
+          timelinereader
+          top
+          verison
+        daemon
+          nodemanager
+          proxyserver
+          registrynds
+          resourcemanager
+          router
+          sharedcachemanager
+          timelineserver
 
-                -addDirective -path <path> -pool <pool-name> [-force] [-replication <replication>] [-ttl <time-to-live>]
-                  -path <path>                          # 缓存路径, 该path可为路径或文件
-                  -pool <pool_name>                     # 添加指令的pool. 必须有对该pool的写权限
-                  -force                                # 跳过pool资源限制
-                  -replication <N>                      # 缓存复制因子. 默认为1
-                  -ttl <time>                           # 该指令的ttl. 可用单位s/m/h/d. 默认never
-                -listDirectives [-stats] [-path <path>] [-pool <pool>] [-id <id>]             # 列出cache directive
-                  -stats                                # 显示指令统计信息
-                  -path <path>                          # 只列出该路径的指令
-                  -pool <pool_name>                     # 只列出pool下的指令
-                  -id <id>                              # 列出id对应的指令
-                -removeDirective <id>                   # 根据id删除指令
-                -removeDirectives -path <path>          # 根据path删除指令
-                -modifyDirective -id <id> [-path <path>] [-force] [-replication <replication>] [-pool <pool-name>] [-ttl <time-to-live>]
-              crypto                                    # 配置hdfs encryption zones
-              debug                                     # 
-              dfsadmin                                  # 运行一个dfs admin client
-                -- 快照
-                  -allowSnapshot <snapshotDir>                              # 允许目录快照
-                  -disallowSnapshot <snapshotDir>                           # 禁止目录快照
-                -- 配额
-                  -setQuota <quota> <dirname>...<dirname>                   # 设置名称配额
-                  -clrQuota <dirname>...<dirname>                           # 消除名称配额
-                  -setSpaceQuota <quota> [-storageType <storagetype>] <dirname>...<dirname>       # 设置空间配额
-                  -clrSpaceQuota [-storageType <storagetype>] <dirname>...<dirname>               # 取消空间配额
-                -- 滚动升级
-                  -rollingUpgrade [<query|prepare|finalize>]
-                  -upgrade <query | finalize>                               # 查询升级状态, 为每个NN返回NN升级过程是否完成
-                  -getDatanodeInfo <datanode_host:ipc_port>                 # 获取datanode信息, 用于检测datanode是否存活. port:9867
-                  -shutdownDatanode <datanode_host:ipc_port> [upgrade]      # 
+    ./bin/hdfs [options] subcommand [subcommand options]          # hadoop shell支持的命令   
+      options:
+        --buildpaths
+        --config dir                                # hadoop配置目录
+        --daemon (start|status|stop)                # 在一个daemon上操作
+        --debug                                     # 开启debug mode
+        --hostnames list[, of, host, names]
+        --loglevel level                            # 为该命令设置log4j级别
+        --workers                                   # 开启worker mode
+      subcommand
+        admin:
+          cacheadmin                                # 配置hdfs cache
+            -addPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
+              name: pool名称
+              -owner <owner>:                       # pool的user, 默认为当前user
+              -group <group>:                       # pool的group, 默认为当前group
+              -mode 0755                            # pool权限. 默认0755
+              -limit <bytes>:                       # pool的大小, 单位byte. 默认无限制
+              -defaultReplication N                 # cache directive的复制数. 默认为1
+              -maxTtl time                          # pool中的cache directive的允许的最大ttl. 单位可以为s/m/h/d. 默认无限制
+            -listPools [-stats] [<name>]            # 显示pool的信息
+              -stats                                # 显示额外的pool的统计信息
+              name                                  # 只显示该name的信息
+            -removePool <name>                      # 删除pool, 同时删除内部的缓存路径
+            -modifyPool <name> [-owner <owner>] [-group <group>] [-mode <mode>] [-limit <limit>] [-defaultReplication <defaultReplication>] [-maxTtl <maxTtl>]
+            -addDirective -path <path> -pool <pool-name> [-force] [-replication <replication>] [-ttl <time-to-live>]
+              -path <path>                          # 缓存路径, 该path可为路径或文件
+              -pool <pool_name>                     # 添加指令的pool. 必须有对该pool的写权限
+              -force                                # 跳过pool资源限制
+              -replication <N>                      # 缓存复制因子. 默认为1
+              -ttl <time>                           # 该指令的ttl. 可用单位s/m/h/d. 默认never
+            -listDirectives [-stats] [-path <path>] [-pool <pool>] [-id <id>]             # 列出cache directive
+              -stats                                # 显示指令统计信息
+              -path <path>                          # 只列出该路径的指令
+              -pool <pool_name>                     # 只列出pool下的指令
+              -id <id>                              # 列出id对应的指令
+            -removeDirective <id>                   # 根据id删除指令
+            -removeDirectives -path <path>          # 根据path删除指令
+            -modifyDirective -id <id> [-path <path>] [-force] [-replication <replication>] [-pool <pool-name>] [-ttl <time-to-live>]
+          crypto                                    # 配置hdfs加密区
+            -createZone -keyName <keyName> -path <path>                     # 创建一个加密区. 必须为空目录, 且会在其下提供.tarsh目录
+            -listZones                              # 列出所有加密区
+            -provisionTrash -path <path>            # 为加密区提供trash目录
+            -getFileEncryptionInfo -path <path>     # 获取文件的加密信息
+            -reencryptZone <action> -path <zone>    # 为加密区发出重新加密命令,  action只能为-start/-cancel
+            -listReencryptionStatus                 # 列出加密区重新加密的状态
+          debug                                     # 
+          dfsadmin                                  # 运行一个dfs admin client
+            -- 快照
+              -allowSnapshot <snapshotDir>                              # 允许目录快照
+              -disallowSnapshot <snapshotDir>                           # 禁止目录快照
+            -- 配额
+              -setQuota <quota> <dirname>...<dirname>                   # 设置名称配额
+              -clrQuota <dirname>...<dirname>                           # 消除名称配额
+              -setSpaceQuota <quota> [-storageType <storagetype>] <dirname>...<dirname>       # 设置空间配额
+              -clrSpaceQuota [-storageType <storagetype>] <dirname>...<dirname>               # 取消空间配额
+            -- 滚动升级
+              -rollingUpgrade [<query|prepare|finalize>]
+              -upgrade <query | finalize>                               # 查询升级状态, 为每个NN返回NN升级过程是否完成
+              -getDatanodeInfo <datanode_host:ipc_port>                 # 获取datanode信息, 用于检测datanode是否存活. port:9867
+              -shutdownDatanode <datanode_host:ipc_port> [upgrade]      # 
 
-                [-report [-live] [-dead] [-decommissioning] [-enteringmaintenance] [-inmaintenance]]
-                [-safemode <enter | leave | get | wait | forceExit>]
-                [-saveNamespace [-beforeShutdown]]
-                [-rollEdits]
-                [-restoreFailedStorage true|false|check]
-                [-refreshNodes]
-                [-finalizeUpgrade]
-                [-refreshServiceAcl]
-                [-refreshUserToGroupsMappings]
-                [-refreshSuperUserGroupsConfiguration]
-                [-refreshCallQueue]
-                [-refresh <host:ipc_port> <key> [arg1..argn]
-                [-reconfig <namenode|datanode> <host:ipc_port> <start|status|properties>]
-                [-printTopology]
-                [-refreshNamenodes datanode_host:ipc_port]
-                [-getVolumeReport datanode_host:ipc_port]
-                [-deleteBlockPool datanode_host:ipc_port blockpoolId [force]]
-                [-setBalancerBandwidth <bandwidth in bytes per second>]
-                [-getBalancerBandwidth <datanode_host:ipc_port>]
-                [-fetchImage <local directory>]
-                [-evictWriters <datanode_host:ipc_port>]
-                [-metasave filename]
-                [-triggerBlockReport [-incremental] <datanode_host:ipc_port> [-namenode <namenode_host:ipc_port>]]
-                [-listOpenFiles [-blockingDecommission] [-path <path>]]
-                [-help [cmd]]
-                -report:输出HDFS的基本统计信息
-                -safemode:手动进入或离开安全模式
-                -finalizeUpgade:删除上次升级过程中做的备份
-                -refreshNodes:
-                -printTopology:显示机架信息和节点树
-              dfsrouteradmin                            # 管理基于router的federation
-              ec                                        # 运行HDFS ErasureCoding CLI
-              fsck                                      # 运行DFS文件系统检查工具
-              haadmin                                   # 运行dfs ha admin client
-                -ns <nameserviceId>                                                   # 指定nameserviceId
-                -checkHealth <serviceId>                                              # 检测指定nn的健康状况. 连接到该nn以检查其运行情况, 它能够对自身执行一些诊断, 包括检查内部服务是否按预期运行. 若正常则命令返回0, 否则非0. 当前功能为实现, 总是返回0值, 除非nn完全关闭
-                -failover [--forcefence] [--forceactive] <serviceId> <serviceId>      # 启动两个namenode之间的从第一个转到第二个的故障转移. 若第一个是standby, 则会简单的将第二个转为active模式. 若第一个为active状态, 则按照dfs.ha.fencing.methods方式转为standby成功后, 再将第二个转为active
-                -getAllServiceState                                                   # 获取所有节点状态
-                -getServiceState serviceId                                            # 获取节点状态 Active/Standby
-                -transitionToActive [--forceactive] [serviceId]                       # 将nn状态切换为active, 当active健康时不建议用
-                -transitiontoStandby <serviceId>                                      # 将nn状态切换为standby. 若要进行手动切换, 可现将active转为standby后再将某个nn转为active
-                -transitionToObserver <serviceId>                                     # 将standby状态的节点转为observer
-              jmxget                                    # 从namenode/datanode获取jmx导出值
-              oev                                       # 将offline edits viewer应用到一个edits
-              oiv                                       # 将offline fsimage viewer应用到一个fsimage
-              oiv_legacy                                # 将offline fsimage viewer应用到一个旧版的fsimage
-              storagepolicies                           # list/get/set/satisfyStoragePolicy 块存储策略
-            client:
-              classpath:                                # 打印classpath
-              dfs [command [command_opt]                # 运行hadoop支持的文件系统的命令
-                  [-appendToFile <localsrc> ... <dst>]
-                  [-cat [-ignoreCrc] <src> ...]
-                  [-checksum [-v] <src> ...]
-                  [-chgrp [-R] GROUP PATH...]
-                  [-chmod [-R] <MODE[,MODE]... | OCTALMODE> PATH...]
-                  [-chown [-R] [OWNER][:[GROUP]] PATH...]
-                  [-concat <target path> <src path> <src path> ...]
-                  [-copyFromLocal [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
-                  [-copyToLocal [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
-                  [-count [-q] [-h] [-v] [-t [<storage type>]] [-u] [-x] [-e] [-s] <path> ...]
-                  [-cp [-f] [-p | -p[topax]] [-d] [-t <thread count>] [-q <thread pool queue size>] <src> ... <dst>]
-                  -- 快照
-                    -createSnapshot <snapshotDir> [<snapshotName>]                                # 创建快照
-                    -deleteSnapshot <snapshotDir> <snapshotName>                                  # 删除快照
-                    -renameSnapshot <snapshotDir> <oldName> <newName>                             # 重命名快照
-                  -- 扩展属性
-                    -getfattr [-R] {-n name | -d} [-e en] <path>                                  # 显示文件或目录的扩展属性
-                      -R                                                                          # 递归列出
-                      -n <name>                                                                   # 指定名称
-                      -d                                                                          # 获取所有
-                      -e <en>                                                                     # value编码设定
-                      path                                                                        # 指定path
-                    -setfattr {-n name [-v value] | -x name} <path>                               # 设置文件或目录的扩展属性
-                      -n <name>                                                                   # 指定名称
-                      -v <value>                                                                  # 指定值
-                      -x <name>                                                                   # 删除该name
-                      path                                                                        # 指定path
-                  -ls [-C] [-d] [-h] [-q] [-R] [-t] [-S] [-r] [-u] [-e] [<path> ...]              # ls
-                    -C                                                                            # 只显示文件或目录
-                    -d                                                                            # 显示目录本身属性
-                    -h                                                                            # 以易读方式显示
-                    -q                                                                            # 以?代替不可打印的字符
-                    -R                                                                            # 递归显示
-                    -t                                                                            # 以mtime排序显示
-                    -S                                                                            # 以size排序显示
-                    -r                                                                            # 反序显示
-                    -u                                                                            # 以atime替代mtime显示并排序
-                    -e                                                                            # 显示文件或目录的纠删码策略
-                  [-df [-h] [<path> ...]]
-                  [-du [-s] [-h] [-v] [-x] <path> ...]
-                  [-expunge [-immediate] [-fs <path>]]
-                  [-find <path> ... <expression> ...]
-                  [-get [-f] [-p] [-crc] [-ignoreCrc] [-t <thread count>] [-q <thread pool queue size>] <src> ... <localdst>]
-                  [-getfacl [-R] <path>]
-                  [-getmerge [-nl] [-skip-empty-file] <src> <localdst>]
-                  [-head <file>]
-                  [-help [cmd ...]]
-                  [-mkdir [-p] <path> ...]
-                  [-moveFromLocal [-f] [-p] [-l] [-d] <localsrc> ... <dst>]
-                  [-moveToLocal <src> <localdst>]
-                  [-mv <src> ... <dst>]
-                  [-put [-f] [-p] [-l] [-d] [-t <thread count>] [-q <thread pool queue size>] <localsrc> ... <dst>]
-                  [-rm [-f] [-r|-R] [-skipTrash] [-safely] <src> ...]
-                  [-rmdir [--ignore-fail-on-non-empty] <dir> ...]
-                  [-setfacl [-R] [{-b|-k} {-m|-x <acl_spec>} <path>]|[--set <acl_spec> <path>]]
-                  [-setrep [-R] [-w] <rep> <path> ...]
-                  [-stat [format] <path> ...]
-                  [-tail [-f] [-s <sleep interval>] <file>]
-                  [-test -[defswrz] <path>]
-                  [-text [-ignoreCrc] <src> ...]
-                  [-touch [-a] [-m] [-t TIMESTAMP (yyyyMMdd:HHmmss) ] [-c] <path> ...]
-                  [-touchz <path> ...]
-                  [-truncate [-w] <length> <path> ...]
-                  [-usage [cmd ...]]
+            -reconfig <namenode|datanode> <host:ipc_port> <start|status|properties>       # 启动/获取重配置操作状态, 或获取可重配置属性列表
 
-              envvars                                   # 显示已计算的hadoop环境变量
-              fetchdt [--webservice <namenode_http_addr>] <path>:      # 从NameNode获取委派令牌
-              getconf -[namenodes|secondaryNameNodes|backupNodes|includeFile|excludeFile|nnRpcAddresses|confKey [key] ]:从配置中获取配置
-              groups [user_name1 user_name2 ...]:       # 获取用户所属的系统组
-              lsSnapshottableDir                        # 列出所有属于当前用户的快照目录
-              snapshotDiff                              # 比较一个目录的两个快照或将当前目录与一个快照比较
-              version                                   # 显示版本
-            daemon:
-              balancer                                  # 运行一个集群均衡工具
-              dfsrouter                                 # 运行一个dfs router
-              diskbalancer                              # 在给定节点上的磁盘之间均衡数据
-              httpfs                                    # 运行httpfs server(hdfs http gateway)
-              journalnode                               # 运行一个dfs journalnode
-              mover                                     # 运行一个跨存储移动块副本的工具
-              namenode                                  # 运行一个dfs namenode
-                -backup                                                                         # 启动backup进程
-                -checkpoint                                                                     # 启动checkpoing进程
-                -format [-clusterid cid] [-force] [-nonInteractive]                             # 格式化hdfs文件系统
-                -upgrade [-clusterid cid] [-renameReserved<k-v pairs>]
-                -upgradeOnly [-clusterid cid] [-renameReserved<k-v pairs>]
-                -rollback
-                -rollingUpgrade <rollback|started>
-                -importcheckpoint
-                -initalizeSharedEdits
-                -bootstrapStandby [-force] [-nonInteractive] [-skipSharedEditsCheck]            # 同步元数据到未格式化的nn节点
-                -recover [-force]
-                -metadataVersion
-              secondarynamenode                         # 运行一个dfs secondary namenode
-              datanode                                  # 运行一个dfs datanode
-              portmap                                   # 运行一个portmap服务
-              nfs3                                      # 运行一个nfs version 3 geteway
-              sps                                       # 运行外部存储策略
-              zkfc [option]                             # 运行zk failover controller deamon
-                -formatZK                               # 在zk中创建一个znode, 自动故障转移系统在其中存储其数据
-                -force                                  # 若znode存在, 则强制格式化znode
-                -nonInteractive                         # 若znode存在, 则格式化znode终止
-        服务器
-        客户端
+            [-report [-live] [-dead] [-decommissioning] [-enteringmaintenance] [-inmaintenance]]
+            [-safemode <enter | leave | get | wait | forceExit>]
+            [-saveNamespace [-beforeShutdown]]
+            [-rollEdits]
+            [-restoreFailedStorage true|false|check]
+            [-refreshNodes]
+            [-finalizeUpgrade]
+            [-refreshServiceAcl]
+            [-refreshUserToGroupsMappings]
+            [-refreshSuperUserGroupsConfiguration]
+            [-refreshCallQueue]
+            [-refresh <host:ipc_port> <key> [arg1..argn]
+            [-printTopology]
+            [-refreshNamenodes datanode_host:ipc_port]
+            [-getVolumeReport datanode_host:ipc_port]
+            [-deleteBlockPool datanode_host:ipc_port blockpoolId [force]]
+            [-setBalancerBandwidth <bandwidth in bytes per second>]
+            [-getBalancerBandwidth <datanode_host:ipc_port>]
+            [-fetchImage <local directory>]
+            [-evictWriters <datanode_host:ipc_port>]
+            [-metasave filename]
+            [-triggerBlockReport [-incremental] <datanode_host:ipc_port> [-namenode <namenode_host:ipc_port>]]
+            [-listOpenFiles [-blockingDecommission] [-path <path>]]
+            [-help [cmd]]
+            -report:输出HDFS的基本统计信息
+            -safemode:手动进入或离开安全模式
+            -finalizeUpgade:删除上次升级过程中做的备份
+            -refreshNodes:
+            -printTopology:显示机架信息和节点树
+          dfsrouteradmin                            # 管理基于router的federation
+          ec                                        # 运行HDFS ErasureCoding CLI
+            [-listPolicies]
+            [-addPolicies -policyFile <file>]
+            [-getPolicy -path <path>]
+            [-removePolicy -policy <policy>]
+            [-setPolicy -path <path> [-policy <policy>] [-replicate]]
+            [-unsetPolicy -path <path>]
+            [-listCodecs]
+            [-enablePolicy -policy <policy>]
+            [-disablePolicy -policy <policy>]
+            [-verifyClusterSetup [-policy <policy>...<policy>]]
+          fsck                                      # 运行DFS文件系统检查工具
+          haadmin                                   # 运行dfs ha admin client
+            -ns <nameserviceId>                                                   # 指定nameserviceId
+            -checkHealth <serviceId>                                              # 检测指定nn的健康状况. 连接到该nn以检查其运行情况, 它能够对自身执行一些诊断, 包括检查内部服务是否按预期运行. 若正常则命令返回0, 否则非0. 当前功能为实现, 总是返回0值, 除非nn完全关闭
+            -failover [--forcefence] [--forceactive] <serviceId> <serviceId>      # 启动两个namenode之间的从第一个转到第二个的故障转移. 若第一个是standby, 则会简单的将第二个转为active模式. 若第一个为active状态, 则按照dfs.ha.fencing.methods方式转为standby成功后, 再将第二个转为active
+            -getAllServiceState                                                   # 获取所有节点状态
+            -getServiceState serviceId                                            # 获取节点状态 Active/Standby
+            -transitionToActive [--forceactive] [serviceId]                       # 将nn状态切换为active, 当active健康时不建议用
+            -transitiontoStandby <serviceId>                                      # 将nn状态切换为standby. 若要进行手动切换, 可现将active转为standby后再将某个nn转为active
+            -transitionToObserver <serviceId>                                     # 将standby状态的节点转为observer
+          jmxget                                    # 从namenode/datanode获取jmx导出值
+          oev                                       # 将offline edits viewer应用到一个edits
+          oiv                                       # 将offline fsimage viewer应用到一个fsimage
+          oiv_legacy                                # 将offline fsimage viewer应用到一个旧版的fsimage
+          storagepolicies                           # 块存储策略
+            -listPolicies                           # 列出所有已存在的块存储策略
+            -setStoragePolicy -path <path> -policy <policy>               # 设置路径的存储策略
+            -getStoragePolicy -path <path>          # 获取路径的存储策略
+            -unsetStoragePolicy -path <path>        # 为路径取消存储策略
+            -satisfyStoragePolicy -path <path>      # 根据路径策略安排块移动
+        client:
+          classpath:                                # 打印classpath
+          dfs [command [command_opt]                # 运行hadoop支持的文件系统的命令, 使用hadoop fs
+          envvars                                   # 显示已计算的hadoop环境变量
+          fetchdt [--webservice <namenode_http_addr>] <path>:      # 从NameNode获取委派令牌
+          getconf -[namenodes|secondaryNameNodes|backupNodes|includeFile|excludeFile|nnRpcAddresses|confKey [key] ]:从配置中获取配置
+          groups [user_name1 user_name2 ...]:       # 获取用户所属的系统组
+          lsSnapshottableDir                        # 列出所有属于当前用户的快照目录
+          snapshotDiff                              # 比较一个目录的两个快照或将当前目录与一个快照比较
+          version                                   # 显示版本
+        daemon:
+          balancer                                  # 运行一个集群均衡工具
+          dfsrouter                                 # 运行一个dfs router
+          diskbalancer command                      # 在给定节点上的磁盘之间均衡数据
+            -plan <datanode_ip>                     # 创建一个在两个磁盘应该移动多少数据的计划. 会在hdfs上产生两个文件<nodename>.before.json和<nodename>.plan.json
+              --bandwidth <arg>                     # 最大带宽(MB/s)限制, 每秒移动的数据量, eg: 10MB/s
+              --maxerror <arg>                      # 在一对磁盘之间复制时可容忍的错误数
+              --out <arg>                           # 计划文件的输出位置
+              --thresholdPercentage N               # 在磁盘平衡器开始工作之前可以容忍的数据倾斜百分比. 2个磁盘总量100G, 每个应为50G. 若容忍为10%, 则单个要超过60G才会开始均衡
+              --v                                   # 将plan summary打印到console
+            -execute <planfile>                     # 在datanode上提交并运行plan
+              -skipDateCheck                        # 跳过数据检查强制执行计划
+            -query <datanode_ip>                    # 查询datanode上diskbalancer的执行状态
+              -v                                    # 打印执行计划的详细信息
+            -cancel <planFile/planId>               # 取消diskbalancer的操作
+              --node <datanode_ip>                  # 指定datanode
+            -report [option]                        # 报告卷信息或从diskbalancer中受益的节点了列表
+              --node <datanode_ip>                  # 指定datanode, 否则报告所有的datanode
+              --top <N>                            # 指定列出的节点数
+          httpfs                                    # 运行httpfs server(hdfs http gateway)
+          journalnode                               # 运行一个dfs journalnode
+          mover [-p <path> ]                        # 运行一个跨存储移动块副本的工具. 
+            -p path                                 # 指定要迁移的 HDFS 文件/目录的空格分隔列表
+            -f local_file                           # 指定包含要迁移的 HDFS 文件/目录列表的本地文件
+          sps                                       # 运行外部存储策略
+          namenode                                  # 运行一个dfs namenode
+            -backup                                                                         # 启动backup进程
+            -checkpoint                                                                     # 启动checkpoing进程
+            -format [-clusterid cid] [-force] [-nonInteractive]                             # 格式化hdfs文件系统
+            -upgrade [-clusterid cid] [-renameReserved<k-v pairs>]
+            -upgradeOnly [-clusterid cid] [-renameReserved<k-v pairs>]
+            -rollback
+            -rollingUpgrade <rollback|started>
+            -importcheckpoint
+            -initalizeSharedEdits
+            -bootstrapStandby [-force] [-nonInteractive] [-skipSharedEditsCheck]            # 同步元数据到未格式化的nn节点
+            -recover [-force]
+            -metadataVersion
+          secondarynamenode                         # 运行一个dfs secondary namenode
+          datanode                                  # 运行一个dfs datanode
+          portmap                                   # 运行一个portmap服务
+          nfs3                                      # 运行一个nfs version 3 geteway
+          zkfc [option]                             # 运行zk failover controller deamon
+            -formatZK                               # 在zk中创建一个znode, 自动故障转移系统在其中存储其数据
+            -force                                  # 若znode存在, 则强制格式化znode
+            -nonInteractive                         # 若znode存在, 则格式化znode终止
 	日志
 	优化:
 		HDFS Quotas:
@@ -1200,6 +1363,7 @@
               7.检查是否已有active namenode
                 ./bin/hdfs haadmin -getAllServiceState
               8.启动datanode
+                $ ./bin/hdfs  --daemon start datanode
         传统共享存储: nfs
 					原理: 在活动和备用NameNode之间共享编辑日志
             1.配置多个namenode, 但只有一个namenode处于active状态(负责集群中的所有客户端操作), 其它处于standby状态(充当worker, 维护足够的状态以在必要时提供快速故障转移)
@@ -1272,11 +1436,22 @@
           $ ./bin/hdfs --daemon start nfs3
         5.客户端验证
           $ rpcinfo -p hadoop1
-          $ howmount -e hadoop1
+          $ showmount -e hadoop1
             Export list for hadoop1:
             /nfs *
           $ mkdir /mount_nfs
           $ mount -t nfs -o vers=3,proto=tcp,nolock,noacl,sync hadoop:/nfs  /mnt_nfs
+
+    Yarn:
+      说明:
+      操作: 1 resourcemanager, 3 nodemanger, 3 datanode
+        1.安装hdfs ha+observer并启动
+        2.启动
+          $ ./bin/yarn --daemon start resourcemanager
+          $ ./bin/yarn --daemon start nodemanager
+          $ ./bin/yarn --daemon start proxyserver
+        3.检测集群状态
+          $ ./bin/yarn node -list
 				
 具体服务相关
 	概念:
@@ -1395,7 +1570,7 @@
           3.完成后可以删除原目录磁盘
       组件
         NameNode:
-          作用: 执行文件系统命名空间操作, 例如打开, 关闭, 重命名文件和目录. 确定块到DataNode的映射
+          作用: 执行文件系统命名空间操作, 例如打开, 关闭, 重命名文件和目录, 存储文件的元数据信息(文件名, 目录结构, 文件属性等) 确定块到DataNode的映射
           NameNode使用两个文件来保留其命名空间:
             1.fsimage: 命名空间镜像文件(最新检查点)
             2.editlog: 事务日志, 记录(checkpoint之后)元数据系统发生的每个更改
@@ -1404,10 +1579,12 @@
             standby:
             observer:  处理client的读请求
         DataNode:
-          1.负责处理来自文件系统客户段的读取和写入请求
-          2.根据NameNode的指令执行块创建, 删除和复制
+          1.存储文件块数据及其校验和
+          2.负责处理来自文件系统客户段的读取和写入请求
+          3.根据NameNode的指令执行块创建, 删除和复制
         Secondary NameNode:
-          由于NameNode仅在启动期间合并fsimage和editlog,因此在繁忙的集群上editlog会变得非常大,并且在下一次重启Namenode需要更长的时间. Secondary NameNode用于定期合并fsimage和editlog,并将日志文件大小保持在限制内.且通常与Namenode不在同一台机器,因为其内存需求与Namenode处于相同
+          1.由于NameNode仅在启动期间合并fsimage和editlog,因此在繁忙的集群上editlog会变得非常大,并且在下一次重启Namenode需要更长的时间. 
+          2.Secondary NameNode用于定期合并fsimage和editlog,并将日志文件大小保持在限制内.且通常与Namenode不在同一台机器,因为其内存需求与Namenode处于相同
         Checkpoint Node:
           1.Checkpoint Node会定期创建命名空间的Checkpoint(从active namenode上下载fsimage和edit,在本地合并,并将新的fsimage上传至active namenode), 用于替代之前的Secondary NameNode
           2.Checkpoint Node通常与NameNode在不同的将机器上运行,因为其内存需求与NameNode处于相同. Checkpoint Node将最新的fsimage存储在于NameNode目录结构相同的目录中,如果需要的话,允许NameNode读取该映像
@@ -1429,118 +1606,298 @@
                                   ↘
                                 DataNodes
 
-    REST API: 使得集群外的客户端不用安装Hadoop和java环境就可以对HDFS进行访问, 且客户端不受语言限制
-      分类:
-        WebHDFS:
-          1.提供了访问HDFS的restful接口, 内置组件, 默认开启
-          3.webHDFS是HortonWorks开发的, 后捐给了apache
-          4.当客户端请求某文件是, webHDFS会将其重定向到该资源所在的datanode
-        HttpFS:
-          1.httpFS是一个提供Restful接口的网关的服务器, 该网关支持所有的HDFS系统操作
-          2.对于文件CURD的操作, 全部提交给HttpFS服务进行中转, 然后由HttpFS去跟HDFS集群交互
-          3.HttpFS本身是java Web应用程序, 使用内置Jetty服务器对外提供服务, 是一个独立于HDFS的服务, 本身上是一个代理服务
-          4.默认端口为14000
+      REST API: 使得集群外的客户端不用安装Hadoop和java环境就可以对HDFS进行访问, 且客户端不受语言限制
+        分类:
+          WebHDFS:
+            1.提供了访问HDFS的restful接口, 内置组件, 默认开启
+            3.webHDFS是HortonWorks开发的, 后捐给了apache
+            4.当客户端请求某文件是, webHDFS会将其重定向到该资源所在的datanode
+          HttpFS:
+            1.httpFS是一个提供Restful接口的网关的服务器, 该网关支持所有的HDFS系统操作
+            2.对于文件CURD的操作, 全部提交给HttpFS服务进行中转, 然后由HttpFS去跟HDFS集群交互
+            3.HttpFS本身是java Web应用程序, 使用内置Jetty服务器对外提供服务, 是一个独立于HDFS的服务, 本身上是一个代理服务
+            4.默认端口为14000
 
-    HDFS扩展属性(xattrs)
-      说明:
-        1.扩展属性允许对文件添加与之相关的额外的元数据信息. 和系统级的元数据不同, 扩展属性是被应用添加存储的, 是文件的额外描述
-        2.扩展属性是key-value结构, key为string, value为binary. 且key需要用到namespace来做前缀
-        3.扩展属性是存储在namenode中, 并且随着文件的删除而被移除
-        4.默认启用
-      命名空间:
-        user: 客户端使用的命名空间, 
-        trusted: 由hdfs超级用户使用
-        system: 保留供内部的hdfs使用
-        security: 保留供内部的hdfs使用 
-        raw: 为有时需要公开的内部系统属性保留的. /.reserved/raw
-      配置:
-        dfs.namenode.xattrs.enabled
-        dfs.namenode.fs-limits.max-xattrs-per-inode
-        dfs.namenode.fs-limits.max-xattr-size
-          
+      HDFS扩展属性(xattrs)
+        说明:
+          1.扩展属性允许对文件添加与之相关的额外的元数据信息. 和系统级的元数据不同, 扩展属性是被应用添加存储的, 是文件的额外描述
+          2.扩展属性是key-value结构, key为string, value为binary. 且key需要用到namespace来做前缀
+          3.扩展属性是存储在namenode中, 并且随着文件的删除而被移除
+          4.默认启用
+        命名空间:
+          user: 客户端使用的命名空间, 
+          trusted: 由hdfs超级用户使用
+          system: 保留供内部的hdfs使用
+          security: 保留供内部的hdfs使用 
+          raw: 为有时需要公开的内部系统属性保留的. /.reserved/raw
+        配置:
+          dfs.namenode.xattrs.enabled
+          dfs.namenode.fs-limits.max-xattrs-per-inode
+          dfs.namenode.fs-limits.max-xattr-size
+            
+      MapReduce:
+
+      HDFS:两个层
+        命名空间:
+          1.由目录、文件和块组成
+          2.支持所有与命名空间相关的文件系统操作
+        块存储服务:
+          块管理:在NameNode中进行
+            1.处理datanode注册和心跳机制
+            2.处理块报告并维护块的位置
+            3.支持块的相关操作
+            4.管理副本操作
+          存储:
+            由Datanodes在本地文件系统上存储块并允许读/写访问
+      
+      HDFS Federation:
+        说明:为水平扩展namespace,联合使用多个独立的Namenodes/namespaces,彼此间相互独立,互为补充.Datanodes被所有Namenode用作块的公共存储,每个Datanode向集群中的所有Namenode注册。Datanodes发送定期心跳和块报告.它们还处理来自Namenode的命令
+        特点:
+          1.命名空间水平扩展.使用大量小文件的大型部署或允许更多的命名空间添加到集群
+          2.性能, 文件系统吞吐量不受单个NameNode限制
+          3.隔离, 通过使用多个NameNode,不同类别的应用程序和用户可以被隔离到不同的命名空间
+        配置:
+      ViewFs:
+        说明:View File System(ViewFs)提供了一种管理多个hadoop命名空间的方法,
+      HDFS Short-Circuit Local Reads:
+        说明:
+          1.在HDFS中,通常是通过DataNode来读取数据的.但是,当客户端向DataNode请求读取文件时,DataNode就会从磁盘读取该文件并通过TCP socket将数据发送到客户端.所谓"短路"是指绕过DataNode来读取文件,也就是说,允许客户端直接读取文件.很明显,这种情况只在客户端与数据放在同一地点时才有可能发生.短路读对于许多应用程序会带来重大的性能提升
+          2.datanode将短路读取副本的文件描述符传递给客户端, 客户端通过文件描述符读取相应的数据, 通过/dev/shm上的共享内存段交换信息
+          3.短路本地读取需要使用到libhadoop.so, 使用unix套接字 
+          4.DataNode和客户端都需要配置短路本地读
+          5.传统的hdfs短路本地读取因安全问题,一般不用
+        配置:
+          dfs.client.read.shortcircuit: false								                  # 该参数打开short-circuit local reads功能
+          dfs.domain.socket.path: /tmp/dn_socket                              # 该参数是一个指向UNIX域套接字的路径,用于DataNode和本地HDFS客户端通信。如果在该路径中出现了字符串"_PORT",会被替换成DataNode的TCP端口。
+          dfs.client.read.shortcircuit.skip.checksum: false				            # 如果设置了该参数,short-circuit local reads功能将跳过checksums校验。通常不推荐这么做,但是该参数对于特殊场合可能有用。如果你在HDFS之外自己做checksum校验,那么就该考虑设置该参数。
+          dfs.client.read.shortcircuit.streams.cache.size: 256			          # DFSClient维护着一个用于保存最近已打开的文件描述符的缓存。该参数控制着此缓存的容量。增大该缓存的容量就可以使用更多文件描述符,但是,在涉及大量seek操作的负载上可能带来更好的性能。
+          dfs.client.read.shortcircuit.streams.cache.expiry.ms: 300000	      # 该参数控制着文件描述符因为长期不活跃而被关闭之前需要在客户端缓存上下文中驻留的最小时间。
+      离线edit查看器:
+          说明: 是一个解析editlog文件的工具,主要用于不同文件格式间的转换
+          示例:
+            $ hdfs oev -i file1 -o file2 -p format
+              -i <file>:      指定要处理的编辑日志的格式
+              -o <file>:      根据输出文件名
+              -p <process>:   指定生成文件的格式 binary|xml(默认)|stats
+              -v:             同时打印到控制台
+              -r:             读取binary edit log时, 使用恢复模式(有机会跳过log的损坏部分)
+            
+            若hadoop集群的edits文件损坏,找出部分正确的edits文件. 转换为xml后手动编辑修改,然后将其转换为binary. 若xml文件中没有结束记录,可在最后一个正确的记录后添加一个结束记录,则可忽略该记录之后的任何内容
+            结束记录:
+              <RECORD>
+                <OPCODE>-1</OPCODE>
+                <DATA>
+                </DATA>
+              </RECORD>
+      离线fsimage查看器:
+        说明: 用于将hdfs fsimage文件的内容转为可读的格式,并且提供只读的webhdfs API,允许离线分析和检查hadoop集群的命名空间
+
+      集中式缓存管理: 提高重复访问文件的利用率
+        说明
+          1.hdfs集中式缓存管理是一种显示缓存机制, 指定hdfs缓存的路径. namenode会与磁盘上所需块的datanode通信, 指示其将快缓存在堆外缓存中
+          2.datanode的缓存由namenode管理, 定期接收datanode的缓存报告. 缓存指令持久存储在fsimage和editlog中, cache不会受宕机重启之类的影响
+          3.cache只支持文件或目录(非递归缓存)
+          4.为了将块文件锁定到内存中, datanode依赖libhadoop.so(必须检查JNI是否启用)
+          5.须配置dfs.datanode.max.locked.memory, 须比ulimit -l值小
+        实现方式: 持久内存缓存有两种实现方式
+          - 默认基于纯Java实现
+          - 本机实现, 利用PMDK库来提高缓存写入和读取的性能(需要使用PMDK支持的构建hadoop)
+        概念:
+          cache directive: 定义一个需要被缓存的路径, 同时可指定其它参数
+          cache pool: 用来管理cache directive组的资源管理和执行权限的管理实体. 
+        过程:
+          1.user请求namenode缓存路径, namenode将路径转为blocks添加到cache队列中
+          2.缓存命令搭载在heartbeat上传给datanode, dfsclient为内存安排位置
+          3.datanode向namenode发送的heartbeat包含cache block报告
+        操作:
+          $ vim etc/hadoop/hdfs-site.xml
+            dfs.datanode.max.locked.memory: 4G
+          $ hdfs cacheadmin -addPool pool_1 -maxTtl 3h
+          $ hdfs cacheadmin -listPools -stats
+          $ hdfs cacheadmin -addDirective -path /test/a1 -pool pool_1 -ttl 10m
+          $ hdfs cacheadmin -listDirectives
+
+      HDFS纠删码(Erasure Coding, EC):
+        说明:
+          1.使用EC机制来替代replication方式, 它提供相同级别的容错能力, 但存储空间要少的多. EC文件的复制因子是无意义的, 始终为1, 不能通过-setrep方式更改
+          2.EC的编码和解码工作会在hdfs client和datanode上消耗额外的CPU, 且要求datanode的数量需同配置的EC条带宽度一样多(eg: RS(6, 3), 则至少需要9个datanode)
+        限制:
+      HDFS透明加密(Transparent Encryption), KMS
+        透明加密:
+          说明:
+            1. 它是指对使用者来说是无感知的. 当使用者在打开或编辑指定文件时, 系统将自动对未加密的文件进行加密, 对已加密的文件自动解密. 文件在硬盘上是密文, 在内存中是明文. 一旦离开使用环境, 由于应用程序无法得到自动解密的服务而无法打开, 从而起来保护文件内容的效果
+          分类:
+            应用程序级加密: 最安全和灵活的办法. 但编写较为困难
+            数据库级加密: 可能有性能问题, 且索引无法加密
+            文件系统级加密: 无法模拟某些应用程序级别的策略
+            磁盘级加密: 一般防止物理盗窃的作用
+        说明:
+          1.HDFS的透明加密介于数据库级和文件系统级加密之间, 能够提供良好的性能, 并且现有的hadoop应用程序也能在加密数据上透明地进行
+        加密区: 
+          1.一个特殊目录, 其内容在写入时透明加密, 在读取时透明解密
+          2.每个加密区都与创建区域时指定的加密区秘钥有关, 且其内的每个文件都有自己唯一的数据加密秘钥(DEK)
+        秘钥:
+          EK: kms管理的加密秘钥, 用来加解密EDK(文件的秘钥)的秘钥. 只在kms内部使用
+          DEK: 文件加密秘钥
+          EDEK: 加密DEK. hdfs服务端只能接触到EDEK, 故无法加解密文件
+
+          EK + DEK -> EDEK
+          EDEK + EK -> DEK
+
+          DEK + file -> encrtyed file
+          encrypted file + DEK -> file
+
+          EK加密DEK生成EDEK, DEK加密文件生成加密文件
+        过程:
+          write过程:
+            1.client向namenode请求在hdfs的加密区创建新文件
+            2.namenode向kms请求此文件的EDEK, kms用对应的ek生成一个新的EDEK发送给namenode
+            3.namenode将该EDEK发送给client, 同时作为该文件元数据一部分持久化存储在namenode上
+            4.client发送EDEK给kms请求解密, kms使用对应的EK将该EDEK解密为DEK发送给client
+            5.client使用DEK加密文件并发送给datanode进行存储
+          read过程:
+            1.client向namenode请求在hdfs的加密区读取文件
+            2.namenode将存储的EDEK发送给client
+            4.client发送EDEK给kms请求解密, kms使用对应的EK将该EDEK解密为DEK发送给client
+            5.client使用DEK从datanode上获取文件并解密
+
+          EDEK的加解密完全在kms上进行, 文件的加解密由client控制. datanode只能看到加密字节流
+        KMS(Hadoop Key Management Server): 管理加密秘钥
+          作用:
+            1.提供对EK的访问
+            2.生成新的EDEK并存储在namenode上
+            3.提供给hdfs client使用的解密EDEK的秘钥
+          缓存:
+            分类:
+              1.CachingKeyProvider: 用于缓存EK
+              2.KeyProvider: 用于缓存EEK
+          部署(两种高可用方式): keystore位于本地存储, 无法同步. 故单纯的负载会有数据不一致问题(可能需要nfs, 手动复制有问题)
+            - 在负载器后运行多个KMS实例
+            - 使用LoadBalancingKMSClientProvider(KMS客户端(eg:NameNode)可以识别多个KMS实例, 并以循环方式向它们发送请求. 当在hadoop.security.key.provider.path中指定了多个URI时, 会隐式使用LoadBalancingKMSClientProvider)
+              1.在每个namenode上配置
+                $ vim etc/hadoop/core-site.xml
+                  hadoop.security.key.provider.path: kms://http@hadoop1;hadoop2;hadoop3:9600/kms
+                $ vim etc/hadoop/kms-site.xml
+                  hadoop.kms.key.provider.uri: jceks://file@/dream/hadoop/kms/kms.keystore
+              2.启动(每个namenode)
+                $ ./bin/hadoop --daemon start kms
+              3.创建EK
+                $ ./bin/hadoop key create mykey1
+              4.创建加密区
+                $ ./bin/hadoop fs -mkdir /zone1
+                $ ./bin/hdfs crypto -createZone -keyName mykey1 -path /zone1
+              5.上传的/zone1中的文件会在内部变成加密文件
+          REST API:
+            $ curl http://hadoop1:9600/kms/v1/keys/names?user.name=sky
+          秘钥库文件
+            kms.keystore                      # kms的密钥存储数据库
+            .kms.keystore.crc                 # 用于校验keystore的完整性(可删除, keystore更新kms会自动检查并新增一个crc文件)
+      HDFS存储策略: 将不同路径下的数据存储到不同的介质中去
+        说明:
+          1.datanode的存储类型从单一存储(可能对应多个物理存储介质)变为了转变为存储集合, 每个存储对应一个物理存储介质. 允许文件根据存储策略存储在不同的存储类型中
+          2.在现有路径上设置新的存储策略后原有数据不会自动在存储介质间发生移动, 需要手动执行
+        存储类型:
+          DISK: 默认的存储类型, 磁盘存储
+          ARCHIVE: 具有存储密度高, 但计算能力小的特点, 可用于支持归档存储
+          SSD: 固态硬盘
+          RAM_DISK: datanode中的内存空间
+        策略名称:
+          Hot: 用于存储和计算, 经常访问或处理的数据使用该策略.所有副本存储在disk中
+          Cold: 仅用于有限计算的存储.  不再使用的数据或需要归档的数据从hot中移动到cold中. 所有副本存储在archive中
+          Warm: 部分hat, 副本存储在disk中, 部分cold, 副本存储在archive中
+          All_SSD: 所有副本存储在ssd中
+          One_SSD: 一个副本存储在ssd中, 其余副本存储在disk中
+          Lazy_Persist: 第一个副本先写入内存中, 然后延迟保存到disk中
+          Provided: 用于在hdfs之外存储数据
+        策略组成: 当存储足够时, 块副本将按照块放置存储类型来存储.  当存储不足时, 将按照创建文件创建和复制的回退存储类型来进行文件创建和复制
+          策略编号    策略名称    块放置的存储类型       文件创建的回退存储类型  用于复制的回退存储类型
+            15      Lazy_Persist  RAM_DISK:1, DISK: n-1       DISK                        DISK
+            12      All_SSD       SSD: n                      DISK                        DISK
+            10      One_SSD       SSD: 1, DISK: n-1           SSD, DISK                   SSD, DISK
+            7       Hot(default)  DISK: n                     <none>                      ARCHIVE
+            5       Warm          DISK: 1, ARCHIVE: n-1       ARCHIVE, DISK               ARCHIVE,  DISK
+            2       Cold          ARCHIVE: n                  <none>                      <none>
+            1       Provided      PROVIDED: 1, DISK: n-1      PROVIDED, DISK              PROVIDED, DISK
+        基于存储策略的数据移动
+          说明:
+            1.在现有路径上设置新的存储策略后原有数据不会自动在存储介质间发生移动, 需要手动执行
+            2.StoragePolicySatisfier和Mover工具不能同时运行
+          方案:
+            - SPS(Storage Policy Satisfier): 
+              说明:
+                1.定期扫描新策略集和放置的物理块之间的存储策略情况
+                2.只会跟踪用户调用satisfyStoragePolicy的路径, 若移动失败, 会重新尝试
+              操作:
+                $ vim etc/hadoop/hdfs-site.xml
+                  dfs.storage.policy.satisfier.mode: true
+                $ /bin/hdfs dfsadmin -reconfig namenode hadoop1:8020 start
+                $ /bin/hdfs dfsadmin -reconfig namenode hadoop1:8020 status
+                $ ./bin/hdfs --daemon start sps
+                $ ./bin/hdfs storagepolicies -satisfyStoragePolicy -path /path
+            - Mover
+              说明: 
+                1.该工具类似于Balancer. 它会扫描HDFS中的文件, 检查块放置是否满足存储策略.  
+                2.对于违反存储策略的块, 它将副本移动到不同的存储类型以满足存储策略要求. 它总是尽可能地尝试在同一节点内移动块副本. 如果这是不可能的(例如, 当一个节点没有目标存储类型时), 那么它将通过网络将块副本复制到另一个节点
+              命令
+                $ ./bin/hdfs mover -p /path                     
+        内存存储支持(LAZY_PERSIST)
+          说明: 
+            1.用于以低延迟写入相对少量数据(从几GB到几十GB, 具体取决于可用内存)的场景. 数据会先写入ram, 然后再异步写入磁盘. 若内存不足或未配置, 使用Lazy Persist Writes的应用程序将通过回退到磁盘存储来继续工作
+            2.HDFS为Lazy Persist Writes提供尽力而为的持久性保证. 如果在将副本持久保存到磁盘之前重启节点, 则可能会丢失很少的数据
+            3.当前只支持tmpfs ram, 正在支持ramfs
+          操作:
+            1.datanode配置
+              $ vim etc/hadoop/hdfs-site.xml
+                dfs.datanode.max.locked.memory:32G                                            # 同集中缓存管理配置相同, 两者之和受限此参数
+                dfs.datanode.data.dir: /dream/hadoopData/data,[RAM_DISK]/dream/hadoopTmpfs
+            2.每个datanode节点上挂载RAM分区
+              $ mkdir /dream/hadoopTmpfs
+              $ mount -t tmpfs -o size=32g tmpfs /dream/hadoopTmpfs
+              $ vim /etc/fstab
+            3.设置存储策略
+              $ ./bin/hdfs storagepolicies -setStoragePolicy -path <path> -policy LAZY_PERSIST
+      数据节点均衡:
+        mover/sps
+        balancer
+          说明: 将数据均匀分布在一个datanode的所有磁盘上
+        diskbalancer:
+          说明: 
+            1.将数据均匀分布在一个datanode的所有磁盘上
+            2.通过创建计划来运行, 并在datanode上执行该计划
+
     MapReduce:
-
-		HDFS:两个层
-			命名空间:
-				1.由目录、文件和块组成
-				2.支持所有与命名空间相关的文件系统操作
-			块存储服务:
-				块管理:在NameNode中进行
-					1.处理datanode注册和心跳机制
-					2.处理块报告并维护块的位置
-					3.支持块的相关操作
-					4.管理副本操作
-				存储:
-					由Datanodes在本地文件系统上存储块并允许读/写访问
-		
-		HDFS Federation:
-			说明:为水平扩展namespace,联合使用多个独立的Namenodes/namespaces,彼此间相互独立,互为补充.Datanodes被所有Namenode用作块的公共存储,每个Datanode向集群中的所有Namenode注册。Datanodes发送定期心跳和块报告.它们还处理来自Namenode的命令
-			特点:
-				1.命名空间水平扩展.使用大量小文件的大型部署或允许更多的命名空间添加到集群
-				2.性能, 文件系统吞吐量不受单个NameNode限制
-				3.隔离, 通过使用多个NameNode,不同类别的应用程序和用户可以被隔离到不同的命名空间
-			配置:
-		ViewFs:
-			说明:View File System(ViewFs)提供了一种管理多个hadoop命名空间的方法,
-		HDFS Short-Circuit Local Reads:
-			说明:
-        1.在HDFS中,通常是通过DataNode来读取数据的.但是,当客户端向DataNode请求读取文件时,DataNode就会从磁盘读取该文件并通过TCP socket将数据发送到客户端.所谓"短路"是指绕过DataNode来读取文件,也就是说,允许客户端直接读取文件.很明显,这种情况只在客户端与数据放在同一地点时才有可能发生.短路读对于许多应用程序会带来重大的性能提升
-        2.datanode将短路读取副本的文件描述符传递给客户端, 客户端通过文件描述符读取相应的数据, 通过/dev/shm上的共享内存段交换信息
-				3.短路本地读取需要使用到libhadoop.so, 使用unix套接字 
-        4.DataNode和客户端都需要配置短路本地读
-				5.传统的hdfs短路本地读取因安全问题,一般不用
-			配置:
-				dfs.client.read.shortcircuit: false								                  # 该参数打开short-circuit local reads功能
-				dfs.domain.socket.path: /tmp/dn_socket                              # 该参数是一个指向UNIX域套接字的路径,用于DataNode和本地HDFS客户端通信。如果在该路径中出现了字符串"_PORT",会被替换成DataNode的TCP端口。
-				dfs.client.read.shortcircuit.skip.checksum: false				            # 如果设置了该参数,short-circuit local reads功能将跳过checksums校验。通常不推荐这么做,但是该参数对于特殊场合可能有用。如果你在HDFS之外自己做checksum校验,那么就该考虑设置该参数。
-				dfs.client.read.shortcircuit.streams.cache.size: 256			          # DFSClient维护着一个用于保存最近已打开的文件描述符的缓存。该参数控制着此缓存的容量。增大该缓存的容量就可以使用更多文件描述符,但是,在涉及大量seek操作的负载上可能带来更好的性能。
-				dfs.client.read.shortcircuit.streams.cache.expiry.ms: 300000	      # 该参数控制着文件描述符因为长期不活跃而被关闭之前需要在客户端缓存上下文中驻留的最小时间。
-    离线edit查看器:
-        说明: 是一个解析editlog文件的工具,主要用于不同文件格式间的转换
-        示例:
-          $ hdfs oev -i file1 -o file2 -p format
-            -i <file>:      指定要处理的编辑日志的格式
-            -o <file>:      根据输出文件名
-            -p <process>:   指定生成文件的格式 binary|xml(默认)|stats
-            -v:             同时打印到控制台
-            -r:             读取binary edit log时, 使用恢复模式(有机会跳过log的损坏部分)
-          
-          若hadoop集群的edits文件损坏,找出部分正确的edits文件. 转换为xml后手动编辑修改,然后将其转换为binary. 若xml文件中没有结束记录,可在最后一个正确的记录后添加一个结束记录,则可忽略该记录之后的任何内容
-          结束记录:
-            <RECORD>
-              <OPCODE>-1</OPCODE>
-              <DATA>
-              </DATA>
-            </RECORD>
-		离线fsimage查看器:
-			说明: 用于将hdfs fsimage文件的内容转为可读的格式,并且提供只读的webhdfs API,允许离线分析和检查hadoop集群的命名空间
-
-		集中式缓存管理: 提高重复访问文件的利用率
-      说明
-        1.hdfs集中式缓存管理是一种显示缓存机制, 指定hdfs缓存的路径. namenode会与磁盘上所需块的datanode通信, 指示其将快缓存在堆外缓存中
-        2.datanode的缓存由namenode管理, 定期接收datanode的缓存报告. 缓存指令持久存储在fsimage和editlog中, cache不会受宕机重启之类的影响
-        3.cache只支持文件或目录(非递归缓存)
-        4.为了将块文件锁定到内存中, datanode依赖libhadoop.so(必须检查JNI是否启用)
-        5.须配置dfs.datanode.max.locked.memory, 须比ulimit -l值小
-      实现方式: 持久内存缓存有两种实现方式
-        - 默认基于纯Java实现
-        - 本机实现, 利用PMDK库来提高缓存写入和读取的性能(需要使用PMDK支持的构建hadoop)
-      概念:
-        cache directive: 定义一个需要被缓存的路径, 同时可指定其它参数
-        cache pool: 用来管理cache directive组的资源管理和执行权限的管理实体. 
+      说明: 
+        1.MapReduce job通常将输入数据集拆分为独立的chunks, 这些chunks由map任务以完全并行的方式处理. 该框架对map的输出进行排序, 然后输入到reduce任务. 通常, job的input和output都存储在文件系统中. 该框架负责调度tasks, 监控它们并重新执行失败的task. 
+        2.通常计算节点和存储节点在一台服务器上, 即MapReduce和datanode在同一个节点. 可在集群中产生非常高的聚合带宽
+        3.该框架将输入视为<key, value>进行操作, 并生成一组<key, value>的输出: (input)<k1, v1> -> map -> <k2, v2> -> combine -> <k2, v2> -> reduce -> <k3, v3>(output)
       过程:
-        1.user请求namenode缓存路径, namenode将路径转为blocks添加到cache队列中
-        2.缓存命令搭载在heartbeat上传给datanode, dfsclient为内存安排位置
-        3.datanode向namenode发送的heartbeat包含cache block报告
-      操作:
-        $ hdfs cacheadmin -addPool pool_1 -maxTtl 3h
-        $ hdfs cacheadmin -listPools -stats
-        $ hdfs cacheadmin -addDirective -path /test/a1 -pool pool_1 -ttl 10m
-        $ hdfs cacheadmin -listDirectives
+        1.hadoop job client将job和配置提交给RM, 然后RM将器分配给worker, 调度task并监控, 为client提供状态和诊断信息
+    Yarn:
+      说明:
+        1.基本思想是将资源管理和作业调度/监控的功能拆分为单独的守护进程
+      组件:
+        ResourceManager(RM): 集群资源的仲裁者
+          Scheduler: 可插拔式的资源调度器, 负责协调集群中各个应用的资源分配(即调度containers)
+            FIFO Scheduler: 先进先出, 不考虑作业优先级和范围, 适合低负载集群
+            Capacity Scheduler: 将资源分为多个队列, 允许共享集群. 保证每个队列最小资源的使用
+            Fair Scheduler: 公平地将资源分给应用, 使得应用在平均情况下随着时间得到相同的资源份额
+          ApplicationManager: 管理集群中的用户作业. 接收job的提交请求, 为应用分配一个container来运行applicationMaster并监控
+        NodeManager: 管理该节点上的用户作业和工作流, 同时发送自己container的情况给RM
+          Container: 容器, 封装了运行job(ApplicationMaster)所需要的资源
+          ApplicationMaster: 与scheduler协商合适的container, 跟踪应用程序的状态, 进度等. 每个进程都有自己的applicationMaster
+
+      RM重启:
+        说明:
+          1.该功能可增强ResourceManager以在重启后保持正常运行, 并使ResourceManager停机时间对最终用户不可见
+        分类:
+          Non-work-preserving RM restart: RM将应用程序, 尝试状态及其它凭证信息持久化存入可插入状态存储中. 在重启时从状态存储中加载此信息, 并重启之前运行的应用程序
+          Work-preserving RM restart: 在重启时结合NodeManager的容器状态和来自applicationMaster的容器请求来重新构建RM的运行状态(之前运行的应用程序不会在RM重启后被杀死, 因此应用程序不会因RM中断而丢失工作)
+
+        
+
+
       
 
-		原理
-		
 	内部命令
 	
 	

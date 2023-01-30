@@ -25,6 +25,54 @@
     <value>0</value>
   </property>
 
+<!-- permission -->
+  <property>
+    <name>dfs.permissions.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>dfs.namenode.acls.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>dfs.namenode.posix.acl.inheritance.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>dfs.permissions.superusergroup</name>
+    <value>supergroup</value>
+  </property>
+
+<!-- shortcircuit -->
+  <property>
+    <name>dfs.client.read.shortcircuit</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>dfs.domain.socket.path</name>
+    <value>/var/lib/hadoop-hdfs/dn_socket</value>
+  </property>
+
+<!-- cache -->
+  <property>
+    <name>dfs.datanode.max.locked.memory</name>
+    <value>32k</value>
+  </property>
+
+<!-- nfs -->
+  <property>
+    <name>nfs.superuser</name>
+    <value>dream</value>
+  </property>
+  <property>
+    <name>nfs.dump.dir</name>
+    <value>/tmp/.hdfs-nfs</value>
+  </property>
+  <property>
+    <name>nfs.export.point</name>
+    <value>/nfs</value>
+  </property>
+
 <!-- ha -->
   <property>
     <name>dfs.nameservices</name>
@@ -112,6 +160,23 @@
   <property>
     <name>dfs.datanode.data.dir</name>
     <value>file:///dream/hadoopData/data</value>
+  </property>
+  <property>
+    <name>dfs.storage.policy.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>dfs.storage.policy.satisfier.mode</name>
+    <value>external</value>
+  </property>
+  <property>
+    <name>dfs.storage.policy.satisfier.recheck.timeout.millis</name>
+    <value>60000</value>
+  </property>
+  <property>
+    <name>dfs.storage.policy.satisfier.self.retry.timeout.millis</name>
+    <value>300000</value>
   </property>
 
 <!-- client -->

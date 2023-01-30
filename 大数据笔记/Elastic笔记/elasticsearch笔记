@@ -161,6 +161,24 @@
         -s                  # 显示最小输出
         -v                  # 更详细的输出
 		客户端
+      elasticdump --input SOURCE --output DESTINATION [OPTIONS]         # 第三方导入导入工具
+        --input source              # 源地址
+        --input-index               # 源index和type, 默认all
+        --output dest               # 目标地址
+        --output-index              # 目标index和type, 默认all
+        --overwrite                 # 覆盖output file
+        --limit N                   # 每次操作移动多少个对象
+        --size                      # 要检索多少个对象, 默认-1 无限制
+        --quiet                     # 抑制非错误输出
+        --type                      # 导出类型. 默认data, 可选[settings, analyzer, data, mapping, policy, alias, template, component_template, index_template]
+        --filterSystemTemplates     # 是否移除metrics-*-*和logs-*-*系统模板. 默认true
+        --delete                    # 移动时从输入中逐个删除文档. 不会删除源索引. 默认为false
+        --skip-existing             # 启用时跳过resource_already_exists_exception 
+        --searchWithTemplate
+        --searchBodyTemplate
+        --headers
+        --ignore-errors             # 忽略错误
+
 	日志
 	优化
     系统优化:
@@ -325,5 +343,46 @@
     schema      mapping
     sql         dsl
 
+    快照和恢复:
+      说明:
+        1.快照是正在运行的Elasticsearch集群的备份
+        2.可使用快照来定时热备集群, 在故障时恢复数据, 或在集群之间传输数据
+        2.快照不会备份临时集群设置, 注册快照存储库, 节点配置文件, 安全配置文件
+      快照存储库: 
+        说明:
+          1.es将快照存储在集群外的存储位置
+        类型: zure, Google Cloud Storage, AWS S3, Shared file system, Read-only URL, Source-only
+      操作:
+        1.注册快照存储库
+          $ 配置nfs服务器, 并将共享磁盘挂载在每个es的/data上
+          $ 修改每个config/elasticsearch.yml文件并重启es
+            path.repo: ['/data/repo']
+          $ curl -X PUT "192.168.0.151:9200/_snapshot/my_backup?pretty" -H 'Content-Type: application/json' -d'
+            {
+              "type": "fs", 
+              "settings": {
+                "location": "my_fs_backup"
+              }
+            }
+            '
+          $ curl -XGET http://localhost:9200/_snapshot?pretty
+        2.创建快照并查看
+          $ curl -X PUT "localhost:9200/_snapshot/my_backup/%3Cmy_snapshot_%7Bnow%2Fd%7D%3E?pretty"
+          $ curl -X GET "localhost:9200/_snapshot/my_backup/_all?pretty"
+        3.恢复快照
+          $ 新集群须配置相同的存储库
+          $ 将备份集群的`/data/repo`目录压缩并传输至本集群的`/data/repo`目录,  两边目录结构须相同
+          $ 目标ES机器创建源ES同名仓库
+          $ 目标ES查看快照
+          $ 目标ES执行恢复操作: curl -X POST "localhost:9200/_snapshot/my_backup/my_snapshot_2023.01.06/_restore?pretty" -H 'Content-Type: application/json' -d'
+          {
+              "indices": "<index_name1>, <index_name2>", 
+                "index_settings": {
+                      "index.number_of_replicas": 1         
+                        }      
+          }
+
+          
 		原理
+      
 	内部命令

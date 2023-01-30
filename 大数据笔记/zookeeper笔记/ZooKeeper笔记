@@ -418,7 +418,7 @@
           -s                                    # 显示状态
           -R                                    # 递归显示子节点
           -w                                    # 设置监听节点下子节点的变化
-        create  [-c] [-t ttl] path [data] [acl]        # 创建永久znode
+        create [-c] [-t ttl] path [data] [acl]        # 创建永久znode
         deleteall path [-b batch size]          # 删除指定路径及其下的所有节点
         stat [-w] path                          # 显示一个节点的元数据信息
         getAllChildrenNumber path               # 获取所有子节点数量
