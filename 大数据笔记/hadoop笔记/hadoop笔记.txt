@@ -188,9 +188,16 @@
 
             hadoop.security.authentication: simple                                # 用户身份验证, simple(默认)/kerberos
 
+            -- namenode ha连接zk
             ha.zookeeper.quorum: zk1:2181,zk2:2181,zk3:2181                       # zk集群的地址
             ha.zookeeper.auth: @/path/to/zk-auth.txt                              # 连接zk的以逗号分割的身份验证列表, 格式为digest:dream:DreamSoft_123,digest:hdfs-zkfc:HdfsZkfc_123, 可在其中写上创建znode权限的账号和连接/的账号
             ha.zookeeper.acl: @/path/to/zk-acl.txt                                # 创建zk节点使用的acl, 默认world:anyone:rwcda, 格式为digest:hdfs-zkfc:FvqhACiArJeFwSw7HO6gVgGBRoA=:cdrwa 使其生效需要使用zkfc -formatZK命令
+            ha.zookeeper.parent-znode: /hadoop-ha                                 # zkfc在zk上存储信息的节点, nameservice id会自动附加到此节点下
+
+            -- resourcemanager ha连接zk
+            hadoop.zk.address: zk1:port,zk2:port,zk3:port                         # 逗号分割的zk节点列表. 用来存储RM状态
+            hadoop.zk.acl: 
+            hadoop.zk.auth: @/path/to/zk-auth.txt                                 # 连接zk的以逗号分割的身份验证列表, 格式为digest:dream:DreamSoft_123,digest:hdfs-zkfc:HdfsZkfc_123, 可在其中写上创建znode权限的账号和连接/的账号
 
             hadoop.http.staticuser.user: dir.who                                  # http访问的静态用户名
             fs.permissions.umask-mode: 022                                        # 创建文件和目录时使用的umask
@@ -724,7 +731,6 @@
               dfs.ha.fencing.ssh.private-key-files:默认
               ha.zookeeper.quorum:默认
               ha.zookeeper.session-timeout.ms:默认
-              ha.zookeeper.parent-znode:默认
               ha.zookeeper.acl:默认
               ha.zookeeper.auth:默认
               hadoop.ssl.keystores.factory.class:默认
@@ -785,8 +791,41 @@
                                                                                                       > org.apache.hadoop.yarn.server.resourcemanager.recovery.LeveldbRMStateStore: 基于levelDB的存储实现
             yarn.resourcemanager.zk-state-store.root-node.acl:                                        # 
 
+            yarn.resourcemanager.zk-state-store.parent-path: /rmstore                                 # 将存储RM状态的根znode的完整路径. 默认值为/rmstore
+
+            yarn.client.failover-no-ha-proxy-provider: org.apache.hadoop.yarn.client.DefaultNoHARMFailoverProxyProvider         # 不启用HA时, 客户端、AM和NM用于故障转移到Active RM的类
+
+            -- ha
+              yarn.resourcemanager.ha.enabled: true                                                   # 是否启用RM HA模式. 默认false
+              yarn.resourcemanager.cluster-id: str                                                    # RM集群名称
+              yarn.resourcemanager.ha.rm-ids: rm1, rm2, rm3                                           # RM的逻辑ID列表
+              yarn.resourcemanager.hostname.<rm-id>:                                                  # 对于每个rm-id, 指定RM对应的主机名或设置每个RM的服务地址
+              yarn.resourcemanager.scheduler.address.<rm-id>: <hostname>:8030                                 # 对于每个rm-id, 调度程序接口的地址
+              yarn.resourcemanager.resource-tracker.address.<rm-id>: <hostname>:8031                  # 对于每个rm-id, 用于nodemanager连接的端口
+              yarn.resourcemanager.address.<rm-id>: <hostname>:8032                                   # 对于每个rm-id, RM的application manager接口地址
+              yarn.resourcemanager.admin.address.<rm-id>: <hostname>:8033                             # 对于每个rm-id, RM admin接口
+              yarn.resourcemanager.webapp.address.<rm-id>: <hostname>:8088                            # 对于每个rm-id, RM Web UI的http地址
+              yarn.resourcemanager.webapp.https.address.<rm-id>: <hostname>:8090                      # 对于每个rm-id, RM Web UI的https地址
+
+              yarn.resourcemanager.ha.id:                                                             # 当前RM的id(字符串)
+
+              yarn.resourcemanager.ha.automatic-failover.enabled: true                                # 启用自动故障转移. 默认为true, 只在启用HA时使用
+              yarn.resourcemanager.ha.automatic-failover.embedded: true                               # 启用嵌入式自动故障转移. 嵌入式选举器依赖于RM state store来处理fencing, 主要用于与ZKRMStateStore结合使用来选择Active RM
+
+
+              yarn.client.failover-proxy-provider: org.apache.hadoop.yarn.client.ConfiguredRMFailoverProxyProvider        # 启用HA时, 客户端、AM和NM用于故障转移到Active RM的类
+              yarn.client.failover-max-attempts:                                                      # 启用HA时,FailoverProxyProvider应尝试故障转移的最大次数. 若未设置, 则从yarn.resourcemanager.connect.max-wait.ms推断
+              yarn.client.failover-sleep-base-ms:                                                     # 启用HA时,用于计算故障转移之间的指数延迟的睡眠基础(以毫秒为单位)
+              yarn.client.failover-sleep-max-ms:                                                      # 启用HA时,故障转移之间的最长休眠时间(以毫秒为单位)
+              yarn.client.failover-retries: 0                                                         # 启用HA时,每次尝试连接到ResourceManager的重试次数. 默认为0  
+              yarn.client.failover-retries-on-socket-timeouts:0                                       # 启用HA时,套接字超时时每次尝试连接到ResourceManager的重试次数
+
+            -- yarn ui2
+              yarn.webapp.ui2.enable: false                                                           # 是否开启yarn ui2
+              yarn.webapp.ui2.war-file-path:                                                          # 启动yarn UI2 web应用程序的WAR文件路径. 默认情况下这是空的, YARN将从类路径中查找所需的war文件
+
           mapred-site.xml 
-          workers                   # 所有worker的节点名称. 脚本将使用改文进来执行命令(需要ssh互信)
+          workers                   # 所有worker的节点名称. 脚本将使用该文件来执行命令(需要ssh互信)
 
           kms-site.xml:             # kms配置
             hadoop.kms.key.provider.uri: jceks://file@/${user.home}/kms.keystore                      # 配置kms keyProvider存储的路径
@@ -821,8 +860,13 @@
         Portmap:                java/111(tcp), 111(udp)
         Nfs3:                   java/50079, 2049, 4242(tcp), 4242(udp)
 			YARN:
-				ResourceManager         java/8030, 8031, 8032, 8033, 
-                                     8088: RM Web UI
+				ResourceManager         java/
+                                    8030: 调度程序端口, 供ApplicationMasters获取资源, 只有active启动
+                                    8031: 用于nodemanager连接, 只有active启动
+                                    8032: Application Manager的端口, 只有active启动
+                                    8033: RM admin端口
+                                    8088: RM Web UI http
+                                    8090: RM Web UI https
 				NodeManager             java/8040, port1, port2
                                     /8042: NM Web UI
 				WebAppProxy
@@ -840,7 +884,8 @@
         NodeManager:               http://nm_host:8042/
 
 				MapReduce JobHistory:      http://jhs_host:19888/
-      NameNode is Active监控:   curl http://nn:9870/isActive    200成功, 405失败
+      NameNode is Active监控:          curl http://nn:9870/isActive    200为active, 405为standby
+      ResourceManager is Active监控:   curl http://rm:8088/isActive    200为active, 405为standby
 	命令
     ./bin/container-executor
     ./bin/hadoop [options] subcommand [subcommand options]
@@ -1001,7 +1046,14 @@
           node command                                                          # 打印node报告
             -list [-all/-showdetails/-states <state>]           # 列出所有node/每个节点显示更详细的信息/可根据以逗号分割的state过滤, 可用state为new, running, unhealthy, decommissioned, lost, rebooted, decommissioning, shutdown
             -status <nodeId>                                    # 打印指定node的状态报告, nodeId可根据-list -all获取
-          rmadmin
+          rmadmin                                                               # admin工具
+            -refreshQueues
+
+            -transitionToStandby [-forcemanual] <serviceId>                     # 在非HA模式下, 将serviceId转换为Standby, 
+
+            -getServiceState [serviceId]                                        # 获取rm节点状态
+            -getAllServiceState                                                 # 获取rm HA节点的状态
+            -checkHealth [serviceId]                                            # 检测rm HA节点健康, 若检测为失败则返回非0
           scmadmin
         client
           app
@@ -1027,7 +1079,6 @@
           router
           sharedcachemanager
           timelineserver
-
     ./bin/hdfs [options] subcommand [subcommand options]          # hadoop shell支持的命令   
       options:
         --buildpaths
@@ -1451,6 +1502,26 @@
           $ ./bin/yarn --daemon start nodemanager
           $ ./bin/yarn --daemon start proxyserver
         3.检测集群状态
+          $ ./bin/yarn node -list
+    Yarn HA:
+      说明:
+        1.ResourceManager HA是通过Active/Standby架构实现的: 在任何时间点, 其中一个RM处于活动状态, 并且一个或多个RM处于备用模式
+        2.支持手动和自动故障转移. 自动故障转移需要使用zk服务, RM使用嵌入其内部的ActiveStandbyElector充当故障检测器和leader选举(不需要hdfs那样启动单独的zkfc进程)
+        3.当RM使用HA模式(多个RM)时, client/ApplicationMasters/NodeManagers将以轮询的方式连接到Active RM
+        4.对standby的UI和API访问, 都会被定向到Active(UI的about页面除外)
+      部署: 
+        - 3 zk
+        - 3 namenode(active, standby, observer), 3 ZKFC, 3 journalnode, 3 datanode
+        - 3 resourcemanager, 3 nodemanager
+        1.HDFS HA + Observer环境
+        2.修改yarn-site.xml
+        3.启动3个resourcemanager
+          $ ./bin/yarn --daemon start resourcemanager
+        4.查看resourcemanager集群
+          $ ./bin/yarn rmadmin -getAllServiceState
+        5.启动3个nodemanager
+          $ ./bin/yarn --daemon start nodemanager
+        6.查看nodemanager集群
           $ ./bin/yarn node -list
 				
 具体服务相关
@@ -1892,11 +1963,13 @@
         分类:
           Non-work-preserving RM restart: RM将应用程序, 尝试状态及其它凭证信息持久化存入可插入状态存储中. 在重启时从状态存储中加载此信息, 并重启之前运行的应用程序
           Work-preserving RM restart: 在重启时结合NodeManager的容器状态和来自applicationMaster的容器请求来重新构建RM的运行状态(之前运行的应用程序不会在RM重启后被杀死, 因此应用程序不会因RM中断而丢失工作)
+      yarn资源配置
+        说明:
+      yarn ui v2:
+        说明: Yarn Web用户界面, 用于管理和监控Hadoop集群中的资源和作业. 与早期版本的YARN UI相比, YARNI V2更加现代化和可扩展,并且具有更好的用户体验和功能
+        访问方式: http://rm-address:8088/ui2
 
-        
 
-
-      
 
 	内部命令
 	

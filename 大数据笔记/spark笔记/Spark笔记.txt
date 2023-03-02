@@ -52,24 +52,6 @@
 	
 Spark架构：
 		
-Spark安装：
-	说明：
-		Spark需要先安装JDK，Scala等依赖，且由于Spark是计算框架，需要预先在集群内有存储数据的持久化层(eg：HDFS，Hive，Cassandra等)
-	安装：
-		1.安装jdk
-		2.安装scala
-			# 官网 http://www.scala-lang.org
-			# wget http://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz
-			# 解压，移动
-			# vim /etc/profile
-				export SCALA_HOME=/usr/local/scala
-				export PATH=$SCALA_HOME/bin:$PATH
-			# . /etc/profile
-		3.配置免密码登录
-			# Master --> Workers
-		4.安装Hadoop
-		5.安装Spark
-
 	
 BDAS：
 	说明：Spark已发展为包含众多子项目的大数据计算平台。伯克利将Spark的整个生态系统称为伯克利数据分析栈(BDAS)。
@@ -88,32 +70,4 @@ BDAS：
 										
 										Memos Cluster resource manager，multi-tenancy
 		
-	子项目：
-		spark：
-				整个BDAS的核心组件，是一个大数据分布式编程框架。将分布式数据抽象为弹性分布式数据集
-			(RDD),实现了应用任务调度、RPC、序列化和压缩，并为运行在其上的上层组件提供API。Spark将数
-			据在分布式环境下分区，然后将作业转化为有向无环图(DAG)，并分阶段进行DAG的调度和任务的分
-			布式并行处理
-		shark：
-				是构建在Spark和Hive基础之上的数据仓库。已经终止开发。它提供了能够查询Hive中所有存储
-			数据的一套SQL接口，兼容下游的Hive QL语法。底层复用Hive的解析器、优化器及元数据存储和序列
-			化接口。Shark会将Hive QL编译转化为一组Spark任务，进行分布式运算
-		Spark SQL：
-				提供在大数据上的SQL查询功能，类似于Shark在整个生态系统的角色，它们可以统称为SQL on Spark
-			而Shark依赖于Hive，必须维护一套hive分支。而Spark SQL使用Catalyst做查询解析和优化器，并在底层
-			使用spark作为执行引擎实现SQL的Operator。
-		Spark Streaming：
-				将数据流按时间片积累为RDD，然后将每个RDD进行批处理，进而实现大规模的流数据处理，其吞吐量
-			能超越主流流处理框架
-		GraphX：
-				基于BSP模型，在Spark之上封装类似Pregel的接口，进行大规模同步全局的图计算，尤其是当用户进
-			行多轮迭代时，基于Spark的内存计算的优势尤为明显
-		Tachyon：
-				是一个分布式内存文件系统，为提供更高的性能，将数据存储剥离Java Heap。用户可以
-			基于Tachyon实现RDD或者文件的跨应用共享，并提供容错机制，保证数据的可靠性
-		Mesos：
-				是一个资源管理框架，提供类似YARN的功能。用户可在其中插件式地运行Spark、MapReduce、
-			Tez等计算框架的任务，Mesos会对资源和任务进行隔离，并实现高效的资源任务调度
-		BlinkDB：
-			是一个用于在海量数据上进行交互式式SQL的近似查询引擎。
 		

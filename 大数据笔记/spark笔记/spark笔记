@@ -1,117 +1,182 @@
 简介
 	时间, 作者, 开发语言, 定义
-    用于大规模数据分析的统一引擎, 一种多语言引擎, 用于执行数据工程、数据科学和机器学习. 
+    起源于美国加州大学伯克利分校AMPLab的大数据分析平台,由Scala语法开发, 立足于内存计算
+    用于大规模数据处理的统一分析引擎, 一种多语言引擎, 用于执行数据工程、数据科学和机器学习. 
 	官网: https://spark.apache.org/
-	版本
+	版本:
+    1.为某些hadoop版本预先打包的下载包: spark-3.3.1-bin-hadoop3.tgz, 它使用hdfs和yarn的客户端
+    2.适合任何版本的hadoop的下载: spark-3.3.1-bin-without-hadoop.tgz, 需要提供运行Spark所需的库和依赖项(用户自定义spark和hadoop依赖之间的版本兼容性的)
 	协议
 适用性(优缺)
   1.简单, 快速, 可扩展
-  2.批处理/流式数据
-  3.SQL分析
-  4.大规模的数据科学
+  2.批处理/流式数据: 批处理和实时流的方式统一数据处理
+  3.SQL分析: 执行快速、分布式的ANSI SQL查询
+  4.大规模的数据科学: 对PB级数据执行探索性数据分析
   5.机器学习
 架构
 	模块
-	安装
-    1.安装jdk1.8
-    2.安装scala
-      $ wget -c https://downloads.lightbend.com/scala/2.12.15/scala-2.12.15.tgz
-      $ tar -xf scala-2.12.15.tgz -C /dream
-      $ cd /dream/;  ln -sv scala-2.12.15 scala
-    3.配置变量
-      $ vim /etc/profile
-        export JAVA_HOME=/dream/jdk
-        export SCALA_HOME=/dream/scala
-        export PATH=$JAVA_HOME/bin:$SCALA_HOME/bin:$PATH
+	安装:
+    Spark在发布包中已经包含了Scala的运行时库, 可以直接在spark上使用预编译好的Spark应用程序,而无需在每个节点上安装Scala
 	结构
 		目录结构
-			安装目录
-        bin:
-        conf:
-          fairscheduler.xml
-          metrics.properties
-          spark-env.sh                          # 环境变量配置
-            JAVA_HOME=/path
-            PYSPARK_PYTHON=/path                # 用于驱动程序和workers程序中的PySpark的Python二进制可执行文件(如果可用, 默认为python3,否则为python
+      bin:
+        beeline
+        spark-submit: 提交Spark应用程序到集群中运行
+          --class class_name                                        # 应用程序的主类
+          --master MASTER_URL                                       # 程序运行模式, spark://host:port, yarn, k8s://https://host:port, local[*]
+          --executor-memory 1G                                      # 指定每个executor可用内存
+          --total-executor-cores 2                                  # 所有executor使用的CPU核数
+          --executor-cores                                          # 每个executor使用的CPU核数
+        pyspark: 运行Python版本的Spark Shell
+        spark-class: 运行Java类或Shell脚本. Spark内部的所有启动脚本都基于该脚本编写
+        spark-shell: 运行Spark的交互式Shell
+        sparkR:运行Spark R的交互式Shell
+        spark-sql: 运行Spark SQL的交互式Shell
+        docker-image-tool.sh
+        find-spark-home: 查找Spark安装目录的位置
+        run-example: 运行Spark官方示例应用程序
+      sbin:
+        start-master.sh
+          -h host, -p port            # 监听地址和端口. 默认ip:7077
+          --webui-port port           # web UI的端口, 默认8080
+          --properties-file <file>    # 自定义spark属性文件路径. 默认conf/spark-defaults.conf
+        start-worker.sh <master> [optoin]
+          -c <N>                      # worker使用的CPU核心数, 默认全部可用
+          -m <Mem>                    # worker使用的内存大小. 默认总量-1G. 可使用单位(m, g)
+          -d <dir>                    # 运行apps的目录(暂存空间和job输出日志), 默认SPARK_HOME/work
+          -h host, -p port            # 监听地址和端口. 默认ip:random_port
+          --webui-port port           # web UI的端口, 默认8081
+          --properties-file <file>    # 自定义spark属性文件路径. 默认conf/spark-defaults.conf
+        start-workers.sh
+        start-all.sh
+        stop-master.sh
+        stop-worker.sh
+        stop-workers.sh
+        stop-all.sh
+      conf:                                   # spark提供三个位置来配置系统. spark属性(控制应用程序参数, 可通过SparkConf对象或者Java系统属性进行设置), 环境变量(conf/spark-env.sh), 日志(conf/log4j2.properites)
+        fairscheduler.xml
+        metrics.properties
+        spark-env.sh                          # 环境变量配置
+          -- 通用
+            JAVA_HOME=/path                     # 
+            PYSPARK_PYTHON=/path                # 用于驱动程序和workers程序中的PySpark的Python二进制可执行文件(如果可用, 默认为python3,否则为python)
             PYSPARK_DRIVER_PYTHON=/path         # 用于驱动程序中的PySpark的Python二进制可执行文件, 默认PYSPARK_PYTHON
-            SPARKR_DRIVER_R=/path               # 用于SparkR shell的R二进制可执行文件
-            SPARK_LOCAL_IP=                     # 要绑定的机器的IP地址
-            SPARK_PUBLIC_DNS=                   # Spark程序将向其他机器通告的主机名
-            HADOOP_CONF_DIR=                    # 使用hdfs相关时的hadoop配置文件目录(一般包含hdfs-site.xml和core-site.xml)
-            > 以下用于standalone配置
-            SPARK_MASTER_HOST=                  # 将master绑定到特定的主机名或IP地址
-            SPARK_MASTER_PORT=7077              # master端口, 默认7077 
-            SPARK_MASTER_WEBUI_PORT=8080        # master web ui的端口8080
-            SPARK_MASTER_OPTS=                  # 仅适用于"-Dx=y"形式的master的配置属性
-                                                > spark.deploy.retainedApplications=200           # 在ui中显示已完成的application最大数量, 较旧的删除. 默认200
-                                                > spark.deploy.retainedDrivers=200                # 在ui中显示已完成的driver最大数量. 较旧的删除. 默认200
-                                                > spark.deploy.spreadOut=true                     # 在standalone中是否将application分散到各节点上(或整合到尽可能少的节点上). 对于hdfs上的局部性数据, 分散更好. 但对于计算密集型整合更好. 默认为true
-                                                > spark.deploy.defaultCores=                      # 
-                                                > spark.deploy.maxExecutorRetries=10              # 
-                                                > spark.worker.timeout=60                         # 在standalone中master未收到worker心跳的超时秒数(认为worker丢失)
-                                                > spark.worker.resource.{resourceName}.amount=    # 在worker上使用的特定资源的数量. 默认为none
-                                                > spark.worker.resource.{resourceName}.discoveryScript=           # 资源发现脚本的路径, 用于在worker启动时查找特定资源. 并且脚本的输出应该像ResourceInformation类一样格式化. 默认none
-                                                > spark.worker.resourcesFile=                     # 资源文件的路径, 用于worker启动时查找各种资源
+            SPARKR_DRIVER_R=/path               # 用于SparkR shell的R二进制可执行文件. 默认为R
+            SPARK_LOCAL_IP=                     # spark应用程序绑定的ip地址
+            SPARK_PUBLIC_DNS=                   # Spark程序将向其他机器(master/worker)通告的主机名
             SPARK_LOCAL_DIRS=                   # 在Spark中用于"临时"空间的目录, 包括map输出文件和存储在磁盘上的RDD
 
-            SPARK_WORKER_CORES=                 # 允许Spark应用在服务器上使用的cpu核心总数, 默认所有可用CPU
-            SPARK_WORKER_MEMORY=                # 允许Spark应用在机器上使用的内存总量. 默认总内存-1G. 
-            SPARK_WORKER_PORT=                  # spark worker的端口(默认随机)
-            SPARK_WORKER_WEBUI_PORT=            # worker ui的端口(默认8081)
-            SPARK_WORKER_DIR=                   # 运行application的目录, 包含logs和临时空间(默认SPARK_HOME/work)
-            SPARK_WORKER_OPTS=                  # 仅适用于"-Dx=y"形式的worker的配置属性
-                                                > spark.worker.cleanup.enabled=false               # 启用worker/application目录的定期清理(只影响standalone模式, yarn工作模式不同). 默认false. 只清理已停止/超时application的文件或子目录
-                                                > spark.worker.cleanup.interval=1800               # 控制worker清理本地旧应用程序工作目录的时间间隔. 默认1800秒
-                                                > spark.worker.cleanup.appDataTtl=604800           # 在每个worker上保留应用程序工作目录的秒数. 默认7天
-                                                > spark.shuffle.service.db.enabled=true            # 
-                                                > spark.storage.cleanupFilesAfterExecutorExit=true # 在executor退出后启用清理工作目录的非shuffle文件(eg: temp, shuffle blocks, cached RDD/broadcast blocks, spill file等). 当前只对standalone模式生效
-                                                > spark.worker.ui.compressedLogFileLengthCacheSize=100             #  
+            SPARK_CONF_DIR=                     # spark配置文件目录. 默认${SPARK_HOME}/conf
+            SPARK_EXECUTOR_CORES=1              # executors使用的CPU核心数. 默认1
+            SPARK_EXECUTOR_MEMORY=1G            # executors使用的内存. 默认1G
+            SPARK_DRIVER_MEMORY=1G              # driver使用的内存. 默认1G
 
-            SPARK_DAEMON_MEMORY=1g              # 分配给master和worker自身的内存, 默认1g
-            SPARK_DAEMON_JAVA_OPTS=             # Spark master和worker进程本身的JVM选项, 格式为"-Dx=y"
-            SPARK_DAEMON_CLASSPATH=             # Spark master和worker进程本身的类路径, 默认none
-          workers
-          log4j.properties                      # 日志配置
-          spark-defaults.conf                   # spark属性, 由bin/spark-submit读取
-            spark.app.name  none                # application的名称
-            spark.driver.cores  1               # 用于driver process的vcpu数. 仅用于cluster mode
-            spark.driver.maxResultSize  1g      # 每个Spark操作(例如收集)的所有分区的序列化结果的总大小限制. 默认1g
-            spark.driver.memory 1g              # driver进程的内存大小. 默认1g
-            spark.driver.memoryOverhead         # 在cluster mode下每个driver程序的non-heap内存. 默认driver.memory * 0.1 最小为384M
-            spark.driver.resource.{resourceName}.amount 0         # 要在driver程序上使用的特定资源类型的数量
-            spark.driver.resource.{resourceName}.discoveryScript  # driver程序运行以发现特定资源类型的脚本
-            spark.driver.resource.{resourceName}.vendor           # 用于驱动程序的资源的供应商. 此选项目前仅在 Kubernetes 上受支持
-            spark.resources.discoveryPlugin 
-            spark.executor.memory 1g            # 每个executor程序进程使用的内存量
-            spark.executor.pyspark.memory       # 每个executor程序中分配给PySpark的内存量. 若未设置, Spark将不会限制Python的内存使用
-            spark.executor.memoryOverhead       # 每个executor程序进程要分配的额外内存量. 默认executor.memory * 0.1 最小为384M
-            spark.executor.resource.{resourceName}.amount 
-            spark.executor.resource.{resourceName}.discoveryScript  
-            spark.executor.resource.{resourceName}.vendor
+            SPARK_LAUNCHER_OPTS=                # 适用于"-Dx=y"形式的launcher的配置属性和java属性
+          -- hdfs
+            HADOOP_CONF_DIR=                    # 使用hdfs相关时的hadoop配置文件目录(一般包含hdfs-site.xml和core-site.xml)
+          -- yarn配置
+            YARN_CONF_DIR=                      # 使用yarn模式时的配置文件路径
+          -- 用于standalone配置
+            -- general
+              - log
+              SPARK_LOG_DIR=                      # 日志目录. 默认${SPARK_HOME}/logs
+              SPARK_LOG_MAX_FILES=5               # spark轮替的日志文件数. 默认5
+              - system
+              SPARK_PID_DIR=/tmp                  # spark pid文件目录. 默认/tmp
+              SPARK_IDENT_STRING=                 # 表示此spark实例的字符串. 默认$USER
+              SPARK_NICENESS=0                    # 该daemon的调度优先级. 默认0
+              SPARK_NO_DAEMONIZE                  # 前台启动spark
+              - daemon
+              SPARK_DAEMON_MEMORY=1g              # 分配给master, worker和history server自身的内存, 默认1g
+              SPARK_DAEMON_JAVA_OPTS=             # Spark master和worker进程本身的JVM选项, 格式为"-Dx=y"
+                                                  > spark.deploy.recoveryMode=          # 仅用于standalone模式, 在集群失败重启时的恢复模式(恢复提交的spark job). 可用ZOOKEEPER, FILESYSTEM, NONE(默认)
+                                                  > spark.deploy.zookeeper.url=         # 当spark.deploy.recoveryMode设置为ZOOKEEPER时, 该配置为连接zk的列表
+                                                  > spark.deploy.zookeeper.dir=         # 当spark.deploy.recoveryMode设置为ZOOKEEPER时, 该配置为zk的存储恢复状态的目录
 
-            spark.extraListeners                #   
-            spark.local.dir /tmp                # Spark中用于"scratch"空间的目录, 包括map输出文件和存储在磁盘上的RDD. 可为逗号分割的多个目录
-            spark.logConf false                 # 
-            spark.master                        # 要连接的集群管理器
-                                                > local: 使用一个工作线程在本地运行 Spark
-                                                > local[K]: 使用K个工作线程在本地运行Spark
-                                                > local[K,F]: 使用K个工作线程和F个maxFailures在本地运行Spark
-                                                > local[*]: 使用与node上的vcpu一样多的工作线程在本地运行 Spark
-                                                > local[*,F]: 
-                                                > local-cluster[N,C,M]: local-cluster模式仅用于单元测试.它在单个JVM中模拟分布式集群, 具有N个工作器, 每个工作器使用C个vcpu和M Mib内存
-                                                > spark://HOST:PORT : 连接到standalone cluster master. 默认为 7077
-                                                > spark://HOST1:PORT1,HOST2:PORT2  : 连接到使用zk的standalone cluster. 端口默认7077
-                                                > yarn: 连接到yarn集群(使用client mode或cluster mode). yarn配置必须在HADOOP_CONF_DIR或YARN_CONF_DIR中
-                                                > k8s://HOST:PORT: 使用client或cluster模式连接到Kubernetes集群. HOST和PORT指的是Kubernetes API服务器. 它默认使用TLS连接. 为了强制它使用不安全的连接,可使用k8s://http://HOST:PORT
-            spark.submit.deployMode             # 
-            spark.log.callerContext             # o
-            spark.driver.supervise  false       # 若为true, 则当driver以非0状态退出时自动重新启动. 仅对standalone和mesos模式有效
-            spark.driver.log.dfsDir             # o
-            spark.driver.log.persistToDfs.enabled false         # 
-            spark.driver.log.layout 
-            spark.driver.log.allowErasureCoding 
-        data:
-        jars:
+                                                  > spark.deploy.recoveryDirectory=     # Spark将存储恢复状态的目录, 可以从Master的角度访问
+              SPARK_DAEMON_CLASSPATH=             # Spark master和worker进程本身的类路径, 默认none
+              SPARK_SHUFFLE_OPTS=                 # 仅适用于"-Dx=y"形式的external shuffle service的配置属性
+            -- master
+              SPARK_MASTER_HOST=                  # 将master绑定到特定的主机名或IP地址(及7077端口的地址)
+              SPARK_MASTER_PORT=7077              # master端口, 默认7077 
+              SPARK_MASTER_WEBUI_PORT=8080        # master web ui的端口8080
+              SPARK_MASTER_OPTS=                  # 仅适用于"-Dx=y"形式的master的配置属性
+                                                  > spark.deploy.retainedApplications=200           # 在ui中显示已完成的application最大数量, 较旧的删除. 默认200
+                                                  > spark.deploy.retainedDrivers=200                # 在ui中显示已完成的driver最大数量. 较旧的删除. 默认200
+                                                  > spark.deploy.spreadOut=true                     # 在standalone中是否将application分散到各节点上(或整合到尽可能少的节点上). 对于hdfs上的局部性数据, 分散更好. 但对于计算密集型整合更好. 默认为true
+                                                  > spark.deploy.defaultCores=N                     # 若未设置spark.cores.max, 则使用N核心CPU(默认所有).
+                                                  > spark.deploy.maxExecutorRetries=10              # 
+                                                  > spark.worker.timeout=60                         # 在standalone中master未收到worker心跳的超时秒数(认为worker丢失)
+                                                  > spark.worker.resource.{resourceName}.amount=    # 在worker上使用的特定资源的数量. 默认为none
+                                                  > spark.worker.resource.{resourceName}.discoveryScript=           # 资源发现脚本的路径, 用于在worker启动时查找特定资源. 并且脚本的输出应该像ResourceInformation类一样格式化. 默认none
+                                                  > spark.worker.resourcesFile=                     # 资源文件的路径, 用于worker启动时查找各种资源
+
+            -- worker
+              SPARK_WORKER_CORES=                 # 允许Spark应用在服务器上使用的cpu核心总数, 默认所有可用CPU
+              SPARK_WORKER_MEMORY=                # 允许Spark应用在机器上使用的内存总量. 默认总内存-1G. 
+              SPARK_WORKER_PORT=                  # spark worker的端口(默认随机)
+              SPARK_WORKER_WEBUI_PORT=            # worker ui的端口(默认8081)
+              SPARK_WORKER_DIR=                   # 运行application的目录, 包含logs和临时空间(默认SPARK_HOME/work)
+              SPARK_WORKER_OPTS=                  # 仅适用于"-Dx=y"形式的worker的配置属性
+                                                  > spark.worker.cleanup.enabled=false               # 启用worker/application目录的定期清理(只影响standalone模式, yarn工作模式不同). 默认false. 只清理已停止/超时application的文件或子目录
+                                                  > spark.worker.cleanup.interval=1800               # 控制worker清理本地旧应用程序工作目录的时间间隔. 默认1800秒
+                                                  > spark.worker.cleanup.appDataTtl=604800           # 在每个worker上保留应用程序工作目录的秒数. 默认7天
+                                                  > spark.shuffle.service.db.enabled=true            # 
+                                                  > spark.storage.cleanupFilesAfterExecutorExit=true # 在executor退出后启用清理工作目录的非shuffle文件(eg: temp, shuffle blocks, cached RDD/broadcast blocks, spill file等). 当前只对standalone模式生效
+                                                  > spark.worker.ui.compressedLogFileLengthCacheSize=100             #  
+            -- history server
+              SPARK_HISTORY_OPTS=                 # 仅适用于"-Dx=y"形式的history server的配置属性
+
+        workers
+        log4j.properties                      # 日志配置
+        spark-defaults.conf                   # spark属性, 由bin/spark-submit读取
+          spark.app.name  none                # application的名称
+          spark.driver.cores  1               # 用于driver process的vcpu数. 仅用于cluster mode
+          spark.driver.maxResultSize  1g      # 每个Spark操作(例如收集)的所有分区的序列化结果的总大小限制. 默认1g
+          spark.driver.memory 1g              # driver进程的内存大小. 默认1g
+          spark.driver.memoryOverhead         # 在cluster mode下每个driver程序的non-heap内存. 默认driver.memory * 0.1 最小为384M
+          spark.driver.resource.{resourceName}.amount 0         # 要在driver程序上使用的特定资源类型的数量
+          spark.driver.resource.{resourceName}.discoveryScript  # driver程序运行以发现特定资源类型的脚本
+          spark.driver.resource.{resourceName}.vendor           # 用于驱动程序的资源的供应商. 此选项目前仅在 Kubernetes 上受支持
+          spark.resources.discoveryPlugin 
+          spark.executor.memory 1g            # 每个executor程序进程使用的内存量
+          spark.executor.pyspark.memory       # 每个executor程序中分配给PySpark的内存量. 若未设置, Spark将不会限制Python的内存使用
+          spark.executor.memoryOverhead       # 每个executor程序进程要分配的额外内存量. 默认executor.memory * 0.1 最小为384M
+          spark.executor.resource.{resourceName}.amount 
+          spark.executor.resource.{resourceName}.discoveryScript  
+          spark.executor.resource.{resourceName}.vendor
+
+          spark.extraListeners                #   
+          spark.local.dir /tmp                # Spark中用于"scratch"空间的目录, 包括map输出文件和存储在磁盘上的RDD. 可为逗号分割的多个目录
+          spark.logConf false                 # 
+          spark.master                        # 要连接的集群管理器
+                                              > local: 使用一个工作线程在本地运行 Spark
+                                              > local[K]: 使用K个工作线程在本地运行Spark
+                                              > local[K,F]: 使用K个工作线程和F个maxFailures在本地运行Spark
+                                              > local[*]: 使用与node上的vcpu一样多的工作线程在本地运行 Spark
+                                              > local[*,F]: 
+                                              > local-cluster[N,C,M]: local-cluster模式仅用于单元测试.它在单个JVM中模拟分布式集群, 具有N个工作器, 每个工作器使用C个vcpu和M Mib内存
+                                              > spark://HOST:PORT : 连接到standalone cluster master. 默认为 7077
+                                              > spark://HOST1:PORT1,HOST2:PORT2  : 连接到使用zk的standalone cluster. 端口默认7077
+                                              > yarn: 连接到yarn集群(使用client mode或cluster mode). yarn配置必须在HADOOP_CONF_DIR或YARN_CONF_DIR中
+                                              > k8s://HOST:PORT: 使用client或cluster模式连接到Kubernetes集群. HOST和PORT指的是Kubernetes API服务器. 它默认使用TLS连接. 为了强制它使用不安全的连接,可使用k8s://http://HOST:PORT
+          spark.submit.deployMode             # 
+          spark.log.callerContext             # o
+          spark.driver.supervise  false       # 若为true, 则当driver以非0状态退出时自动重新启动. 仅对standalone和mesos模式有效
+          spark.driver.log.dfsDir             # o
+          spark.driver.log.persistToDfs.enabled false         # 
+          spark.driver.log.layout 
+          spark.driver.log.allowErasureCoding 
+      data:                                   # 主要用于测试, 包含了一些示例数据和配置文件
+        graphx
+        mllib
+        streaming
+      jars:
+
+      kubernetes
+      python
+      R
+      yarn
 		进程/端口
       master:
         java:
@@ -120,12 +185,13 @@
       worker:
         java:
           8081: worker的Web端口
-          34818
+          port
       SparkSubmit:
         java:
           4040: Spark context Web UI
-          35555
+          port1, port2
 		编程接口
+      提供Java, Scala, Python和R的高级API
 		管理软件
 	命令
 		服务器
@@ -134,6 +200,65 @@
 	优化
 	安全
 	集群
+    说明: 有多种集群模式. Apache Mesos模式已弃用
+    部署模式:
+      Standalone Deploy Mode:
+        说明:  
+          1.在独立集群上运行spark, 使用自带的资源管理器. 
+          2.高可用模式利用zk提供leader选举并存储状态信息(一个alive master, 多个standby master)
+          3.整个恢复过程(从第一个leader宕机开始)需要1-2分钟, 此延迟仅影响新application的调度, 在故障转移期间已运行的application不受影响
+          4.worker或application启动时需要能找到并注册到leader master上. 一旦成功注册, 则信息会存储在zk中. 若leader发生故障. 新的leader\
+            会联系以前所有注册的application和worker并通知leader的变化. 故worker和application不需要知道新的master的存在
+        部署: 1 master, N worker
+          1.安装jdk1.8
+          2.安装spark
+            $ wget -c https://dlcdn.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop3.tgz
+            $ tar -xf spark-3.3.1-bin-hadoop3.tgz
+            $ ln -sv spark-3.3.1-bin-hadoop3 spark
+          3.配置环境变量
+            $ vim /etc/profile
+              export JAVA_HOME=/dream/jdk
+              export SPARK_HOME=/dream/spark
+              export PATH=$JAVA_HOME/bin:$PATH
+          4.在spark1上启动master
+            $ ./sbin/start-master.sh
+          5.启动多个worker
+            $ ./sbin/start-worker.sh spark://spark1:7077
+          5.查看集群
+            $ http://spark1:8080
+          6.连接到集群
+            $ ./bin/spark-shell --master spark://spark1:7077
+          7.关闭集群
+            $ ./sbin/stop-worker.sh
+            $ ./sbin/stop-master.sh
+        高可用模式部署: 
+          zk模式: 生产级模式. 从<部署>第4步开始.  3 master(1 alive, 2 standby), 3 worker
+            4.准备zk集群环境: zk1, zk2, zk3
+            5.在spark-env.sh中添加zk信息
+              SPARK_DAEMON_JAVA_OPTS="-Dspark.deploy.recoveryMode=ZOOKEEPER -Dspark.deploy.zookeeper.url=zk1:2181,zk2:2181,zk3:2181 -Dspark.deploy.zookeeper.dir=/spark-ha"
+            6.spark当前版本不支持使用账号连接zk, 故需要手动在zk上建立节点(默认无权限)
+              > create /spark-ha
+            7.启动3个master
+              $ ./sbin/start-master.sh
+            8.查看集群: 1 alive, 2 standby
+              $ http://spark1:8080
+              $ http://spark2:8080
+              $ http://spark3:8080
+            8.启动3个worker
+              $ ./sbin/start-worker.sh spark://spark1:7077,spark2:7077,spark3:7077
+            9.连接到集群
+              $ ./bin/spark-shell --master spark://spark1:7077,spark2:7077,spark3:7077
+          本地文件系统模式: 不推荐
+      Hadoop YARN: 
+        说明:
+          1.在YARN集群上运行spark.使用YARN提供的资源调度和管理功能. 通常将spark安装在yarn节点上, 然后在yarn上提交spark应用程序
+          2.通常将spark worker和yarn nodemanager部署在一台上. 两者都需要占用计算资源, 可以更好地利用机器资源
+        部署:
+      Kubernetes
+        说明: 在Kubernetes集群上运行Spark, 使用Kubernetes提供的容器编排和资源管理功能. 通常需要将Spark安装在Kubernetes集群中, 然后使用Kubernetes API部署Spark应用程序
+    Spark History Sever:
+      说明: eb服务器, 用于展示Spark应用程序的历史记录和统计数据
+      部署: 
 		
 具体服务相关
 	概念:
@@ -155,11 +280,26 @@
     4.spark scheduler将task调度到executor上并分配报告资源中的资源地址
     5.在driver上, 用户可使用分配的资源地址进行相关的处理
 
-  模块:
+    1.用户提交Spark应用程序
+    2.Driver程序启动, 连接到Master节点
+    3.Driver程序将Spark应用程序分成多个Task并发送给Master节点
+    4.Master节点分配Task给可用的Worker节点上的Executor节点
+    5.Executor节点执行Task, 将处理结果返回给Master节点
+    6.Master节点将Task的处理结果返回给Driver程序
+    7.Driver程序将Task的处理结果整合后返回给用户
 
+  资源分配:
+    standalone: 有两方面资源
+      1.worker资源配置
+      2.具体应用配置
+      
+  模块/子项目:
+		spark core: Spark中最基础与核心的功能, 其它功能都是在此之上进行扩展的
+		Spark SQL: 提供在大数据上的SQL查询功能
     Structured Streaming: 使用关系查询处理结构化数据流(使用Datasets和DataFrames, 比DStreams更新的API)
     Spark Streaming: 使用DStreams(旧API)处理数据流
+		GraphX: 用于图计算提供的框架和算法库
     MLlib: 应用机器学习算法
-    GraphX: 处理图
+
     
 	内部命令
