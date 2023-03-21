@@ -1,0 +1,64 @@
+简介
+	时间, 作者, 开发语言, 定义
+    由SoundCloud构建, 自2012年开始启动, 主体语言是go
+    是一个系统和服务监控系统. 它按给定的时间间隔从配置的目标收集指标, 评估规则表达式, 显示结果, 并可以在观察到指定条件时触发警报. 
+	官网: https://prometheus.io/
+	版本
+    2016年6月, 发布1.0版本
+    2017年底, 发布基于全新存储层的2.0版本, 更好地月容器平台和云平台配合
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    $ wget -c https://github.com/prometheus/prometheus/releases/download/v2.42.0/prometheus-2.42.0.linux-amd64.tar.gz
+    $ tar -xf prometheus-2.42.0.linux-amd64.tar.gz; ln -sv prometheus-2.42.0.linux-amd64 prometheus
+    $ vim prometheus.yml
+    $ ./prometheus --config.file=./prometheus.yml
+
+	结构
+		目录结构
+			安装目录
+        console_libraries  
+        consoles  
+        LICENSE  
+        NOTICE  
+        prometheus  
+        prometheus.yml                    # 配置文件
+          global:                         # 控制Prometheus服务器的全局配置
+            scrape_interval: 15s          # 控制Prometheus抓取目标的频率, 默认1分钟
+            evaluation_interval: 15s      # 控制Prometheus评估规则的频率. Prometheus使用规则来创建新的时间序列并生成警报.默认1分钟
+          alerting:                       # 告警配置
+          rule_files:                     # 告警规则
+          scrape_configs:                 # 控制Prometheus监控的资源. 每个target用job_name命名. 又分为静态配置和服务发现
+
+        data:                             # 默认在./data目录下存储自身数据(--storage.tsdb.path)
+            
+        promtool
+		进程/端口
+      prometheus: 9090
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群
+		
+具体服务相关
+	概念:
+		原理
+  组件: Prometheus生态系统由多个组件组成, 其中许多组件是可选的
+    Prometheus server: 抓取和存储时间序列数据
+    client libraries: 用于检测应用程序代码的客户端库
+    push gateway: 支持短期工作的推送网关
+    exporters: 用于服务的特殊用途
+    alertmanager: 处理警报
+    其它支持的工具
+  配置:
+    promethues通过命令行和配置文件进行配置.
+
+    
+	内部命令

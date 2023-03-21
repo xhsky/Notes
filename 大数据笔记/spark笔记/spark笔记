@@ -57,7 +57,7 @@
         fairscheduler.xml
         metrics.properties
         spark-env.sh                          # 环境变量配置
-          -- 通用
+          > 通用
             JAVA_HOME=/path                     # 
             PYSPARK_PYTHON=/path                # 用于驱动程序和workers程序中的PySpark的Python二进制可执行文件(如果可用, 默认为python3,否则为python)
             PYSPARK_DRIVER_PYTHON=/path         # 用于驱动程序中的PySpark的Python二进制可执行文件, 默认PYSPARK_PYTHON
@@ -72,12 +72,12 @@
             SPARK_DRIVER_MEMORY=1G              # driver使用的内存. 默认1G
 
             SPARK_LAUNCHER_OPTS=                # 适用于"-Dx=y"形式的launcher的配置属性和java属性
-          -- hdfs
+          > hdfs
             HADOOP_CONF_DIR=                    # 使用hdfs相关时的hadoop配置文件目录(一般包含hdfs-site.xml和core-site.xml)
-          -- yarn配置
+          > yarn配置
             YARN_CONF_DIR=                      # 使用yarn模式时的配置文件路径
-          -- 用于standalone配置
-            -- general
+          > 用于standalone配置
+            > general
               - log
               SPARK_LOG_DIR=                      # 日志目录. 默认${SPARK_HOME}/logs
               SPARK_LOG_MAX_FILES=5               # spark轮替的日志文件数. 默认5
@@ -88,15 +88,15 @@
               SPARK_NO_DAEMONIZE                  # 前台启动spark
               - daemon
               SPARK_DAEMON_MEMORY=1g              # 分配给master, worker和history server自身的内存, 默认1g
-              SPARK_DAEMON_JAVA_OPTS=             # Spark master和worker进程本身的JVM选项, 格式为"-Dx=y"
+              SPARK_DAEMON_JAVA_OPTS=             # Spark master, worker, history server进程本身的JVM选项, 格式为"-Dx=y"
                                                   > spark.deploy.recoveryMode=          # 仅用于standalone模式, 在集群失败重启时的恢复模式(恢复提交的spark job). 可用ZOOKEEPER, FILESYSTEM, NONE(默认)
                                                   > spark.deploy.zookeeper.url=         # 当spark.deploy.recoveryMode设置为ZOOKEEPER时, 该配置为连接zk的列表
                                                   > spark.deploy.zookeeper.dir=         # 当spark.deploy.recoveryMode设置为ZOOKEEPER时, 该配置为zk的存储恢复状态的目录
 
                                                   > spark.deploy.recoveryDirectory=     # Spark将存储恢复状态的目录, 可以从Master的角度访问
-              SPARK_DAEMON_CLASSPATH=             # Spark master和worker进程本身的类路径, 默认none
+              SPARK_DAEMON_CLASSPATH=             # Spark master, worker, history server进程本身的类路径, 默认none
               SPARK_SHUFFLE_OPTS=                 # 仅适用于"-Dx=y"形式的external shuffle service的配置属性
-            -- master
+            > master
               SPARK_MASTER_HOST=                  # 将master绑定到特定的主机名或IP地址(及7077端口的地址)
               SPARK_MASTER_PORT=7077              # master端口, 默认7077 
               SPARK_MASTER_WEBUI_PORT=8080        # master web ui的端口8080
@@ -110,8 +110,7 @@
                                                   > spark.worker.resource.{resourceName}.amount=    # 在worker上使用的特定资源的数量. 默认为none
                                                   > spark.worker.resource.{resourceName}.discoveryScript=           # 资源发现脚本的路径, 用于在worker启动时查找特定资源. 并且脚本的输出应该像ResourceInformation类一样格式化. 默认none
                                                   > spark.worker.resourcesFile=                     # 资源文件的路径, 用于worker启动时查找各种资源
-
-            -- worker
+            > worker
               SPARK_WORKER_CORES=                 # 允许Spark应用在服务器上使用的cpu核心总数, 默认所有可用CPU
               SPARK_WORKER_MEMORY=                # 允许Spark应用在机器上使用的内存总量. 默认总内存-1G. 
               SPARK_WORKER_PORT=                  # spark worker的端口(默认随机)
@@ -124,8 +123,17 @@
                                                   > spark.shuffle.service.db.enabled=true            # 
                                                   > spark.storage.cleanupFilesAfterExecutorExit=true # 在executor退出后启用清理工作目录的非shuffle文件(eg: temp, shuffle blocks, cached RDD/broadcast blocks, spill file等). 当前只对standalone模式生效
                                                   > spark.worker.ui.compressedLogFileLengthCacheSize=100             #  
-            -- history server
-              SPARK_HISTORY_OPTS=                 # 仅适用于"-Dx=y"形式的history server的配置属性
+          > history server
+            #SPARK_DAEMON_MEMORY=                 # 此三者已在standalone处配置, 不可重复
+            #SPARK_DAEMON_JAVA_OPTS=
+            #SPARK_DAEMON_CLASSPATH=
+            SPARK_HISTORY_OPTS=                   # 仅适用于"-Dx=y"形式的history server的配置属性(spark.history.*)
+                                                  > spark.history.provider=org.apache.spark.deploy.history.FsHistoryProvider    # 实现history后端的类的名称. 当前只有一种实现, 由spark提供, 它会查找存储在文件系统中的程序日志
+                                                  > spark.history.fs.logDirectory=file:/tmp/spark-events                        # 应用日志目录的URL. 可选file://path, hdfs://namenode/path等
+                                                  > spark.history.ui.port=18080                                                 # history server Web UI的端口
+                                                  > spark.history.fs.update.interval=10s
+                                                  > spark.history.retainedApplications=50
+                                                  > spark.history.ui.maxApplications=
 
         workers
         log4j.properties                      # 日志配置
@@ -167,6 +175,9 @@
           spark.driver.log.persistToDfs.enabled false         # 
           spark.driver.log.layout 
           spark.driver.log.allowErasureCoding 
+          > history server
+            spark.eventLog.enabled  true      # 将UI上显示的信息(spark event)编码到持久化存储上
+
       data:                                   # 主要用于测试, 包含了一些示例数据和配置文件
         graphx
         mllib
@@ -178,18 +189,23 @@
       R
       yarn
 		进程/端口
-      master:
-        java:
-          7077: Master通信端口
-          8080: Standalone模式Master Web端口
-      worker:
-        java:
-          8081: worker的Web端口
-          port
-      SparkSubmit:
-        java:
-          4040: Spark context Web UI
-          port1, port2
+      standalone:
+        master:
+          java:
+            7077: Master通信端口
+            8080: Standalone模式Master Web端口
+        worker:
+          java:
+            8081: worker的Web端口
+            port
+      history server:
+        HistoryServer:
+          java: 18080
+      common:
+        SparkSubmit:
+          java:
+            4040/4041/4042/...: Spark context Web UI
+            port1, port2
 		编程接口
       提供Java, Scala, Python和R的高级API
 		管理软件
@@ -257,14 +273,36 @@
       Kubernetes
         说明: 在Kubernetes集群上运行Spark, 使用Kubernetes提供的容器编排和资源管理功能. 通常需要将Spark安装在Kubernetes集群中, 然后使用Kubernetes API部署Spark应用程序
     Spark History Sever:
-      说明: eb服务器, 用于展示Spark应用程序的历史记录和统计数据
+      说明: web服务器, 用于展示Spark应用程序的历史记录和统计数据
       部署: 
+        1.修改配置
+          $ vim conf/spark-defaults.conf
+            spark.eventLog.enabled                true
+            spark.eventLog.dir                    hdfs://haCluster/spark-events
+            spark.yarn.historyServer.address      hadoop1:18080
+            spark.history.ui.port                 18080
+          $ vim conf/spark-env.sh
+            SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=hdfs://haCluster/spark-events -Dspark.history.ui.port=18080"
+          $ vim <hadoop_home>/etc/hadoop/yarn-site.xml
+            <property>
+              <name>yarn.log-aggregation-enable</name>
+              <value>true</value>
+            </property>
+        2.建立event目录
+          $ ./bin/hdfs dfs -mkdir /spark-events
+        3.启动
+          $ ./sbin/start-history-server.sh
+        4.直接访问
+          $ http://hadoop1:18080/
+        5.通过yarn访问
+          $ http://hadoop1:8088/ 
 		
 具体服务相关
 	概念:
     Application: 基于Spark构建的用户程序. 由集群上的Driver program和executors组成
-    Driver program: 运行main()函数并创建SparkContext的进程
+    Driver program: 运行main()函数并创建SparkContext的进程. 通过该进程将任务发给executor
     Executor: 在worker node上启动的进程, 它运行tasks并在内存/磁盘中保存数据
+
     Worker node: 运行application code的节点
     Task: 发送给executer的work unit
     Cluster manager: 用于获取集群资源的外部服务(standalone manager, Mesos, YARN, Kubernetes)
@@ -281,12 +319,25 @@
     5.在driver上, 用户可使用分配的资源地址进行相关的处理
 
     1.用户提交Spark应用程序
-    2.Driver程序启动, 连接到Master节点
+    2.Driver程序启动(在客户端节点), 连接到Master节点
     3.Driver程序将Spark应用程序分成多个Task并发送给Master节点
     4.Master节点分配Task给可用的Worker节点上的Executor节点
     5.Executor节点执行Task, 将处理结果返回给Master节点
     6.Master节点将Task的处理结果返回给Driver程序
     7.Driver程序将Task的处理结果整合后返回给用户
+  监控:
+    说明:
+    方式:
+      Web UI:
+        说明: 
+          1.每个SparkContext都会启动一个Web UI. 默认在4040端口上显示有关应用程序的信息(调度程序阶段和任务的列表, RDD大小和内存使用情况的总结, 环境信息, 有关正在运行的执行程序的信息)
+          2.访问方式为http://<driver-node>:4040. 若多个SparkContext在同一主机上运行, 则绑定到以4040, 4041开头的连续端口
+          3.4040端口的信息仅在申请是可查, 若要在application结束后查看, 需要配置history server
+
+  
+  standalone模式下有两种运行方式:
+    client模式: 驱动程序与提交应用程序的客户端在同一进程中启动
+    cluster模式: 驱动程序从集群内的一个工作进程启动, 客户端进程在完成提交应用程序的责任后立即退出, 而无需等待应用程序完成
 
   资源分配:
     standalone: 有两方面资源

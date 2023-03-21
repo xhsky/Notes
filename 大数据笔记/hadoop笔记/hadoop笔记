@@ -247,7 +247,7 @@
               dfs.client.failover.proxy.provider.<nameservice>:                   # HDFS客户端用来联系Active NameNode的Java类, 以确定哪个NameNode是当前活动的
               dfs.client.failover.observer.auto-msync-period.<nameservice>: 500ms # 指定该时间后, 若client state ID未从active更新, 则自动执行msync(). 若指定为0, 则每次读取操作之前都会执行msync(). 为负值则不执行
 
-            - permaission
+            - permission
               dfs.permissions.enabled: true                                       # 默认为true, true:在hdfs上启用权限检查,false:将权限检查关闭. 从一个参数值切换到另一个参数值不会更改文件或目录的模式、所有者或组
               dfs.permissions.superusergroup: supergroup                          # 默认值supergroup,超级用户组的名称
               dfs.namenode.acls.enabled: true                                     # 默认true. 是否启用hdfs的acl,当禁用时,namenode将拒绝所有设置或获取acl相关的rpc
@@ -1415,6 +1415,8 @@
                 ./bin/hdfs haadmin -getAllServiceState
               8.启动datanode
                 $ ./bin/hdfs  --daemon start datanode
+              9.查看datanode集群
+                $ ./bin/hdfs dfsadmin -report
         传统共享存储: nfs
 					原理: 在活动和备用NameNode之间共享编辑日志
             1.配置多个namenode, 但只有一个namenode处于active状态(负责集群中的所有客户端操作), 其它处于standby状态(充当worker, 维护足够的状态以在必要时提供快速故障转移)
@@ -1972,5 +1974,4 @@
 
 
 	内部命令
-	
 	
