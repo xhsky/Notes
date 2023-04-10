@@ -1,0 +1,168 @@
+简介
+	时间, 作者, 开发语言, 定义
+    由SoundCloud构建, 自2012年开始启动, 主体语言是go
+    是一个系统和服务监控系统. 它按给定的时间间隔从配置的目标收集指标, 评估规则表达式, 显示结果, 并可以在观察到指定条件时触发警报. 
+	官网: https://prometheus.io/
+	版本
+    2016年6月, 发布1.0版本
+    2017年底, 发布基于全新存储层的2.0版本, 更好地月容器平台和云平台配合
+	协议
+适用性(优缺)
+架构
+	模块
+	安装
+    $ wget -c https://github.com/prometheus/prometheus/releases/download/v2.42.0/prometheus-2.42.0.linux-amd64.tar.gz
+    $ tar -xf prometheus-2.42.0.linux-amd64.tar.gz; ln -sv prometheus-2.42.0.linux-amd64 prometheus
+    $ vim prometheus.yml
+    $ nohup ./prometheus &>prometheus.log &
+
+	结构
+		目录结构
+			安装目录
+        console_libraries/                        # 包含可在Prometheus Web中使用的JS库, 通常是为了增强或定制Prometheus Web界面的功能而编写的  
+        consoles/                                 # 包含可以在Prometheus Web界面中使用的面板配置文件
+        prometheus                                # 二进制文件, 用于启动Prometheus服务器
+          --version
+          --config.file=prometheus.yaml           # 配置文件路径
+          --web.list-address=0.0.0.0:9090         # 监听UI, API和telemetry的地址
+          --web.config.file=""                    # 可以启用TLS或身份验证的配置文件的路径
+          --web.read-timeout=5m                   # 读取请求和关闭空闲连接的最大超时时间
+          --web.max-connections=512               # 最大同时连接数
+          --web.external-url=<url>                # 外部可访问的prometheus的URL(通过反向代理提供服务). 用于返回到Prometheus本身的相对和绝对链接. 如果URL有路径部分, 则为Prometheus服务的所有http端点添加浅醉, 如果省略则自动派生相关URL组件
+          --web.route-prefix=<path>               # web端点的内部路由前缀,默认为web.external-url的路径
+          --web.user-assets=<path>                # 静态asset目录的路径, 位于/user
+          --web.enable-lifecycle                  # 启用通过http请求来shutdown和reload
+          --web.enable-admin-api                  # 为admin控制请求启用API端点
+          --web.enable-remote-write-receiver      # 启用API端点以接收远程写请求
+          --web.console.template=console          # console模板目录的路径, 在/console
+          --web.console.libraries=console_libraries   # console库目录的路径
+
+          --web.page-title="Prometheus Time Series Collection and Processing Server"        # Prometheus实例的文档标题
+
+          --web.cors.origin=".*"                  # CORS来源的正则表达式
+
+          --storage.tsdb.path=data/               # 指标存储的基本路径. 仅用于server mode
+          --storage.tsdb.retention.time=STORAGE.TSDB.RETENTION.TIME                               # 样本在存储中保留的时间.默认15d. 仅用于server mode
+          --storage.tsdb.retention.size=STORAGE.TSDB.RETENTION.SIZE                               # 存储块的最大字节数. 仅用于server mode
+          --storage.tsdb.no-lockfile                                                              # 在data目录不创建lockfile,  仅用于server mode
+          --storage.tsdb.head-chunks-write-queue-size=0                                           # 
+
+          --storage.agent.path="data-agent/"      # metrics存储的路径. 仅用于agent模式
+          --storage.agent.wal-compression         # 启用agent WAL压缩. 仅用于agent模式
+          --storage.agent.retention.min-time=STORAGE.AGENT.RETENTION.MIN-TIME                     # 
+          --storage.agent.retention.max-time=STORAGE.AGENT.RETENTION.MAX-TIME                     # 
+          --storage.agent.no-lockfile             # 在data目录不创建lockfile, 仅用于agent mode
+
+          --storage.remote.flush-deadline=<duration>                                              # 在关机或重载配置文件时等待样本刷新的时间
+          --storage.remote.read-sample-limit=5e7  # 在单个查询中, 通过远程读取接口返回的最大样本总数. 0表示没有限制. 在流式响应类型则忽略,.  仅用于server mode
+          --storage.remote.read-concurrent-limit=10                                               # 最大并发远程读取调用数
+          --storage.remote.read-max-bytes-in-frame=1048576                                        # 
+
+          --rules.alert.for-outage-tolerance=1h   # 容忍Prometheus中断以恢复"for"警报状态的最长时间. 仅用于server mode
+          --rules.alert.for-grace-period=10m      # 仅用于server mode
+          --rules.alert.resend-delay=1m           # 在向Alertmanager重新发送警报之前等待的最短时间. 仅用于server mode
+          --alertmanager.notification-queue-capacity=10000                                        # 仅用于server mode
+
+          --query.lookback-delta=5m               # 仅用于server mode
+          --query.timeout=2m                      # 查询的超时时间(超过则终止), 仅用于server mode
+          --query.max-concurrency=20              # 最大的并发查询数. 仅用于server mode
+          --query.max-samples=50000000            # 单个查询可以加载到内存的最大样本数. 仅用于server mode
+          --enable-feature= ...                   # 要启用的逗号分割的功能名称
+
+          --log.level=info                        # 指定日志级别. 可用debug, info, warn, error
+          --log.format=logfmt                     # 指定日志格式. logfmt, json
+        prometheus.yml                            # 配置文件
+          global:                                 # 控制Prometheus服务器的全局配置
+            scrape_interval: 15s                  # 控制Prometheus抓取target的频率, 默认1分钟
+            scrape_timeout: 10s                   # 抓取target的超时时间. 默认10s
+            evaluation_interval: 15s              # 控制Prometheus评估规则的频率. Prometheus使用规则来创建新的时间序列并生成警报.默认1分钟
+          alerting:                               # 告警配置
+          rule_files:                             # 告警规则
+          scrape_configs:                         # 控制Prometheus监控的资源. 每个target用job_name命名. 又分为静态配置和服务发现
+            - job_name: <job_name>                # 任务名称, 必须唯一
+              scrape_interval: N                  # 默认global_config.scrape_interval
+              scrape_timeout: N                   # 默认global_config.scrape_timeout
+              metrics_path: </path>               # 从target获取metric的http资源路径. 默认/metrics
+              scheme: <schema>                    # 配置请求使用的协议. 默认http
+              params:                             # 可选的http url参数
+              basic_auth:                         # 在每个抓取请求上设置`Authorization`标头, 配置用户名和密码. password和password_file是互斥的
+                username: <str>
+                password: <str>
+                password_file: <str>
+              static_configs:             # 静态配置的alertmanagers列表
+                - targets: ["node:port","node:port"]
+        data/                                     # 默认在./data目录下存储自身数据(--storage.tsdb.path). 存储所有时间序列数据
+          wal/                                    # 写入日志的WAL
+          rules/                                  # 告警规则配置文件
+        promtool [flag] [commond] [args]          # 用于验证和测试Prometheus配置文件的命令行工具
+          flags
+            --version                       
+            --help
+          commond: help [command]
+            > check
+              check service-discovery <config-file> <job_name>        # 对job_name执行服务发现并报告结果, 包括relabeling
+              check config <config-file>                              # 检测config-file是否可用
+              check web-config <web-config-files>                     # 检测web-config-file是否可用
+              check rules <rule-files>                                # 检测rules-file是否可用
+              check metrics                                           # 通过stdin传递给prometheus指标以检查它们的一致性和正确性
+            > query
+              query instant <server> <expr>                           # 运行instant查询
+              query range <server> <expr>                             # 运行range查询
+              query series --match=MATCH <server>                     # 运行series查询
+              query labels <server> <name>                            # 运行labels查询
+            > debug
+              debug pprof <server>                                    # 获取profiling调试信息
+              debug metrics <server>                                  # 获取metrics调试信息
+              debug all <server>                                      # 获取所有调试信息
+            > test
+              test rules <test-rule-file>                             # rules的单元测试
+            > tsdb
+              tsdb bench write <file>                                 # 运行一个写入性能测试
+              tsdb analyze <db path> <block id>                       # 分析chrun, label pair cardinality和压缩效率
+              tsdb list <db path>                                     # 列出tsdbblocks
+              tsdb dump <db path>                                     # 从TSDB转储样本
+              tsdb create-blocks-from openmetrics <input file> 
+              tsdb create-blocks-from --start=START <fule-files> ...
+		进程/端口
+      prometheus: 9090
+
+      grafana: 3000
+		编程接口
+		管理软件
+	命令
+		服务器
+		客户端
+	日志
+	优化
+	安全
+	集群:
+
+    node_exporter:
+      安装:
+        $ wget -c https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+        $ tar -xf node_exporter-1.5.0.linux-amd64.tar.gz
+        $ ln -sv node_exporter-1.5.0.linux-amd64 node_exporter
+
+    grafana:
+      安装:
+        $ wget https://dl.grafana.com/enterprise/release/grafana-enterprise-9.4.7.linux-amd64.tar.gz
+        $ tar -xf grafana-enterprise-9.4.7.linux-amd64.tar.gz
+        $ ln -sv grafana-9.4.7 grafana
+具体服务相关
+	概念:
+		原理
+  组件: Prometheus生态系统由多个组件组成, 其中许多组件是可选的
+    Prometheus server: 抓取和存储时间序列数据
+    client libraries: 用于检测应用程序代码的客户端库
+    push gateway: 支持短期工作的推送网关
+    exporters: 用于服务的特殊用途
+    alertmanager: 处理警报
+    其它支持的工具:
+      node_exporter: *nix的硬件和操作系统指标, 用Go语言编写, 带有可插拔指标收集器
+  配置:
+    promethues通过命令行和配置文件进行配置.
+      命令行: 配置不可变的系统参数(存储位置, 存储在磁盘和内存的数据等)
+      配置文件: 定义抓取作业及其实例相关的内容, 及哪些规则文件加载
+
+    
+	内部命令
